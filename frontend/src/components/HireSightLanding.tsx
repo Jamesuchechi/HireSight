@@ -18,13 +18,15 @@ import {
   Shield,
   Loader
 } from 'lucide-react';
-import type { SignInPayload, SignUpPayload, AuthRole } from '../types';
+import type { SignInPayload, SignUpPayload, AccountType } from '../types';
+import Footer from './Footer';
+import Logo from './Logo';
 
 type AuthFormState = {
   fullName: string;
   email: string;
   password: string;
-  role: AuthRole;
+  accountType: AccountType;
   companyName: string;
 };
 
@@ -39,7 +41,7 @@ const AUTH_FORM_DEFAULT: AuthFormState = {
   fullName: '',
   email: '',
   password: '',
-  role: 'job_seeker',
+  accountType: 'personal',
   companyName: ''
 };
 
@@ -70,11 +72,11 @@ export default function HireSightLanding({ onSignIn, onSignUp, authError, isLoad
       setFormData((prev) => ({ ...prev, [field]: e.target.value }));
     };
 
-  const handleRoleChange = (role: AuthRole) => {
+  const handleRoleChange = (accountType: AccountType) => {
     setFormData((prev) => ({
       ...prev,
-      role,
-      companyName: role === 'company' ? prev.companyName : ''
+      accountType,
+      companyName: accountType === 'company' ? prev.companyName : ''
     }));
   };
 
@@ -89,12 +91,12 @@ export default function HireSightLanding({ onSignIn, onSignUp, authError, isLoad
     }
 
     await onSignUp({
-      full_name: formData.fullName.trim(),
+      name: formData.fullName.trim(),
       email: formData.email.trim(),
       password: formData.password,
-      role: formData.role,
+      account_type: formData.accountType,
       company_name:
-        formData.role === 'company' ? formData.companyName.trim() || undefined : undefined
+        formData.accountType === 'company' ? formData.companyName.trim() || undefined : undefined
     });
   };
 
@@ -349,30 +351,6 @@ export default function HireSightLanding({ onSignIn, onSignUp, authError, isLoad
           background: rgba(255, 255, 255, 0.9);
           border-bottom-color: var(--gray-200);
           box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-        }
-
-        .logo {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          font-family: 'Clash Display', sans-serif;
-          font-size: 1.75rem;
-          font-weight: 700;
-          color: var(--gray-900);
-          text-decoration: none;
-        }
-
-        .logo-icon {
-          width: 44px;
-          height: 44px;
-          background: linear-gradient(135deg, var(--blue), var(--cyan));
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: white;
-          font-weight: 700;
-          font-size: 1.35rem;
         }
 
         .nav {
@@ -1328,10 +1306,7 @@ export default function HireSightLanding({ onSignIn, onSignUp, authError, isLoad
 
       {/* Header */}
       <header className={`header ${scrollY > 50 ? 'scrolled' : ''}`}>
-        <a href="#" className="logo">
-          <div className="logo-icon">H</div>
-          <span>HireSight</span>
-        </a>
+        <Logo size="medium" animated={true} />
         <nav className="nav">
           <a href="#features" className="nav-link">
             Features
@@ -1641,21 +1616,21 @@ export default function HireSightLanding({ onSignIn, onSignUp, authError, isLoad
                 <div className="role-selector">
                   <button
                     type="button"
-                    className={`role-pill ${formData.role === 'job_seeker' ? 'active' : ''}`}
-                    onClick={() => handleRoleChange('job_seeker')}
+                    className={`role-pill ${formData.accountType === 'personal' ? 'active' : ''}`}
+                    onClick={() => handleRoleChange('personal')}
                   >
                     Job Seeker
                   </button>
                   <button
                     type="button"
-                    className={`role-pill ${formData.role === 'company' ? 'active' : ''}`}
+                    className={`role-pill ${formData.accountType === 'company' ? 'active' : ''}`}
                     onClick={() => handleRoleChange('company')}
                   >
                     Company
                   </button>
                 </div>
               )}
-              {authMode === 'signup' && formData.role === 'company' && (
+              {authMode === 'signup' && formData.accountType === 'company' && (
                 <input
                   type="text"
                   placeholder="Company / Business name"
@@ -1683,6 +1658,8 @@ export default function HireSightLanding({ onSignIn, onSignUp, authError, isLoad
           </div>
         </div>
       )}
+
+      <Footer />
     </div>
   );
 }

@@ -31,14 +31,16 @@ export type CandidatePreview = {
   status: string;
 };
 
-export type AuthRole = 'job_seeker' | 'company';
+export type AccountType = 'personal' | 'company';
 
 export type AuthUser = {
   id: string;
-  full_name: string;
   email: string;
-  role: AuthRole;
-  company_name?: string;
+  account_type: AccountType;
+  is_verified: boolean;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 };
 
 export type SignInPayload = {
@@ -47,9 +49,9 @@ export type SignInPayload = {
 };
 
 export type SignUpPayload = SignInPayload & {
-  full_name: string;
-  role: AuthRole;
+  name: string;
   company_name?: string;
+  account_type: AccountType;
 };
 
 export type AuthResponse = {

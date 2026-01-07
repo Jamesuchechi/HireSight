@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Home,
   Upload,
@@ -25,6 +25,9 @@ import {
   Loader
 } from 'lucide-react';
 import type { AuthUser } from '../types';
+import Profile from './Profile';
+import Footer from './Footer';
+import Logo from './Logo';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -99,6 +102,25 @@ export default function Dashboard({
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect mobile screen size
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      // Close sidebar on mobile by default
+      if (mobile) {
+        setSidebarOpen(false);
+      } else {
+        setSidebarOpen(true);
+      }
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Navigation configuration
   const navSections = [
@@ -203,12 +225,17 @@ export default function Dashboard({
           background: var(--gray-50);
           color: var(--gray-900);
           overflow-x: hidden;
+          scroll-behavior: smooth;
         }
 
         .dashboard {
           display: flex;
-          min-height: 100vh;
+          flex-direction: column;
+          height: 100vh;
           position: relative;
+          overflow-x: hidden;
+          overflow-y: auto;
+          scroll-behavior: smooth;
         }
 
         /* ============================================================================
@@ -236,33 +263,6 @@ export default function Dashboard({
         .sidebar-header {
           padding: 1.5rem;
           border-bottom: 1px solid var(--gray-200);
-        }
-
-        .logo {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          text-decoration: none;
-          color: var(--gray-900);
-        }
-
-        .logo-icon {
-          width: 44px;
-          height: 44px;
-          background: linear-gradient(135deg, var(--blue), var(--cyan));
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: white;
-          font-weight: 700;
-          font-size: 1.35rem;
-        }
-
-        .logo-text {
-          font-family: 'Clash Display', sans-serif;
-          font-size: 1.5rem;
-          font-weight: 700;
         }
 
         .sidebar-nav {
@@ -405,7 +405,6 @@ export default function Dashboard({
           flex: 1;
           margin-left: 280px;
           transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          min-height: 100vh;
           display: flex;
           flex-direction: column;
         }
@@ -431,12 +430,18 @@ export default function Dashboard({
         }
 
         .menu-toggle {
-          display: none;
           background: none;
           border: none;
           cursor: pointer;
           color: var(--gray-700);
           padding: 0.5rem;
+          border-radius: 8px;
+          transition: all 0.2s ease;
+        }
+
+        .menu-toggle:hover {
+          background: var(--gray-100);
+          color: var(--gray-900);
         }
 
         .search-bar {
@@ -1006,8 +1011,72 @@ export default function Dashboard({
         }
 
         /* ============================================================================
-           MOBILE OVERLAY
+           FOOTER
            ============================================================================ */
+
+        .dashboard-footer {
+          background: var(--white);
+          border-top: 1px solid var(--gray-200);
+          padding: 2rem;
+          margin-top: auto;
+        }
+
+        .footer-content {
+          max-width: 1200px;
+          margin: 0 auto;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 1rem;
+        }
+
+        .footer-logo {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+        }
+
+        .footer-logo .logo-text {
+          font-family: 'Clash Display', sans-serif;
+          font-size: 1.25rem;
+          font-weight: 700;
+          color: var(--gray-900);
+        }
+
+        .footer-links {
+          display: flex;
+          gap: 2rem;
+        }
+
+        .footer-link {
+          color: var(--gray-600);
+          text-decoration: none;
+          font-size: 0.9rem;
+          transition: color 0.2s ease;
+        }
+
+        .footer-link:hover {
+          color: var(--blue);
+        }
+
+        .footer-copyright {
+          color: var(--gray-500);
+          font-size: 0.85rem;
+        }
+
+        @media (max-width: 768px) {
+          .footer-content {
+            flex-direction: column;
+            text-align: center;
+          }
+
+          .footer-links {
+            order: 3;
+            width: 100%;
+            justify-content: center;
+          }
+        }
 
         .sidebar-overlay {
           display: none;
@@ -1095,10 +1164,7 @@ export default function Dashboard({
       {/* Sidebar */}
       <aside className={`sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
         <div className="sidebar-header">
-          <a href="#" className="logo">
-            <div className="logo-icon">H</div>
-            <span className="logo-text">HireSight</span>
-          </a>
+          <Logo size="small" animated={true} />
         </div>
 
         <nav className="sidebar-nav">
@@ -1122,14 +1188,14 @@ export default function Dashboard({
         </nav>
 
         <div className="sidebar-footer">
-          <div className="user-profile" onClick={onSignOut}>
+          <div className="user-profile" onClick={() => handleNavigation('profile')}>
             <div className="user-avatar">
               {user.avatar || getInitials(user.full_name)}
             </div>
             <div className="user-info">
               <div className="user-name">{user.full_name}</div>
               <div className="user-role">
-                {user.role === 'company' ? 'Company Partner' : 'Talent Seeker'}
+                {user.account_type === 'company' ? 'Company Partner' : 'Talent Seeker'}
               </div>
             </div>
             <ChevronDown size={16} />
@@ -1168,6 +1234,9 @@ export default function Dashboard({
               <Bell size={20} />
               <span className="notification-badge"></span>
             </button>
+            <button className="icon-button" onClick={onSignOut} type="button" title="Sign Out">
+              <ChevronDown size={20} />
+            </button>
             <button className="primary-button" type="button">
               <Plus size={20} />
               <span>New Job</span>
@@ -1177,156 +1246,179 @@ export default function Dashboard({
 
         {/* Content */}
         <div className="content">
-          <div className="page-header">
-            <h1 className="page-title">Dashboard Overview</h1>
-            <p className="page-subtitle">
-              Welcome back, {firstName}! Here's your recruitment overview.
-            </p>
-          </div>
-
-          {/* Stats Grid */}
-          {stats.length > 0 && (
-            <div className="stats-grid">
-              {stats.map((stat, index) => (
-                <div key={index} className="stat-card">
-                  <div className="stat-header">
-                    <div className={`stat-icon ${stat.color}`}>
-                      <stat.icon size={24} />
-                    </div>
-                    {stat.change && (
-                      <div className={`stat-change ${stat.trend === 'down' ? 'down' : ''}`}>
-                        <TrendingUp size={14} />
-                        <span>{stat.change}</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="stat-value">{stat.value}</div>
-                  <div className="stat-label">{stat.label}</div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Main Cards Grid */}
-          <div className="cards-grid">
-            {/* Candidates List */}
-            <div className="card wide">
-              <div className="card-header">
-                <h2 className="card-title">Recent Candidates</h2>
-                {candidates.length > 0 && (
-                  <a href="#" className="card-action">
-                    View All
-                    <ExternalLink size={14} />
-                  </a>
-                )}
+          {activeTab === 'overview' && (
+            <>
+              <div className="page-header">
+                <h1 className="page-title">Dashboard Overview</h1>
+                <p className="page-subtitle">
+                  Welcome back, {firstName}! Here's your recruitment overview.
+                </p>
               </div>
-              {candidates.length > 0 ? (
-                <div className="candidates-list">
-                  {candidates.slice(0, 5).map((candidate) => (
-                    <div key={candidate.id} className="candidate-card">
-                      <div className="candidate-avatar">
-                        {candidate.avatar || getInitials(candidate.name)}
-                      </div>
-                      <div className="candidate-info">
-                        <div className="candidate-name">{candidate.name}</div>
-                        <div className="candidate-role">{candidate.role}</div>
-                        <div className="candidate-skills">
-                          {candidate.skills.slice(0, 3).map((skill, idx) => (
-                            <span key={idx} className="skill-tag">
-                              {skill}
-                            </span>
-                          ))}
+
+              {/* Stats Grid */}
+              {stats.length > 0 && (
+                <div className="stats-grid">
+                  {stats.map((stat, index) => (
+                    <div key={index} className="stat-card">
+                      <div className="stat-header">
+                        <div className={`stat-icon ${stat.color}`}>
+                          <stat.icon size={24} />
                         </div>
+                        {stat.change && (
+                          <div className={`stat-change ${stat.trend === 'down' ? 'down' : ''}`}>
+                            <TrendingUp size={14} />
+                            <span>{stat.change}</span>
+                          </div>
+                        )}
                       </div>
-                      <div className="candidate-score">
-                        <div className={`score-value ${getScoreStatus(candidate.score)}`}>
-                          {candidate.score}
-                        </div>
-                        <div className="score-label">Match</div>
-                      </div>
-                      <div className="candidate-actions">
-                        <button className="action-button primary" type="button">
-                          <Eye size={16} />
-                        </button>
-                        <button className="action-button" type="button">
-                          <Star size={16} />
-                        </button>
-                        <button className="action-button" type="button">
-                          <Download size={16} />
-                        </button>
-                      </div>
+                      <div className="stat-value">{stat.value}</div>
+                      <div className="stat-label">{stat.label}</div>
                     </div>
                   ))}
                 </div>
-              ) : (
-                <div className="empty-state">
-                  <div className="empty-state-icon">
-                    <Users size={32} />
-                  </div>
-                  <div className="empty-state-title">No candidates yet</div>
-                  <div className="empty-state-description">
-                    Upload resumes to start screening candidates
-                  </div>
-                </div>
               )}
-            </div>
 
-            {/* Recent Activity */}
-            <div className="card">
-              <div className="card-header">
-                <h2 className="card-title">Recent Activity</h2>
-              </div>
-              {activities.length > 0 ? (
-                <div className="activity-feed">
-                  {activities.slice(0, 4).map((activity) => {
-                    const ActivityIcon = getActivityIcon(activity.type);
-                    return (
-                      <div key={activity.id} className="activity-item">
-                        <div className="activity-icon">
-                          <ActivityIcon size={18} />
-                        </div>
-                        <div className="activity-content">
-                          <div className="activity-message">{activity.message}</div>
-                          <div className="activity-time">{activity.time}</div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="empty-state">
-                  <div className="empty-state-icon">
-                    <Clock size={32} />
+              {/* Main Cards Grid */}
+              <div className="cards-grid">
+                {/* Candidates List */}
+                <div className="card wide">
+                  <div className="card-header">
+                    <h2 className="card-title">Recent Candidates</h2>
+                    {candidates.length > 0 && (
+                      <a href="#" className="card-action">
+                        View All
+                        <ExternalLink size={14} />
+                      </a>
+                    )}
                   </div>
-                  <div className="empty-state-title">No recent activity</div>
-                  <div className="empty-state-description">
-                    Activity will appear here as you use the platform
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Quick Actions */}
-          {quickActions.length > 0 && (
-            <div className="card">
-              <div className="card-header">
-                <h2 className="card-title">Quick Actions</h2>
-              </div>
-              <div className="quick-actions">
-                {quickActions.map((action) => (
-                  <div
-                    key={action.id}
-                    className="quick-action"
-                    onClick={action.onClick}
-                  >
-                    <div className="quick-action-icon">
-                      <action.icon size={24} />
+                  {candidates.length > 0 ? (
+                    <div className="candidates-list">
+                      {candidates.slice(0, 5).map((candidate) => (
+                        <div key={candidate.id} className="candidate-card">
+                          <div className="candidate-avatar">
+                            {candidate.avatar || getInitials(candidate.name)}
+                          </div>
+                          <div className="candidate-info">
+                            <div className="candidate-name">{candidate.name}</div>
+                            <div className="candidate-role">{candidate.role}</div>
+                            <div className="candidate-skills">
+                              {candidate.skills.slice(0, 3).map((skill, idx) => (
+                                <span key={idx} className="skill-tag">
+                                  {skill}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="candidate-score">
+                            <div className={`score-value ${getScoreStatus(candidate.score)}`}>
+                              {candidate.score}
+                            </div>
+                            <div className="score-label">Match</div>
+                          </div>
+                          <div className="candidate-actions">
+                            <button className="action-button primary" type="button">
+                              <Eye size={16} />
+                            </button>
+                            <button className="action-button" type="button">
+                              <Star size={16} />
+                            </button>
+                            <button className="action-button" type="button">
+                              <Download size={16} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                    <div className="quick-action-label">{action.label}</div>
+                  ) : (
+                    <div className="empty-state">
+                      <div className="empty-state-icon">
+                        <Users size={32} />
+                      </div>
+                      <div className="empty-state-title">No candidates yet</div>
+                      <div className="empty-state-description">
+                        Upload resumes to start screening candidates
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Recent Activity */}
+                <div className="card">
+                  <div className="card-header">
+                    <h2 className="card-title">Recent Activity</h2>
                   </div>
-                ))}
+                  {activities.length > 0 ? (
+                    <div className="activity-feed">
+                      {activities.slice(0, 4).map((activity) => {
+                        const ActivityIcon = getActivityIcon(activity.type);
+                        return (
+                          <div key={activity.id} className="activity-item">
+                            <div className="activity-icon">
+                              <ActivityIcon size={18} />
+                            </div>
+                            <div className="activity-content">
+                              <div className="activity-message">{activity.message}</div>
+                              <div className="activity-time">{activity.time}</div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="empty-state">
+                      <div className="empty-state-icon">
+                        <Clock size={32} />
+                      </div>
+                      <div className="empty-state-title">No recent activity</div>
+                      <div className="empty-state-description">
+                        Activity will appear here as you use the platform
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
+
+              {/* Quick Actions */}
+              {quickActions.length > 0 && (
+                <div className="card">
+                  <div className="card-header">
+                    <h2 className="card-title">Quick Actions</h2>
+                  </div>
+                  <div className="quick-actions">
+                    {quickActions.map((action) => (
+                      <div
+                        key={action.id}
+                        className="quick-action"
+                        onClick={action.onClick}
+                      >
+                        <div className="quick-action-icon">
+                          <action.icon size={24} />
+                        </div>
+                        <div className="quick-action-label">{action.label}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {activeTab === 'profile' && (
+            <Profile
+              user={user}
+              onNavigate={onNavigate}
+              isLoading={isLoading}
+            />
+          )}
+
+          {activeTab !== 'overview' && activeTab !== 'profile' && (
+            <div className="page-header">
+              <h1 className="page-title">
+                {navSections.flatMap(section => section.items).find(item => item.id === activeTab)?.label || 'Page'}
+              </h1>
+              <p className="page-subtitle">
+                This page is under development. Check back soon!
+              </p>
             </div>
           )}
         </div>
@@ -1339,10 +1431,13 @@ export default function Dashboard({
         )}
       </main>
 
+      {/* Footer */}
+      <Footer />
+
       {/* Mobile Sidebar Overlay */}
       <div
-        className={`sidebar-overlay ${sidebarOpen ? 'active' : ''}`}
-        onClick={() => setSidebarOpen(false)}
+        className={`sidebar-overlay ${sidebarOpen && isMobile ? 'active' : ''}`}
+        onClick={() => isMobile && setSidebarOpen(false)}
       />
     </div>
   );
