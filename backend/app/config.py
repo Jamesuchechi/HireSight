@@ -15,8 +15,8 @@ class Settings:
 
     # Project paths
     BASE_DIR = Path(__file__).resolve().parent.parent
-    UPLOADS_DIR = BASE_DIR / "backend" / "uploads"
-    EMBEDDINGS_CACHE_DIR = BASE_DIR / "backend" / "embeddings_cache"
+    UPLOADS_DIR = BASE_DIR / "uploads"
+    EMBEDDINGS_CACHE_DIR = BASE_DIR / "embeddings_cache"
 
     # Database
     DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./resumes.db")
@@ -52,7 +52,9 @@ class Settings:
 
     # Misc
     LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
-    ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+    ALLOWED_ORIGINS = os.getenv(
+        "ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:5173"
+    ).split(",")
     TESTING = os.getenv("TESTING", "False") == "True"
 
 

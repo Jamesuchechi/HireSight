@@ -1,5 +1,6 @@
-import { ChangeEvent, FormEvent, useMemo, useState } from 'react';
-import { createJob } from './api/jobs';
+import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react';
+import { AxiosError } from 'axios';
+import { createJob, listJobs } from './api/jobs';
 import { uploadResume } from './api/resumes';
 import type { CandidatePreview, JobCreatePayload, JobOut } from './types';
 
@@ -70,6 +71,9 @@ function App() {
   const [jobError, setJobError] = useState<string | null>(null);
   const [isSavingJob, setIsSavingJob] = useState(false);
   const [resumeMessage, setResumeMessage] = useState('');
+  const [jobs, setJobs] = useState<JobOut[]>([]);
+  const [jobsError, setJobsError] = useState<string | null>(null);
+  const [loadingJobs, setLoadingJobs] = useState(false);
 
   const requiredSkills = useMemo(
     () =>
@@ -125,9 +129,41 @@ function App() {
       setResumeMessage(`Queued ${file.name} for parsing and scoring.`);
     } catch (error) {
       console.error(error);
-      setResumeMessage('Upload failed. Please try another file.');
+      const detail =
+        error instanceof AxiosError
+          ? (error.response?.data as { detail?: string })?.detail
+          : undefined;
+      setResumeMessage(
+        detail ? `Upload failed: ${detail}` : 'Upload failed. Please try another file.'
+      );
     }
   };
+
+  useEffect(() => {
+    let isMounted = true;
+    setLoadingJobs(true);
+    listJobs()
+      .then(({ data }) => {
+        if (isMounted) {
+          setJobs(data);
+          setJobsError(null);
+        }
+      })
+      .catch((error) => {
+        console.error(error);
+        if (isMounted) {
+          setJobsError('Unable to sync jobs right now.');
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setLoadingJobs(false);
+        }
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   return (
     <div className="app-shell">
@@ -160,6 +196,31 @@ function App() {
       </header>
 
       <main>
+        <section className="saved-jobs-panel">
+          <h3>Saved jobs</h3>
+          <p className="hint">Real jobs retrieved from the API.</p>
+          <div className="job-stack">
+            {loadingJobs && <span className="hint">loading…</span>}
+            {jobs.length === 0 && !loadingJobs && (
+              <span className="hint">No jobs recorded yet.</span>
+            )}
+            {jobs.map((job) => (
+              <div key={job.id} className="job-chip">
+                <strong>{job.title}</strong>
+                <span>{job.company || 'Private company'}</span>
+                <div className="chip-row">
+                  {(job.required_skills || []).slice(0, 3).map((skill) => (
+                    <span key={skill} className="chip chip-gold">
+                      {skill}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+          {jobsError && <p className="error">{jobsError}</p>}
+        </section>
+
         <section className="glass-grid">
           <article className="glass-card form-panel">
             <div className="panel-header">

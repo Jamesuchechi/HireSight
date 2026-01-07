@@ -1,10 +1,15 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
-# Ensure NLTK data is present before importing modules that rely on it
+# Make sure NLP dependencies can run
 from .utils.nltk_download import ensure_nltk_stopwords
+from .utils.spacy_download import ensure_spacy_model
+
 ensure_nltk_stopwords()
+ensure_spacy_model()
 
 from . import models
+from .config import settings
 from .database import engine
 from .routes import router as api_router
 
@@ -13,6 +18,13 @@ from .routes import router as api_router
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="HireSight Backend")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 app.include_router(api_router, prefix="/api")
 
 

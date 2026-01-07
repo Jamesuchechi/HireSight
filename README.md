@@ -47,13 +47,22 @@ pip install -r requirements.txt
 
 USAGE
 
-Start the backend (if separate): uvicorn app:app --reload
+Start the backend (if separate): uvicorn backend.app.main:app --reload
+Ensure the spaCy model is available: `python -m spacy download en_core_web_sm` (the app now checks for it automatically on startup and will download it if missing).
 Run the frontend: npm run dev
 In the app:
 Upload resumes.
 Paste/upload job description.
 View ranked list with scores and insights.
 Export reports.
+
+For a production-friendly developer loop:
+- `cd backend` (if you keep it separate) and `uvicorn backend.app.main:app --reload --host 0.0.0.0 --port 8000`.
+- `cd frontend`, install dependencies (`npm install`) and start Vite (`npm run dev`). The UI reads `VITE_API_BASE_URL` (defaults to `http://localhost:8000/api`) and the backend exposes CORS to `http://localhost:3000` and `http://localhost:5173` (override `ALLOWED_ORIGINS` if you build for another host).
+
+uvicorn backend.app.main:app --reload --host 0.0.0.0 --port 8000 ---to start backend
+
+npm run dev to start the frontend
 
 Example: Handles 50+ resumes in seconds; scores based on cosine similarity of embeddings.
 
@@ -82,4 +91,3 @@ Contributions welcome! Fork, branch (feature/your-feature), and submit a PR. Fol
 
 License
 MIT License © 2026 Jamesuchechi. See LICENSE for details.
-

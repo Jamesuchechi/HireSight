@@ -3,3 +3,5 @@ import { apiClient } from './apiClient';
 
 export const createJob = (payload: JobCreatePayload) =>
   apiClient.post<JobOut>('/jobs/', payload);
+
+export const listJobs = () => apiClient.get<JobOut[]>('/jobs/');

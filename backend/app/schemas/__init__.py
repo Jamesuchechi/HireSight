@@ -190,10 +190,16 @@ class ResumeCreate(BaseModel):
 
 
 class ResumeOut(BaseModel):
-    id: int
+    id: str
     filename: str
-    uploaded_at: datetime
-    parsed: Optional[Any]
+    original_filename: str
+    file_size: int
+    file_type: str
+    upload_date: datetime
+    name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    location: Optional[str] = None
+    parsed: Dict[str, Any] = {}
 
     model_config = ConfigDict(from_attributes=True)
 
