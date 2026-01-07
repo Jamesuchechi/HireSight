@@ -11,6 +11,7 @@ ensure_spacy_model()
 from . import models
 from .config import settings
 from .database import engine
+from .auth import router as auth_router
 from .routes import router as api_router
 
 
@@ -25,6 +26,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.include_router(auth_router, prefix="/api")
 app.include_router(api_router, prefix="/api")
 
 

@@ -5,6 +5,8 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field, validator
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 
+from ..models import UserRole
+
 
 class SkillMatchSchema(BaseModel):
     """Details about a single skill match."""
@@ -244,3 +246,46 @@ class CandidateScoreOut(BaseModel):
     explanation: Optional[str]
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class UserCreate(BaseModel):
+    full_name: str = Field(..., min_length=2)
+    email: EmailStr
+    password: str = Field(..., min_length=8, max_length=72)
+    role: UserRole = Field(default=UserRole.job_seeker)
+    company_name: Optional[str] = None
+
+    @validator("company_name", always=True)
+    def require_company_name(cls, value, values):
+        if values.get("role") == UserRole.company and not value:
+            raise ValueError("Company accounts require a company name.")
+        return value
+
+
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str = Field(..., min_length=8, max_length=72)
+
+
+class UserOut(BaseModel):
+    id: str
+    full_name: str
+    email: EmailStr
+    role: UserRole
+    company_name: Optional[str] = None
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class TokenPayload(BaseModel):
+    sub: str
+    role: UserRole
+    exp: datetime
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    expires_at: datetime
+    user: UserOut

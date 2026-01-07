@@ -30,3 +30,31 @@ export type CandidatePreview = {
   skills: string[];
   status: string;
 };
+
+export type AuthRole = 'job_seeker' | 'company';
+
+export type AuthUser = {
+  id: string;
+  full_name: string;
+  email: string;
+  role: AuthRole;
+  company_name?: string;
+};
+
+export type SignInPayload = {
+  email: string;
+  password: string;
+};
+
+export type SignUpPayload = SignInPayload & {
+  full_name: string;
+  role: AuthRole;
+  company_name?: string;
+};
+
+export type AuthResponse = {
+  access_token: string;
+  token_type: string;
+  expires_at: string;
+  user: AuthUser;
+};

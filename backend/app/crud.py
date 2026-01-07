@@ -81,3 +81,33 @@ def list_jobs(db: Session, skip: int = 0, limit: int = 100):
         .limit(limit)
         .all()
     )
+
+
+def get_user_by_email(db: Session, email: str):
+    return db.query(models.User).filter(models.User.email == email.lower()).first()
+
+
+def get_user_by_id(db: Session, user_id: str):
+    return db.query(models.User).filter(models.User.id == user_id).first()
+
+
+def create_user(
+    db: Session,
+    *,
+    full_name: str,
+    email: str,
+    hashed_password: str,
+    role,
+    company_name: str | None = None,
+):
+    user = models.User(
+        full_name=full_name,
+        email=email.lower(),
+        hashed_password=hashed_password,
+        role=role,
+        company_name=company_name,
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user

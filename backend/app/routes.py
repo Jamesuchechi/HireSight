@@ -11,6 +11,7 @@ from .schemas import ResumeOut, JobOut, JobCreate
 from .database import get_db
 from .services.parser import ResumeService, ResumeParsingError
 from .services.embeddings import EmbeddingService
+from .utils.security import get_current_active_user, get_current_company_user
 
 router = APIRouter()
 
@@ -18,7 +19,11 @@ emb_service = EmbeddingService()
 
 
 @router.post("/upload-resume/", response_model=ResumeOut)
-async def upload_resume(file: UploadFile = File(...), db: Session = Depends(get_db)):
+async def upload_resume(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_active_user),
+):
     file_suffix = Path(file.filename).suffix.lower()
     if file_suffix not in settings.ALLOWED_EXTENSIONS:
         raise HTTPException(
@@ -54,12 +59,16 @@ async def upload_resume(file: UploadFile = File(...), db: Session = Depends(get_
 
 
 @router.post("/jobs/", response_model=JobOut)
-def create_job(job_in: JobCreate, db: Session = Depends(get_db)):
+def create_job(
+    job_in: JobCreate,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_company_user),
+):
     job = crud.create_job(
         db,
         title=job_in.title,
         description=job_in.description,
-        company=job_in.company,
+        company=job_in.company or current_user.company_name,
         requirements=job_in.requirements,
         required_skills=job_in.required_skills,
         required_experience_years=job_in.required_experience_years,
@@ -74,5 +83,10 @@ def list_jobs(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
 
 
 @router.get("/resumes/", response_model=list[ResumeOut])
-def list_resumes(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def list_resumes(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_active_user),
+):
     return crud.list_resumes(db, skip=skip, limit=limit)

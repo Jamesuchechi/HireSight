@@ -50,6 +50,7 @@ USAGE
 Start the backend (if separate): uvicorn backend.app.main:app --reload
 Ensure the spaCy model is available: `python -m spacy download en_core_web_sm` (the app now checks for it automatically on startup and will download it if missing).
 Run the frontend: npm run dev
+The landing page now presents an interactive hero and authentication gate; use the sign in/sign up form on the hero to unlock the dashboard.
 In the app:
 Upload resumes.
 Paste/upload job description.

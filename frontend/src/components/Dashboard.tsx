@@ -1,0 +1,1349 @@
+import { useState } from 'react';
+import {
+  Home,
+  Upload,
+  Users,
+  Briefcase,
+  BarChart3,
+  FileText,
+  Settings,
+  Search,
+  Bell,
+  ChevronDown,
+  Plus,
+  Filter,
+  TrendingUp,
+  Clock,
+  Eye,
+  Star,
+  Download,
+  Menu,
+  X,
+  Target,
+  ExternalLink,
+  CheckCircle,
+  Loader
+} from 'lucide-react';
+import type { AuthUser } from '../types';
+
+// ============================================================================
+// TYPE DEFINITIONS
+// ============================================================================
+
+type NavItem = {
+  id: string;
+  label: string;
+  icon: typeof Home;
+  badge?: string | number;
+};
+
+type Candidate = {
+  id: string | number;
+  name: string;
+  role: string;
+  score: number;
+  skills: string[];
+  avatar?: string;
+};
+
+type Stat = {
+  label: string;
+  value: string | number;
+  change?: string;
+  trend?: 'up' | 'down' | 'neutral';
+  icon: typeof Users;
+  color: 'blue' | 'cyan' | 'gold' | 'green';
+};
+
+type Activity = {
+  id: string | number;
+  type: 'upload' | 'match' | 'report' | 'update' | 'general';
+  message: string;
+  time: string;
+};
+
+type QuickAction = {
+  id: string;
+  label: string;
+  icon: typeof Upload;
+  onClick: () => void;
+};
+
+type DashboardProps = {
+  user: AuthUser & {
+    avatar?: string;
+  };
+  stats?: Stat[];
+  candidates?: Candidate[];
+  activities?: Activity[];
+  quickActions?: QuickAction[];
+  onSignOut: () => void;
+  onNavigate?: (route: string) => void;
+  isLoading?: boolean;
+};
+
+// ============================================================================
+// MAIN COMPONENT
+// ============================================================================
+
+export default function Dashboard({
+  user,
+  stats = [],
+  candidates = [],
+  activities = [],
+  quickActions = [],
+  onSignOut,
+  onNavigate,
+  isLoading = false
+}: DashboardProps) {
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [activeTab, setActiveTab] = useState('overview');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Navigation configuration
+  const navSections = [
+    {
+      title: 'Main',
+      items: [
+        { id: 'overview', label: 'Overview', icon: Home },
+        { id: 'upload', label: 'Upload Resumes', icon: Upload },
+        { id: 'candidates', label: 'All Candidates', icon: Users, badge: candidates.length || undefined },
+        { id: 'jobs', label: 'Job Postings', icon: Briefcase }
+      ]
+    },
+    {
+      title: 'Insights',
+      items: [
+        { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+        { id: 'reports', label: 'Reports', icon: FileText }
+      ]
+    },
+    {
+      title: 'System',
+      items: [{ id: 'settings', label: 'Settings', icon: Settings }]
+    }
+  ];
+
+  const handleNavigation = (route: string) => {
+    setActiveTab(route);
+    if (onNavigate) {
+      onNavigate(route);
+    }
+  };
+
+  const getScoreStatus = (score: number): string => {
+    if (score >= 90) return 'excellent';
+    if (score >= 75) return 'good';
+    if (score >= 60) return 'average';
+    return 'poor';
+  };
+
+  const getActivityIcon = (type: string) => {
+    switch (type) {
+      case 'upload':
+        return Upload;
+      case 'match':
+        return Target;
+      case 'report':
+        return FileText;
+      case 'update':
+        return CheckCircle;
+      default:
+        return Bell;
+    }
+  };
+
+  const getInitials = (name: string): string => {
+    return name
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  const firstName = user.full_name.split(' ')[0];
+
+  return (
+    <div className="dashboard">
+      <style>{`
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
+
+        :root {
+          --white: #FFFFFF;
+          --off-white: #FAFBFC;
+          --blue: #0066FF;
+          --blue-light: #E6F0FF;
+          --blue-dark: #0052CC;
+          --gold: #FFB800;
+          --gold-light: #FFF5CC;
+          --cyan: #00D4FF;
+          --cyan-light: #E0F7FF;
+          --green: #00C853;
+          --green-light: #E0F7E9;
+          --gray-50: #F8F9FA;
+          --gray-100: #E9ECEF;
+          --gray-200: #DEE2E6;
+          --gray-300: #CED4DA;
+          --gray-400: #ADB5BD;
+          --gray-600: #6C757D;
+          --gray-700: #495057;
+          --gray-800: #343A40;
+          --gray-900: #0A0E14;
+          --red: #FF3B30;
+          --orange: #FF9500;
+        }
+
+        body {
+          font-family: 'Sora', -apple-system, BlinkMacSystemFont, sans-serif;
+          background: var(--gray-50);
+          color: var(--gray-900);
+          overflow-x: hidden;
+        }
+
+        .dashboard {
+          display: flex;
+          min-height: 100vh;
+          position: relative;
+        }
+
+        /* ============================================================================
+           SIDEBAR
+           ============================================================================ */
+
+        .sidebar {
+          width: 280px;
+          background: var(--white);
+          border-right: 1px solid var(--gray-200);
+          display: flex;
+          flex-direction: column;
+          position: fixed;
+          height: 100vh;
+          left: 0;
+          top: 0;
+          z-index: 100;
+          transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .sidebar.closed {
+          transform: translateX(-100%);
+        }
+
+        .sidebar-header {
+          padding: 1.5rem;
+          border-bottom: 1px solid var(--gray-200);
+        }
+
+        .logo {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          text-decoration: none;
+          color: var(--gray-900);
+        }
+
+        .logo-icon {
+          width: 44px;
+          height: 44px;
+          background: linear-gradient(135deg, var(--blue), var(--cyan));
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: white;
+          font-weight: 700;
+          font-size: 1.35rem;
+        }
+
+        .logo-text {
+          font-family: 'Clash Display', sans-serif;
+          font-size: 1.5rem;
+          font-weight: 700;
+        }
+
+        .sidebar-nav {
+          flex: 1;
+          padding: 1.5rem 1rem;
+          overflow-y: auto;
+        }
+
+        .nav-section {
+          margin-bottom: 2rem;
+        }
+
+        .nav-section:last-child {
+          margin-bottom: 0;
+        }
+
+        .nav-section-title {
+          font-size: 0.75rem;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          color: var(--gray-600);
+          padding: 0 0.75rem;
+          margin-bottom: 0.75rem;
+        }
+
+        .nav-item {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          padding: 0.75rem;
+          margin-bottom: 0.25rem;
+          border-radius: 12px;
+          color: var(--gray-700);
+          cursor: pointer;
+          transition: all 0.2s ease;
+          text-decoration: none;
+          position: relative;
+          font-weight: 500;
+          border: none;
+          background: transparent;
+          width: 100%;
+          text-align: left;
+          font-family: 'Sora', sans-serif;
+          font-size: 0.95rem;
+        }
+
+        .nav-item:hover {
+          background: var(--gray-50);
+          color: var(--gray-900);
+        }
+
+        .nav-item.active {
+          background: var(--blue-light);
+          color: var(--blue);
+          font-weight: 600;
+        }
+
+        .nav-item.active::before {
+          content: '';
+          position: absolute;
+          left: 0;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 3px;
+          height: 60%;
+          background: var(--blue);
+          border-radius: 0 3px 3px 0;
+        }
+
+        .nav-badge {
+          margin-left: auto;
+          background: var(--blue);
+          color: white;
+          font-size: 0.75rem;
+          font-weight: 600;
+          padding: 0.25rem 0.5rem;
+          border-radius: 6px;
+          min-width: 24px;
+          text-align: center;
+        }
+
+        .sidebar-footer {
+          padding: 1.5rem;
+          border-top: 1px solid var(--gray-200);
+        }
+
+        .user-profile {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          padding: 0.75rem;
+          border-radius: 12px;
+          cursor: pointer;
+          transition: background 0.2s ease;
+        }
+
+        .user-profile:hover {
+          background: var(--gray-50);
+        }
+
+        .user-avatar {
+          width: 44px;
+          height: 44px;
+          border-radius: 12px;
+          background: linear-gradient(135deg, var(--gold), var(--orange));
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: white;
+          font-weight: 600;
+          font-size: 1rem;
+          flex-shrink: 0;
+        }
+
+        .user-info {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .user-name {
+          font-weight: 600;
+          font-size: 0.95rem;
+          color: var(--gray-900);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .user-role {
+          font-size: 0.8rem;
+          color: var(--gray-600);
+        }
+
+        /* ============================================================================
+           MAIN CONTENT
+           ============================================================================ */
+
+        .main-content {
+          flex: 1;
+          margin-left: 280px;
+          transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          min-height: 100vh;
+          display: flex;
+          flex-direction: column;
+        }
+
+        .main-content.full {
+          margin-left: 0;
+        }
+
+        /* ============================================================================
+           TOPBAR
+           ============================================================================ */
+
+        .topbar {
+          background: var(--white);
+          border-bottom: 1px solid var(--gray-200);
+          padding: 1.25rem 2rem;
+          display: flex;
+          align-items: center;
+          gap: 1.5rem;
+          position: sticky;
+          top: 0;
+          z-index: 90;
+        }
+
+        .menu-toggle {
+          display: none;
+          background: none;
+          border: none;
+          cursor: pointer;
+          color: var(--gray-700);
+          padding: 0.5rem;
+        }
+
+        .search-bar {
+          flex: 1;
+          max-width: 500px;
+          position: relative;
+        }
+
+        .search-input {
+          width: 100%;
+          padding: 0.75rem 1rem 0.75rem 3rem;
+          border: 1px solid var(--gray-300);
+          border-radius: 12px;
+          font-size: 0.95rem;
+          font-family: 'Sora', sans-serif;
+          transition: all 0.2s ease;
+        }
+
+        .search-input:focus {
+          outline: none;
+          border-color: var(--blue);
+          box-shadow: 0 0 0 3px var(--blue-light);
+        }
+
+        .search-icon {
+          position: absolute;
+          left: 1rem;
+          top: 50%;
+          transform: translateY(-50%);
+          color: var(--gray-600);
+          pointer-events: none;
+        }
+
+        .topbar-actions {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          margin-left: auto;
+        }
+
+        .icon-button {
+          width: 40px;
+          height: 40px;
+          border-radius: 10px;
+          background: var(--gray-50);
+          border: none;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          color: var(--gray-700);
+          position: relative;
+        }
+
+        .icon-button:hover {
+          background: var(--gray-200);
+          color: var(--gray-900);
+        }
+
+        .notification-badge {
+          position: absolute;
+          top: 8px;
+          right: 8px;
+          width: 8px;
+          height: 8px;
+          background: var(--red);
+          border-radius: 50%;
+          border: 2px solid var(--white);
+        }
+
+        .primary-button {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.75rem 1.5rem;
+          background: var(--blue);
+          color: white;
+          border: none;
+          border-radius: 12px;
+          font-weight: 600;
+          font-size: 0.95rem;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          font-family: 'Sora', sans-serif;
+        }
+
+        .primary-button:hover {
+          background: var(--blue-dark);
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(0, 102, 255, 0.3);
+        }
+
+        /* ============================================================================
+           CONTENT AREA
+           ============================================================================ */
+
+        .content {
+          padding: 2rem;
+          flex: 1;
+        }
+
+        .page-header {
+          margin-bottom: 2rem;
+        }
+
+        .page-title {
+          font-family: 'Clash Display', sans-serif;
+          font-size: 2rem;
+          font-weight: 700;
+          color: var(--gray-900);
+          margin-bottom: 0.5rem;
+        }
+
+        .page-subtitle {
+          color: var(--gray-600);
+          font-size: 1rem;
+        }
+
+        /* ============================================================================
+           STATS GRID
+           ============================================================================ */
+
+        .stats-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+          gap: 1.5rem;
+          margin-bottom: 2rem;
+        }
+
+        .stat-card {
+          background: var(--white);
+          padding: 1.5rem;
+          border-radius: 16px;
+          border: 1px solid var(--gray-200);
+          transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+        }
+
+        .stat-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 1rem;
+        }
+
+        .stat-icon {
+          width: 48px;
+          height: 48px;
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .stat-icon.blue {
+          background: var(--blue-light);
+          color: var(--blue);
+        }
+
+        .stat-icon.cyan {
+          background: var(--cyan-light);
+          color: var(--cyan);
+        }
+
+        .stat-icon.gold {
+          background: var(--gold-light);
+          color: var(--gold);
+        }
+
+        .stat-icon.green {
+          background: var(--green-light);
+          color: var(--green);
+        }
+
+        .stat-change {
+          display: flex;
+          align-items: center;
+          gap: 0.25rem;
+          font-size: 0.85rem;
+          font-weight: 600;
+          color: var(--green);
+        }
+
+        .stat-change.down {
+          color: var(--red);
+        }
+
+        .stat-value {
+          font-family: 'Clash Display', sans-serif;
+          font-size: 2rem;
+          font-weight: 700;
+          color: var(--gray-900);
+          margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+          color: var(--gray-600);
+          font-size: 0.9rem;
+        }
+
+        /* ============================================================================
+           CARDS GRID
+           ============================================================================ */
+
+        .cards-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+          gap: 1.5rem;
+          margin-bottom: 2rem;
+        }
+
+        .card {
+          background: var(--white);
+          border: 1px solid var(--gray-200);
+          border-radius: 16px;
+          padding: 1.5rem;
+        }
+
+        .card.wide {
+          grid-column: 1 / -1;
+        }
+
+        .card-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 1.5rem;
+        }
+
+        .card-title {
+          font-family: 'Clash Display', sans-serif;
+          font-size: 1.25rem;
+          font-weight: 600;
+          color: var(--gray-900);
+        }
+
+        .card-action {
+          color: var(--blue);
+          font-size: 0.9rem;
+          font-weight: 600;
+          cursor: pointer;
+          text-decoration: none;
+          display: flex;
+          align-items: center;
+          gap: 0.25rem;
+          transition: all 0.2s ease;
+        }
+
+        .card-action:hover {
+          text-decoration: underline;
+        }
+
+        /* ============================================================================
+           CANDIDATES LIST
+           ============================================================================ */
+
+        .candidates-list {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+        }
+
+        .candidate-card {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          padding: 1rem;
+          background: var(--gray-50);
+          border-radius: 12px;
+          transition: all 0.2s ease;
+          cursor: pointer;
+        }
+
+        .candidate-card:hover {
+          background: var(--blue-light);
+          transform: translateX(4px);
+        }
+
+        .candidate-avatar {
+          width: 56px;
+          height: 56px;
+          border-radius: 12px;
+          background: linear-gradient(135deg, var(--blue), var(--cyan));
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: white;
+          font-weight: 700;
+          font-size: 1.1rem;
+          flex-shrink: 0;
+        }
+
+        .candidate-info {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .candidate-name {
+          font-weight: 600;
+          font-size: 1rem;
+          color: var(--gray-900);
+          margin-bottom: 0.25rem;
+        }
+
+        .candidate-role {
+          font-size: 0.85rem;
+          color: var(--gray-600);
+          margin-bottom: 0.5rem;
+        }
+
+        .candidate-skills {
+          display: flex;
+          gap: 0.5rem;
+          flex-wrap: wrap;
+        }
+
+        .skill-tag {
+          padding: 0.25rem 0.75rem;
+          background: var(--white);
+          border-radius: 6px;
+          font-size: 0.75rem;
+          font-weight: 500;
+          color: var(--gray-700);
+        }
+
+        .candidate-score {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 0.25rem;
+          padding: 0.75rem 1rem;
+          background: var(--white);
+          border-radius: 10px;
+          flex-shrink: 0;
+        }
+
+        .score-value {
+          font-family: 'Clash Display', sans-serif;
+          font-size: 1.5rem;
+          font-weight: 700;
+        }
+
+        .score-value.excellent {
+          color: var(--green);
+        }
+
+        .score-value.good {
+          color: var(--blue);
+        }
+
+        .score-value.average {
+          color: var(--orange);
+        }
+
+        .score-value.poor {
+          color: var(--red);
+        }
+
+        .score-label {
+          font-size: 0.75rem;
+          color: var(--gray-600);
+          font-weight: 500;
+        }
+
+        .candidate-actions {
+          display: flex;
+          gap: 0.5rem;
+        }
+
+        .action-button {
+          width: 36px;
+          height: 36px;
+          border-radius: 8px;
+          background: var(--white);
+          border: 1px solid var(--gray-300);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          color: var(--gray-600);
+        }
+
+        .action-button:hover {
+          background: var(--gray-50);
+          color: var(--gray-900);
+          border-color: var(--gray-400);
+        }
+
+        .action-button.primary {
+          background: var(--blue);
+          border-color: var(--blue);
+          color: white;
+        }
+
+        .action-button.primary:hover {
+          background: var(--blue-dark);
+        }
+
+        /* ============================================================================
+           ACTIVITY FEED
+           ============================================================================ */
+
+        .activity-feed {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+        }
+
+        .activity-item {
+          display: flex;
+          gap: 1rem;
+          padding: 1rem;
+          background: var(--gray-50);
+          border-radius: 12px;
+          border-left: 3px solid var(--blue);
+        }
+
+        .activity-icon {
+          width: 40px;
+          height: 40px;
+          border-radius: 10px;
+          background: var(--blue-light);
+          color: var(--blue);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+
+        .activity-content {
+          flex: 1;
+        }
+
+        .activity-message {
+          font-size: 0.9rem;
+          color: var(--gray-900);
+          margin-bottom: 0.25rem;
+        }
+
+        .activity-time {
+          font-size: 0.8rem;
+          color: var(--gray-600);
+        }
+
+        /* ============================================================================
+           QUICK ACTIONS
+           ============================================================================ */
+
+        .quick-actions {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+          gap: 1rem;
+        }
+
+        .quick-action {
+          padding: 1.5rem;
+          background: var(--white);
+          border: 2px dashed var(--gray-300);
+          border-radius: 12px;
+          text-align: center;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .quick-action:hover {
+          border-color: var(--blue);
+          border-style: solid;
+          background: var(--blue-light);
+        }
+
+        .quick-action-icon {
+          width: 48px;
+          height: 48px;
+          margin: 0 auto 0.75rem;
+          border-radius: 12px;
+          background: var(--gray-50);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: var(--blue);
+          transition: all 0.2s ease;
+        }
+
+        .quick-action:hover .quick-action-icon {
+          background: var(--blue);
+          color: white;
+          transform: scale(1.1);
+        }
+
+        .quick-action-label {
+          font-weight: 600;
+          font-size: 0.9rem;
+          color: var(--gray-900);
+        }
+
+        /* ============================================================================
+           EMPTY STATES
+           ============================================================================ */
+
+        .empty-state {
+          text-align: center;
+          padding: 3rem 2rem;
+        }
+
+        .empty-state-icon {
+          width: 64px;
+          height: 64px;
+          margin: 0 auto 1rem;
+          border-radius: 16px;
+          background: var(--gray-100);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: var(--gray-400);
+        }
+
+        .empty-state-title {
+          font-family: 'Clash Display', sans-serif;
+          font-size: 1.25rem;
+          font-weight: 600;
+          color: var(--gray-900);
+          margin-bottom: 0.5rem;
+        }
+
+        .empty-state-description {
+          color: var(--gray-600);
+          font-size: 0.95rem;
+        }
+
+        /* ============================================================================
+           LOADING STATES
+           ============================================================================ */
+
+        .loading-overlay {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(255, 255, 255, 0.8);
+          backdrop-filter: blur(4px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+        }
+
+        .loading-spinner {
+          width: 48px;
+          height: 48px;
+          border: 4px solid var(--gray-200);
+          border-top-color: var(--blue);
+          border-radius: 50%;
+          animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+          to {
+            transform: rotate(360deg);
+          }
+        }
+
+        /* ============================================================================
+           MOBILE OVERLAY
+           ============================================================================ */
+
+        .sidebar-overlay {
+          display: none;
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.5);
+          z-index: 99;
+          opacity: 0;
+          transition: opacity 0.3s ease;
+        }
+
+        .sidebar-overlay.active {
+          opacity: 1;
+        }
+
+        /* ============================================================================
+           RESPONSIVE
+           ============================================================================ */
+
+        @media (max-width: 1024px) {
+          .cards-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .card.wide {
+            grid-column: 1;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .sidebar {
+            transform: translateX(-100%);
+          }
+
+          .sidebar.open {
+            transform: translateX(0);
+          }
+
+          .sidebar-overlay {
+            display: block;
+          }
+
+          .main-content {
+            margin-left: 0;
+          }
+
+          .menu-toggle {
+            display: block;
+          }
+
+          .topbar {
+            padding: 1rem;
+          }
+
+          .search-bar {
+            max-width: 100%;
+          }
+
+          .content {
+            padding: 1rem;
+          }
+
+          .stats-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .candidate-card {
+            flex-wrap: wrap;
+          }
+
+          .candidate-actions {
+            width: 100%;
+            justify-content: flex-end;
+          }
+
+          .quick-actions {
+            grid-template-columns: repeat(2, 1fr);
+          }
+        }
+      `}</style>
+
+      {/* Sidebar */}
+      <aside className={`sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
+        <div className="sidebar-header">
+          <a href="#" className="logo">
+            <div className="logo-icon">H</div>
+            <span className="logo-text">HireSight</span>
+          </a>
+        </div>
+
+        <nav className="sidebar-nav">
+          {navSections.map((section) => (
+            <div key={section.title} className="nav-section">
+              <div className="nav-section-title">{section.title}</div>
+              {section.items.map((item) => (
+                <button
+                  key={item.id}
+                  className={`nav-item ${activeTab === item.id ? 'active' : ''}`}
+                  onClick={() => handleNavigation(item.id)}
+                  type="button"
+                >
+                  <item.icon size={20} />
+                  <span>{item.label}</span>
+                  {item.badge && <span className="nav-badge">{item.badge}</span>}
+                </button>
+              ))}
+            </div>
+          ))}
+        </nav>
+
+        <div className="sidebar-footer">
+          <div className="user-profile" onClick={onSignOut}>
+            <div className="user-avatar">
+              {user.avatar || getInitials(user.full_name)}
+            </div>
+            <div className="user-info">
+              <div className="user-name">{user.full_name}</div>
+              <div className="user-role">
+                {user.role === 'company' ? 'Company Partner' : 'Talent Seeker'}
+              </div>
+            </div>
+            <ChevronDown size={16} />
+          </div>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <main className={`main-content ${!sidebarOpen ? 'full' : ''}`}>
+        {/* Topbar */}
+        <div className="topbar">
+          <button
+            className="menu-toggle"
+            onClick={() => setSidebarOpen((prev) => !prev)}
+            type="button"
+          >
+            {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+
+          <div className="search-bar">
+            <Search className="search-icon" size={20} />
+            <input
+              type="text"
+              className="search-input"
+              placeholder="Search candidates, jobs, or reports..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+
+          <div className="topbar-actions">
+            <button className="icon-button" type="button">
+              <Filter size={20} />
+            </button>
+            <button className="icon-button" type="button">
+              <Bell size={20} />
+              <span className="notification-badge"></span>
+            </button>
+            <button className="primary-button" type="button">
+              <Plus size={20} />
+              <span>New Job</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="content">
+          <div className="page-header">
+            <h1 className="page-title">Dashboard Overview</h1>
+            <p className="page-subtitle">
+              Welcome back, {firstName}! Here's your recruitment overview.
+            </p>
+          </div>
+
+          {/* Stats Grid */}
+          {stats.length > 0 && (
+            <div className="stats-grid">
+              {stats.map((stat, index) => (
+                <div key={index} className="stat-card">
+                  <div className="stat-header">
+                    <div className={`stat-icon ${stat.color}`}>
+                      <stat.icon size={24} />
+                    </div>
+                    {stat.change && (
+                      <div className={`stat-change ${stat.trend === 'down' ? 'down' : ''}`}>
+                        <TrendingUp size={14} />
+                        <span>{stat.change}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="stat-value">{stat.value}</div>
+                  <div className="stat-label">{stat.label}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Main Cards Grid */}
+          <div className="cards-grid">
+            {/* Candidates List */}
+            <div className="card wide">
+              <div className="card-header">
+                <h2 className="card-title">Recent Candidates</h2>
+                {candidates.length > 0 && (
+                  <a href="#" className="card-action">
+                    View All
+                    <ExternalLink size={14} />
+                  </a>
+                )}
+              </div>
+              {candidates.length > 0 ? (
+                <div className="candidates-list">
+                  {candidates.slice(0, 5).map((candidate) => (
+                    <div key={candidate.id} className="candidate-card">
+                      <div className="candidate-avatar">
+                        {candidate.avatar || getInitials(candidate.name)}
+                      </div>
+                      <div className="candidate-info">
+                        <div className="candidate-name">{candidate.name}</div>
+                        <div className="candidate-role">{candidate.role}</div>
+                        <div className="candidate-skills">
+                          {candidate.skills.slice(0, 3).map((skill, idx) => (
+                            <span key={idx} className="skill-tag">
+                              {skill}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="candidate-score">
+                        <div className={`score-value ${getScoreStatus(candidate.score)}`}>
+                          {candidate.score}
+                        </div>
+                        <div className="score-label">Match</div>
+                      </div>
+                      <div className="candidate-actions">
+                        <button className="action-button primary" type="button">
+                          <Eye size={16} />
+                        </button>
+                        <button className="action-button" type="button">
+                          <Star size={16} />
+                        </button>
+                        <button className="action-button" type="button">
+                          <Download size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="empty-state">
+                  <div className="empty-state-icon">
+                    <Users size={32} />
+                  </div>
+                  <div className="empty-state-title">No candidates yet</div>
+                  <div className="empty-state-description">
+                    Upload resumes to start screening candidates
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Recent Activity */}
+            <div className="card">
+              <div className="card-header">
+                <h2 className="card-title">Recent Activity</h2>
+              </div>
+              {activities.length > 0 ? (
+                <div className="activity-feed">
+                  {activities.slice(0, 4).map((activity) => {
+                    const ActivityIcon = getActivityIcon(activity.type);
+                    return (
+                      <div key={activity.id} className="activity-item">
+                        <div className="activity-icon">
+                          <ActivityIcon size={18} />
+                        </div>
+                        <div className="activity-content">
+                          <div className="activity-message">{activity.message}</div>
+                          <div className="activity-time">{activity.time}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="empty-state">
+                  <div className="empty-state-icon">
+                    <Clock size={32} />
+                  </div>
+                  <div className="empty-state-title">No recent activity</div>
+                  <div className="empty-state-description">
+                    Activity will appear here as you use the platform
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Quick Actions */}
+          {quickActions.length > 0 && (
+            <div className="card">
+              <div className="card-header">
+                <h2 className="card-title">Quick Actions</h2>
+              </div>
+              <div className="quick-actions">
+                {quickActions.map((action) => (
+                  <div
+                    key={action.id}
+                    className="quick-action"
+                    onClick={action.onClick}
+                  >
+                    <div className="quick-action-icon">
+                      <action.icon size={24} />
+                    </div>
+                    <div className="quick-action-label">{action.label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Loading Overlay */}
+        {isLoading && (
+          <div className="loading-overlay">
+            <div className="loading-spinner" />
+          </div>
+        )}
+      </main>
+
+      {/* Mobile Sidebar Overlay */}
+      <div
+        className={`sidebar-overlay ${sidebarOpen ? 'active' : ''}`}
+        onClick={() => setSidebarOpen(false)}
+      />
+    </div>
+  );
+}

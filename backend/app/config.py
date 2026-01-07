@@ -56,6 +56,9 @@ class Settings:
         "ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:5173"
     ).split(",")
     TESTING = os.getenv("TESTING", "False") == "True"
+    SECRET_KEY = os.getenv("SECRET_KEY", "change-this-secret")
+    JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
+    ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 60 * 8))
 
 
 @lru_cache()

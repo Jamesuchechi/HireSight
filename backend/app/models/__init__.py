@@ -1,7 +1,8 @@
 """
 SQLAlchemy ORM models for database tables.
 """
-from sqlalchemy import Column, Integer, String, Text, Float, DateTime, ForeignKey, JSON
+from enum import Enum as PyEnum
+from sqlalchemy import Column, Integer, String, Text, Float, DateTime, ForeignKey, JSON, Boolean, Enum as SQLEnum
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from datetime import datetime
@@ -107,6 +108,28 @@ class Candidate(Base):
     
     def __repr__(self):
         return f"<Candidate(id={self.id}, name={self.name}, email={self.email})>"
+
+
+class UserRole(PyEnum):
+    job_seeker = "job_seeker"
+    company = "company"
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    full_name = Column(String, nullable=False)
+    email = Column(String, nullable=False, unique=True, index=True)
+    hashed_password = Column(String, nullable=False)
+    role = Column(SQLEnum(UserRole, name="user_roles"), nullable=False, default=UserRole.job_seeker)
+    company_name = Column(String, nullable=True)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<User(id={self.id}, email={self.email}, role={self.role})>"
 
 
 class CandidateScore(Base):
