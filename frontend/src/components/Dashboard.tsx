@@ -21,13 +21,14 @@ import {
   X,
   Target,
   ExternalLink,
-  CheckCircle,
-  Loader
+  CheckCircle
 } from 'lucide-react';
-import type { AuthUser } from '../types';
+import type { AuthUser, JobOut, ResumeOut } from '../types';
 import Profile from './Profile';
 import Footer from './Footer';
 import Logo from './Logo';
+import { listResumes, parseResume } from '../api/resumes';
+import { listJobs, closeJob, duplicateJob, getSimilarJobs } from '../api/jobs';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -185,6 +186,98 @@ export default function Dashboard({
   };
 
   const firstName = user.full_name.split(' ')[0];
+
+  const [resumes, setResumes] = useState<ResumeOut[]>([]);
+  const [resumesLoading, setResumesLoading] = useState(false);
+  const [parsingResumeId, setParsingResumeId] = useState<string | null>(null);
+  const [resumeMessage, setResumeMessage] = useState<string | null>(null);
+
+  const [companyJobs, setCompanyJobs] = useState<JobOut[]>([]);
+  const [similarJobs, setSimilarJobs] = useState<JobOut[]>([]);
+  const [jobMessage, setJobMessage] = useState<string | null>(null);
+  const [jobActionLoading, setJobActionLoading] = useState<string | null>(null);
+
+  const loadResumes = async () => {
+    setResumesLoading(true);
+    try {
+      const { data } = await listResumes();
+      setResumes(data.resumes);
+    } catch (error) {
+      console.warn('Failed to load resumes', error);
+    } finally {
+      setResumesLoading(false);
+    }
+  };
+
+  const loadCompanyJobs = async () => {
+    try {
+      const { data } = await listJobs();
+      setCompanyJobs(data);
+    } catch (error) {
+      console.warn('Failed to load company jobs', error);
+    }
+  };
+
+  useEffect(() => {
+    if (user.account_type === 'personal') {
+      loadResumes();
+    }
+  }, [user.account_type]);
+
+  useEffect(() => {
+    if (user.account_type === 'company') {
+      loadCompanyJobs();
+    }
+  }, [user.account_type]);
+
+  const handleParseResume = async (resumeId: string) => {
+    setParsingResumeId(resumeId);
+    try {
+      const { data } = await parseResume(resumeId);
+      setResumeMessage(`Parsed ${data.filename}`);
+      await loadResumes();
+    } catch (error) {
+      setResumeMessage('Unable to parse resume right now.');
+    } finally {
+      setParsingResumeId(null);
+    }
+  };
+
+  const handleCloseJob = async (jobId: string) => {
+    setJobActionLoading(jobId);
+    try {
+      const { data } = await closeJob(jobId);
+      setJobMessage(data.message);
+      await loadCompanyJobs();
+    } catch (error) {
+      setJobMessage('Failed to close the job.');
+    } finally {
+      setJobActionLoading(null);
+    }
+  };
+
+  const handleDuplicateJob = async (jobId: string) => {
+    setJobActionLoading(jobId);
+    try {
+      const { data } = await duplicateJob(jobId);
+      setJobMessage(`Duplicated ${data.title}`);
+      await loadCompanyJobs();
+    } catch (error) {
+      setJobMessage('Unable to duplicate job.');
+    } finally {
+      setJobActionLoading(null);
+    }
+  };
+
+  const handleFetchSimilar = async (jobId: string) => {
+    try {
+      const { data } = await getSimilarJobs(jobId);
+      setSimilarJobs(data);
+      setJobMessage(data.length ? `Found ${data.length} similar jobs` : 'No similar postings yet');
+    } catch (error) {
+      setJobMessage('Could not fetch similar jobs right now.');
+    }
+  };
 
   return (
     <div className="dashboard">
@@ -1078,6 +1171,163 @@ export default function Dashboard({
           }
         }
 
+        .panel-grid {
+          display: grid;
+          gap: 1.25rem;
+          margin: 2rem 2rem 3rem;
+          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        }
+
+        .panel {
+          background: var(--white);
+          border-radius: 20px;
+          border: 1px solid var(--gray-200);
+          padding: 1.5rem;
+          box-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
+        }
+
+        .panel-heading {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 1rem;
+          gap: 1rem;
+        }
+
+        .panel-heading h3 {
+          margin-top: 0.25rem;
+          margin-bottom: 0;
+          font-size: 1.4rem;
+        }
+
+        .panel-tag {
+          font-size: 0.75rem;
+          font-weight: 700;
+          color: var(--gray-500);
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+        }
+
+        .panel-meta {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .panel-meta-btn {
+          border: none;
+          background: transparent;
+          color: var(--blue);
+          font-weight: 600;
+          cursor: pointer;
+        }
+
+        .panel-badge {
+          padding: 0.35rem 0.75rem;
+          border-radius: 999px;
+          background: rgba(0, 212, 255, 0.12);
+          color: #00b0d0;
+          font-size: 0.8rem;
+        }
+
+        .panel-badge.success {
+          background: rgba(34, 197, 94, 0.12);
+          color: #22c55e;
+        }
+
+        .panel-body {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+        }
+
+        .panel-list {
+          list-style: none;
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+          padding: 0;
+          margin: 0;
+        }
+
+        .panel-item {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 1rem;
+          padding: 0.85rem 1rem;
+          border-radius: 14px;
+          border: 1px solid var(--gray-200);
+          background: var(--gray-50);
+        }
+
+        .muted-text {
+          color: var(--gray-500);
+          font-size: 0.85rem;
+        }
+
+        .panel-action {
+          border: none;
+          border-radius: 12px;
+          padding: 0.6rem 1rem;
+          font-weight: 600;
+          cursor: pointer;
+          background: var(--blue);
+          color: var(--white);
+        }
+
+        .panel-action.ghost {
+          background: transparent;
+          border: 1px solid var(--gray-400);
+          color: var(--gray-700);
+        }
+
+        .button-group {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.5rem;
+          justify-content: flex-end;
+        }
+
+        .panel-empty {
+          color: var(--gray-600);
+        }
+
+        .panel-subsection {
+          border-top: 1px dashed var(--gray-200);
+          padding-top: 0.85rem;
+        }
+
+        .panel-subsection-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 0.5rem;
+        }
+
+        .similar-list {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+
+        .similar-list li {
+          display: flex;
+          justify-content: space-between;
+          font-weight: 500;
+          color: var(--gray-700);
+        }
+
+        .tag {
+          padding: 0.15rem 0.6rem;
+          border-radius: 999px;
+          font-size: 0.75rem;
+          background: var(--gray-100);
+        }
+
         .sidebar-overlay {
           display: none;
           position: fixed;
@@ -1414,13 +1664,148 @@ export default function Dashboard({
           {activeTab !== 'overview' && activeTab !== 'profile' && (
             <div className="page-header">
               <h1 className="page-title">
-                {navSections.flatMap(section => section.items).find(item => item.id === activeTab)?.label || 'Page'}
+                {navSections
+                  .flatMap((section) => section.items)
+                  .find((item) => item.id === activeTab)?.label || 'Page'}
               </h1>
               <p className="page-subtitle">
                 This page is under development. Check back soon!
               </p>
             </div>
           )}
+
+          <section className="panel-grid">
+            <div className="panel">
+              <div className="panel-heading">
+                <div>
+                  <span className="panel-tag">Resume Manager</span>
+                  <h3>AI parsing & sync</h3>
+                </div>
+                <div className="panel-meta">
+                  {resumeMessage && <span className="panel-badge success">{resumeMessage}</span>}
+                  {user.account_type === 'personal' && (
+                    <button type="button" className="panel-meta-btn" onClick={loadResumes}>
+                      Refresh
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div className="panel-body">
+                {user.account_type === 'personal' ? (
+                  resumesLoading ? (
+                    <p className="panel-empty">Loading resumes…</p>
+                  ) : resumes.length ? (
+                    <ul className="panel-list">
+                      {resumes.map((resume) => (
+                        <li key={resume.id} className="panel-item">
+                          <div>
+                            <strong>{resume.filename}</strong>
+                            <p className="muted-text">
+                              {resume.version_name} · {resume.is_primary ? 'Primary' : 'Alternate'}
+                            </p>
+                            <small className="muted-text">
+                              {new Date(resume.uploaded_at).toLocaleString()}
+                            </small>
+                          </div>
+                          <button
+                            type="button"
+                            className="panel-action"
+                            disabled={parsingResumeId === resume.id}
+                            onClick={() => handleParseResume(resume.id)}
+                          >
+                            {parsingResumeId === resume.id ? 'Parsing…' : 'Re-run parser'}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="panel-empty">Upload a resume to unlock parsing insights.</p>
+                  )
+                ) : (
+                  <p className="panel-empty">
+                    Resume manager is available for personal accounts. Invite talent to upload their
+                    documents.
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {user.account_type === 'company' && (
+              <div className="panel">
+                <div className="panel-heading">
+                  <div>
+                    <span className="panel-tag">Job Controls</span>
+                    <h3>Close, duplicate, and compare roles</h3>
+                  </div>
+                  <div className="panel-meta">
+                    {jobMessage && <span className="panel-badge">{jobMessage}</span>}
+                    <button type="button" className="panel-meta-btn" onClick={loadCompanyJobs}>
+                      Refresh
+                    </button>
+                  </div>
+                </div>
+                <div className="panel-body">
+                  {companyJobs.length ? (
+                    <ul className="panel-list">
+                      {companyJobs.map((job) => (
+                        <li key={job.id} className="panel-item">
+                          <div>
+                            <strong>{job.title}</strong>
+                            <p className="muted-text">{job.location ?? 'Remote / Hybrid'}</p>
+                            <small className="tag">{job.status}</small>
+                          </div>
+                          <div className="button-group">
+                            <button
+                              type="button"
+                              className="panel-action"
+                              disabled={jobActionLoading === job.id}
+                              onClick={() => handleCloseJob(job.id)}
+                            >
+                              {jobActionLoading === job.id ? 'Working…' : 'Close'}
+                            </button>
+                            <button
+                              type="button"
+                              className="panel-action"
+                              disabled={jobActionLoading === job.id}
+                              onClick={() => handleDuplicateJob(job.id)}
+                            >
+                              {jobActionLoading === job.id ? 'Working…' : 'Duplicate'}
+                            </button>
+                            <button
+                              type="button"
+                              className="panel-action ghost"
+                              onClick={() => handleFetchSimilar(job.id)}
+                            >
+                              Similar
+                            </button>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="panel-empty">No active jobs available. Publish one to start screening.</p>
+                  )}
+
+                  {similarJobs.length > 0 && (
+                    <div className="panel-subsection">
+                      <div className="panel-subsection-header">
+                        <h4>Similar jobs</h4>
+                        <span className="muted-text">Suggested based on shared skills</span>
+                      </div>
+                      <ul className="similar-list">
+                        {similarJobs.map((item) => (
+                          <li key={item.id}>
+                            <span>{item.title}</span>
+                            <span className="tag muted">{item.status}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </section>
         </div>
 
         {/* Loading Overlay */}

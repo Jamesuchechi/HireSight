@@ -2,22 +2,48 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import HireSightLanding from './components/HireSightLanding';
 import Dashboard from './components/Dashboard';
+import LoginPage from './components/LoginPage';
+import SignUpPage from './components/SignUpPage';
+import EmailVerificationPage from './components/EmailVerificationPage';
+import ForgotPasswordPage from './components/ForgotPasswordPage';
+import ResetPasswordPage from './components/ResetPasswordPage';
+import LogoutPrompt from './components/LogoutPrompt';
 import type {
   AuthResponse,
   AuthUser,
   SignInPayload,
-  SignUpPayload,
+  SignUpPayload
 } from './types';
-import { signIn, signUp } from './api/auth';
+import {
+  signIn,
+  signUp,
+  verifyEmail,
+  forgotPassword,
+  resetPassword,
+  logout as logoutRequest,
+} from './api/auth';
 import { setAuthToken } from './api/apiClient';
 
 const TOKEN_KEY = 'hiresight_access_token';
 const USER_KEY = 'hiresight_user';
 
+type ViewState = 'landing' | 'login' | 'signup' | 'verify' | 'forgot' | 'reset' | 'logout';
+
 function App() {
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [authError, setAuthError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [view, setView] = useState<ViewState>('landing');
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [signupError, setSignupError] = useState<string | null>(null);
+  const [verifyError, setVerifyError] = useState<string | null>(null);
+  const [forgotError, setForgotError] = useState<string | null>(null);
+  const [resetError, setResetError] = useState<string | null>(null);
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [signupLoading, setSignupLoading] = useState(false);
+  const [verifyLoading, setVerifyLoading] = useState(false);
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem(TOKEN_KEY);
@@ -38,7 +64,8 @@ function App() {
     localStorage.setItem(TOKEN_KEY, response.access_token);
     localStorage.setItem(USER_KEY, JSON.stringify(response.user));
     setUser(response.user);
-    setAuthError(null);
+    setStatusMessage(null);
+    setPendingEmail(null);
   };
 
   const clearSession = () => {
@@ -46,6 +73,8 @@ function App() {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
     setUser(null);
+    setView('landing');
+    setStatusMessage(null);
   };
 
   const buildErrorMessage = (error: unknown) => {
@@ -61,48 +90,174 @@ function App() {
     return 'Something went wrong. Please try again.';
   };
 
+  const openLogin = () => {
+    setLoginError(null);
+    setStatusMessage(null);
+    setView('login');
+  };
+
+  const openSignup = () => {
+    setSignupError(null);
+    setStatusMessage(null);
+    setView('signup');
+  };
+
+  const openForgot = () => {
+    setForgotError(null);
+    setStatusMessage(null);
+    setView('forgot');
+  };
+
+  const openReset = () => {
+    setResetError(null);
+    setStatusMessage(null);
+    setView('reset');
+  };
+
   const handleSignIn = async (payload: SignInPayload) => {
-    setIsLoading(true);
-    setAuthError(null);
+    setLoginLoading(true);
+    setLoginError(null);
     try {
       const { data } = await signIn(payload);
       persistSession(data);
+      setView('landing');
     } catch (error) {
-      setAuthError(buildErrorMessage(error));
+      setLoginError(buildErrorMessage(error));
     } finally {
-      setIsLoading(false);
+      setLoginLoading(false);
     }
   };
 
   const handleSignUp = async (payload: SignUpPayload) => {
-    setIsLoading(true);
-    setAuthError(null);
+    setSignupLoading(true);
+    setSignupError(null);
     try {
       const { data } = await signUp(payload);
-      persistSession(data);
+      setPendingEmail(payload.email);
+      setStatusMessage(data.message);
+      setView('verify');
     } catch (error) {
-      setAuthError(buildErrorMessage(error));
+      setSignupError(buildErrorMessage(error));
     } finally {
-      setIsLoading(false);
+      setSignupLoading(false);
     }
   };
 
-  const handleSignOut = () => {
-    clearSession();
+  const handleVerify = async (token: string) => {
+    setVerifyLoading(true);
+    setVerifyError(null);
+    try {
+      const { data } = await verifyEmail({ token });
+      persistSession(data);
+      setView('landing');
+    } catch (error) {
+      setVerifyError(buildErrorMessage(error));
+    } finally {
+      setVerifyLoading(false);
+    }
+  };
+
+  const handleForgot = async (email: string) => {
+    setForgotLoading(true);
+    setForgotError(null);
+    try {
+      const { data } = await forgotPassword({ email });
+      setStatusMessage(data.message);
+    } catch (error) {
+      setForgotError(buildErrorMessage(error));
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const handleReset = async (token: string, newPassword: string) => {
+    setResetLoading(true);
+    setResetError(null);
+    try {
+      const { data } = await resetPassword({ token, new_password: newPassword });
+      setStatusMessage(data.message);
+      setView('login');
+    } catch (error) {
+      setResetError(buildErrorMessage(error));
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  const initiateLogout = () => {
+    setView('logout');
+  };
+
+  const confirmLogout = async () => {
+    try {
+      await logoutRequest();
+    } finally {
+      clearSession();
+    }
   };
 
   if (!user) {
-    return (
-      <HireSightLanding
-        onSignIn={handleSignIn}
-        onSignUp={handleSignUp}
-        authError={authError}
-        isLoading={isLoading}
-      />
-    );
+    switch (view) {
+      case 'login':
+        return (
+          <LoginPage
+            isLoading={loginLoading}
+            error={loginError}
+            onSubmit={handleSignIn}
+            onSwitchToSignup={openSignup}
+            onForgotPassword={openForgot}
+            statusMessage={statusMessage}
+          />
+        );
+      case 'signup':
+        return (
+          <SignUpPage
+            isLoading={signupLoading}
+            error={signupError}
+            onSubmit={handleSignUp}
+            onSwitchToLogin={openLogin}
+          />
+        );
+      case 'verify':
+        return (
+          <EmailVerificationPage
+            email={pendingEmail}
+            onVerify={handleVerify}
+            onBackToLogin={openLogin}
+            statusMessage={statusMessage}
+            error={verifyError}
+          />
+        );
+      case 'forgot':
+        return (
+          <ForgotPasswordPage
+            isLoading={forgotLoading}
+            onRequest={handleForgot}
+            onBackToLogin={openLogin}
+            statusMessage={statusMessage}
+            error={forgotError}
+          />
+        );
+      case 'reset':
+        return (
+          <ResetPasswordPage
+            isLoading={resetLoading}
+            onReset={handleReset}
+            onBackToLogin={openLogin}
+            statusMessage={statusMessage}
+            error={resetError}
+          />
+        );
+      default:
+        return <HireSightLanding onShowLogin={openLogin} onShowSignup={openSignup} />;
+    }
   }
 
-  return <Dashboard user={user} onSignOut={handleSignOut} />;
+  if (view === 'logout') {
+    return <LogoutPrompt onConfirm={confirmLogout} onCancel={() => setView('landing')} />;
+  }
+
+  return <Dashboard user={user} onSignOut={initiateLogout} />;
 }
 
 export default App;

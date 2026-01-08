@@ -22,6 +22,8 @@ class User(Base):
     account_type = Column(String(20), nullable=False)  # 'personal' or 'company'
     is_verified = Column(Boolean, default=False)
     is_active = Column(Boolean, default=True)
+    failed_login_attempts = Column(Integer, default=0)
+    locked_until = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -58,6 +60,22 @@ class VerificationToken(Base):
 
     def __repr__(self):
         return f"<VerificationToken(user_id={self.user_id}, expires_at={self.expires_at})>"
+
+
+class PasswordResetToken(Base):
+    """Temporary tokens used for password resets."""
+    __tablename__ = "password_reset_tokens"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    token = Column(String(255), unique=True, nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User")
+
+    def __repr__(self):
+        return f"<PasswordResetToken(user_id={self.user_id}, expires_at={self.expires_at})>"
 
 
 class RefreshToken(Base):

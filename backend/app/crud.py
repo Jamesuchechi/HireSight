@@ -8,6 +8,8 @@ from .schemas import (
     UserCreate, PersonalProfileCreate, CompanyProfileCreate,
     JobCreate, ApplicationCreate, ResumeUpload, FollowCreate
 )
+from .config import settings
+from .utils.token_utils import generate_secure_token
 
 
 # User CRUD
@@ -57,6 +59,25 @@ def update_user_verification(db: Session, user_id: str, is_verified: bool) -> mo
     return user
 
 
+def reset_failed_login_attempts(db: Session, user: models.User) -> models.User:
+    user.failed_login_attempts = 0
+    user.locked_until = None
+    user.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def record_failed_login_attempt(db: Session, user: models.User) -> models.User:
+    user.failed_login_attempts += 1
+    if user.failed_login_attempts >= settings.MAX_LOGIN_ATTEMPTS:
+        user.locked_until = datetime.utcnow() + timedelta(minutes=settings.LOGIN_LOCK_MINUTES)
+    user.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(user)
+    return user
+
+
 # Profile CRUD
 def get_personal_profile(db: Session, user_id: str) -> Optional[models.PersonalProfile]:
     return db.query(models.PersonalProfile).filter(models.PersonalProfile.user_id == user_id).first()
@@ -64,6 +85,36 @@ def get_personal_profile(db: Session, user_id: str) -> Optional[models.PersonalP
 
 def get_company_profile(db: Session, user_id: str) -> Optional[models.CompanyProfile]:
     return db.query(models.CompanyProfile).filter(models.CompanyProfile.user_id == user_id).first()
+
+
+def get_verified_companies(db: Session, industry: Optional[str] = None, size: Optional[str] = None, skip: int = 0, limit: int = 20) -> List[models.CompanyProfile]:
+    query = db.query(models.CompanyProfile).filter(models.CompanyProfile.verification_status == "verified")
+    if industry:
+        query = query.filter(models.CompanyProfile.industry.ilike(f"%{industry}%"))
+    if size:
+        query = query.filter(models.CompanyProfile.company_size == size)
+    return query.order_by(models.CompanyProfile.company_name.asc()).offset(skip).limit(limit).all()
+
+
+def get_verified_company_by_id(db: Session, user_id: str) -> Optional[models.CompanyProfile]:
+    return db.query(models.CompanyProfile).filter(
+        models.CompanyProfile.user_id == user_id,
+        models.CompanyProfile.verification_status == "verified"
+    ).first()
+
+
+def get_company_followers_count(db: Session, user_id: str) -> int:
+    return db.query(models.Follow).filter(
+        models.Follow.following_id == user_id,
+        models.Follow.following_type == "company"
+    ).count()
+
+
+def get_company_open_jobs_count(db: Session, user_id: str) -> int:
+    return db.query(models.Job).filter(
+        models.Job.company_id == user_id,
+        models.Job.status == "active"
+    ).count()
 
 
 def update_personal_profile(db: Session, user_id: str, profile_data: PersonalProfileCreate) -> models.PersonalProfile:
@@ -99,7 +150,16 @@ def update_company_profile(db: Session, user_id: str, profile_data: CompanyProfi
 
 
 # Resume CRUD
-def create_resume(db: Session, user_id: str, filename: str, file_url: str, file_size: int, version_name: str = "Main Resume", parsed_data: Dict[str, Any] = None) -> models.Resume:
+def create_resume(
+    db: Session,
+    user_id: str,
+    filename: str,
+    file_url: str,
+    file_size: int,
+    version_name: str = "Main Resume",
+    parsed_data: Dict[str, Any] = None,
+    raw_text: str | None = None
+) -> models.Resume:
     # Set as primary if it's the user's first resume
     is_primary = db.query(models.Resume).filter(models.Resume.user_id == user_id).count() == 0
 
@@ -111,6 +171,7 @@ def create_resume(db: Session, user_id: str, filename: str, file_url: str, file_
         version_name=version_name,
         is_primary=is_primary,
         parsed_data=parsed_data or {},
+        raw_text=raw_text,
     )
     db.add(resume)
     db.commit()
@@ -191,6 +252,81 @@ def update_job(db: Session, job_id: str, company_id: str, job_data: JobCreate) -
     return job
 
 
+def close_job(db: Session, job_id: str, company_id: str) -> Optional[models.Job]:
+    job = db.query(models.Job).filter(
+        and_(models.Job.id == job_id, models.Job.company_id == company_id)
+    ).first()
+    if job:
+        job.status = "closed"
+        job.updated_at = datetime.utcnow()
+        db.commit()
+        db.refresh(job)
+    return job
+
+
+def duplicate_job(db: Session, job_id: str, company_id: str) -> Optional[models.Job]:
+    original = db.query(models.Job).filter(
+        and_(models.Job.id == job_id, models.Job.company_id == company_id)
+    ).first()
+    if not original:
+        return None
+
+    copied_requirements = dict(original.requirements) if isinstance(original.requirements, dict) else {}
+    copied_screening = list(original.screening_questions) if isinstance(original.screening_questions, list) else []
+
+    duplicate = models.Job(
+        company_id=company_id,
+        title=f"Copy of {original.title}",
+        description=original.description,
+        requirements=copied_requirements,
+        location=original.location,
+        remote_type=original.remote_type,
+        employment_type=original.employment_type,
+        salary_min=original.salary_min,
+        salary_max=original.salary_max,
+        salary_currency=original.salary_currency,
+        screening_questions=copied_screening,
+        status="draft",
+    )
+    db.add(duplicate)
+    db.commit()
+    db.refresh(duplicate)
+    return duplicate
+
+
+def get_similar_jobs(db: Session, job_id: str, limit: int = 3) -> List[models.Job]:
+    base_job = get_job_by_id(db, job_id)
+    if not base_job:
+        return []
+
+    base_skills = {
+        skill.lower()
+        for skill in (base_job.requirements.get("skills") if isinstance(base_job.requirements, dict) else [])
+        if isinstance(skill, str)
+    }
+    if not base_skills:
+        return []
+
+    candidates = db.query(models.Job).filter(
+        models.Job.status == "active",
+        models.Job.id != job_id
+    ).all()
+
+    scored: List[tuple[int, models.Job]] = []
+    for job in candidates:
+        job_skills = {
+            skill.lower()
+            for skill in (job.requirements.get("skills") if isinstance(job.requirements, dict) else [])
+            if isinstance(skill, str)
+        }
+        score = len(base_skills & job_skills)
+        if score > 0:
+            scored.append((score, job))
+
+    scored.sort(key=lambda item: (-item[0], -item[1].application_count))
+    return [job for _, job in scored[:limit]]
+
+
 def delete_job(db: Session, job_id: str, company_id: str) -> bool:
     job = db.query(models.Job).filter(
         and_(models.Job.id == job_id, models.Job.company_id == company_id)
@@ -229,12 +365,23 @@ def search_jobs(db: Session, query: Optional[str] = None, location: Optional[str
     if salary_min:
         jobs_query = jobs_query.filter(models.Job.salary_max >= salary_min)
 
-    if skills:
-        # This is a simplified version - in production, you'd match against requirements.skills JSON
-        pass
+    def _job_matches_skills(job: models.Job, required_skills: List[str]) -> bool:
+        job_skills = job.requirements.get("skills") if isinstance(job.requirements, dict) else None
+        if not job_skills:
+            return False
+        lowered = [skill.lower() for skill in job_skills if isinstance(skill, str)]
+        return all(skill.lower() in lowered for skill in required_skills)
 
-    total = jobs_query.count()
-    jobs = jobs_query.order_by(models.Job.created_at.desc()).offset(skip).limit(limit).all()
+    jobs_query = jobs_query.order_by(models.Job.created_at.desc())
+
+    if skills:
+        all_jobs = jobs_query.all()
+        filtered_jobs = [job for job in all_jobs if _job_matches_skills(job, skills)]
+        total = len(filtered_jobs)
+        jobs = filtered_jobs[skip:skip + limit]
+    else:
+        total = jobs_query.count()
+        jobs = jobs_query.offset(skip).limit(limit).all()
 
     return {"jobs": jobs, "total": total}
 
@@ -458,9 +605,13 @@ def mark_message_read(db: Session, message_id: str, user_id: str) -> bool:
 
 # Verification Token CRUD
 def create_verification_token(db: Session, user_id: str, expires_at: datetime) -> models.VerificationToken:
+    token_value = generate_secure_token()
+    # Remove previous pending tokens to avoid duplicates
+    db.query(models.VerificationToken).filter(models.VerificationToken.user_id == user_id).delete()
     token = models.VerificationToken(
         user_id=user_id,
-        expires_at=expires_at
+        expires_at=expires_at,
+        token=token_value
     )
     db.add(token)
     db.commit()
@@ -479,11 +630,39 @@ def delete_verification_token(db: Session, token_id: str):
         db.commit()
 
 
+# Password reset CRUD
+def create_password_reset_token(db: Session, user_id: str, expires_at: datetime) -> models.PasswordResetToken:
+    token_value = generate_secure_token()
+    db.query(models.PasswordResetToken).filter(models.PasswordResetToken.user_id == user_id).delete()
+    reset_token = models.PasswordResetToken(
+        user_id=user_id,
+        expires_at=expires_at,
+        token=token_value
+    )
+    db.add(reset_token)
+    db.commit()
+    db.refresh(reset_token)
+    return reset_token
+
+
+def get_password_reset_token(db: Session, token: str) -> Optional[models.PasswordResetToken]:
+    return db.query(models.PasswordResetToken).filter(models.PasswordResetToken.token == token).first()
+
+
+def delete_password_reset_token(db: Session, token_id: str):
+    token = db.query(models.PasswordResetToken).filter(models.PasswordResetToken.id == token_id).first()
+    if token:
+        db.delete(token)
+        db.commit()
+
+
 # Refresh Token CRUD
 def create_refresh_token(db: Session, user_id: str, expires_at: datetime) -> models.RefreshToken:
+    token_value = generate_secure_token()
     token = models.RefreshToken(
         user_id=user_id,
-        expires_at=expires_at
+        expires_at=expires_at,
+        token=token_value
     )
     db.add(token)
     db.commit()

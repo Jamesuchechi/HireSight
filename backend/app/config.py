@@ -34,6 +34,11 @@ class Settings:
     MAX_UPLOAD_SIZE = int(os.getenv("MAX_UPLOAD_SIZE", 10 * 1024 * 1024))  # 10 MB default
     ALLOWED_EXTENSIONS = {".pdf", ".docx", ".doc"}
 
+    # Application URLs
+    APP_URL = os.getenv("APP_URL", "http://localhost:8000")
+    FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+    EMAIL_VERIFICATION_PATH = os.getenv("EMAIL_VERIFICATION_PATH", "/auth/verify-email")
+
     # NLP/Embedding settings
     EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
     EMBEDDING_DIMENSION = int(os.getenv("EMBEDDING_DIMENSION", 384))
@@ -59,6 +64,35 @@ class Settings:
     SECRET_KEY = os.getenv("SECRET_KEY", "change-this-secret")
     JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
     ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 60 * 8))
+    REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", 7))
+
+    # Cookie settings
+    REFRESH_TOKEN_COOKIE_NAME = os.getenv("REFRESH_TOKEN_COOKIE_NAME", "hiresight_refresh_token")
+    REFRESH_TOKEN_COOKIE_SECURE = os.getenv("REFRESH_TOKEN_COOKIE_SECURE", "False").lower() in ("1", "true", "yes")
+    REFRESH_TOKEN_COOKIE_SAMESITE = os.getenv("REFRESH_TOKEN_COOKIE_SAMESITE", "lax")
+    REFRESH_TOKEN_COOKIE_PATH = os.getenv("REFRESH_TOKEN_COOKIE_PATH", "/api")
+    REFRESH_TOKEN_COOKIE_MAX_AGE = REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60
+
+    # Login throttling
+    MAX_LOGIN_ATTEMPTS = int(os.getenv("MAX_LOGIN_ATTEMPTS", 5))
+    LOGIN_LOCK_MINUTES = int(os.getenv("LOGIN_LOCK_MINUTES", 30))
+
+    # Registration rate limiting
+    REGISTRATION_MAX_ATTEMPTS_PER_HOUR = int(os.getenv("REGISTRATION_MAX_PER_HOUR", 5))
+    REGISTRATION_WINDOW_SECONDS = int(os.getenv("REGISTRATION_WINDOW_SECONDS", 3600))
+
+    # Password reset
+    PASSWORD_RESET_TOKEN_EXPIRE_HOURS = int(os.getenv("PASSWORD_RESET_TOKEN_EXPIRE_HOURS", 1))
+
+    # Email delivery
+    EMAIL_FROM_NAME = os.getenv("EMAIL_FROM_NAME", "HireSight")
+    EMAIL_FROM_ADDRESS = os.getenv("EMAIL_FROM_ADDRESS", "no-reply@hiresight.io")
+    SMTP_HOST = os.getenv("SMTP_HOST")
+    SMTP_PORT = int(os.getenv("SMTP_PORT", 587))
+    SMTP_USERNAME = os.getenv("SMTP_USERNAME")
+    SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
+    SMTP_USE_TLS = os.getenv("SMTP_USE_TLS", "True").lower() in ("1", "true", "yes")
+    SMTP_TIMEOUT = int(os.getenv("SMTP_TIMEOUT", 15))
 
 
 @lru_cache()

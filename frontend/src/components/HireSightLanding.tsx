@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   Upload,
-  Zap,
   BarChart3,
   FileText,
   Sparkles,
@@ -9,48 +8,24 @@ import {
   ArrowRight,
   Star,
   Quote,
-  X,
   CheckCircle,
   XCircle,
   Clock,
   TrendingUp,
   Users,
-  Shield,
-  Loader
+  Shield
 } from 'lucide-react';
-import type { SignInPayload, SignUpPayload, AccountType } from '../types';
 import Footer from './Footer';
 import Logo from './Logo';
 
-type AuthFormState = {
-  fullName: string;
-  email: string;
-  password: string;
-  accountType: AccountType;
-  companyName: string;
-};
-
 type Props = {
-  onSignIn: (payload: SignInPayload) => Promise<void> | void;
-  onSignUp: (payload: SignUpPayload) => Promise<void> | void;
-  authError?: string | null;
-  isLoading?: boolean;
+  onShowLogin: () => void;
+  onShowSignup: () => void;
 };
 
-const AUTH_FORM_DEFAULT: AuthFormState = {
-  fullName: '',
-  email: '',
-  password: '',
-  accountType: 'personal',
-  companyName: ''
-};
-
-export default function HireSightLanding({ onSignIn, onSignUp, authError, isLoading }: Props) {
+export default function HireSightLanding({ onShowLogin, onShowSignup }: Props) {
   const [scrollY, setScrollY] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
-  const [showAuthModal, setShowAuthModal] = useState(false);
-  const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
-  const [formData, setFormData] = useState<AuthFormState>({ ...AUTH_FORM_DEFAULT });
 
   useEffect(() => {
     setIsVisible(true);
@@ -58,55 +33,6 @@ export default function HireSightLanding({ onSignIn, onSignUp, authError, isLoad
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
-  useEffect(() => {
-    if (showAuthModal) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-  }, [showAuthModal]);
-
-  const handleChange =
-    (field: keyof AuthFormState) => (e: React.ChangeEvent<HTMLInputElement>) => {
-      setFormData((prev) => ({ ...prev, [field]: e.target.value }));
-    };
-
-  const handleRoleChange = (accountType: AccountType) => {
-    setFormData((prev) => ({
-      ...prev,
-      accountType,
-      companyName: accountType === 'company' ? prev.companyName : ''
-    }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (authMode === 'signin') {
-      await onSignIn({
-        email: formData.email.trim(),
-        password: formData.password
-      });
-      return;
-    }
-
-    await onSignUp({
-      name: formData.fullName.trim(),
-      email: formData.email.trim(),
-      password: formData.password,
-      account_type: formData.accountType,
-      company_name:
-        formData.accountType === 'company' ? formData.companyName.trim() || undefined : undefined
-    });
-  };
-
-  const resetFormState = () => setFormData({ ...AUTH_FORM_DEFAULT });
-
-  const openAuthModal = (mode: 'signin' | 'signup') => {
-    setAuthMode(mode);
-    resetFormState();
-    setShowAuthModal(true);
-  };
 
   const features = [
     {
@@ -1320,12 +1246,8 @@ export default function HireSightLanding({ onSignIn, onSignUp, authError, isLoad
           <a href="https://github.com/yourusername/HireSight" className="nav-link">
             GitHub
           </a>
-          <button
-            type="button"
-            className="header-cta"
-            onClick={() => openAuthModal('signin')}
-          >
-            Get Started
+          <button type="button" className="header-cta" onClick={onShowLogin}>
+            Sign in
           </button>
         </nav>
       </header>
@@ -1344,15 +1266,12 @@ export default function HireSightLanding({ onSignIn, onSignUp, authError, isLoad
             time.
           </p>
           <div className="hero-cta">
-            <button
-              className="primary-btn"
-              onClick={() => openAuthModal('signup')}
-            >
+            <button className="primary-btn" onClick={onShowSignup}>
               <span>Start Screening Free</span>
               <ArrowRight size={22} />
             </button>
-            <button className="secondary-btn">
-              <span>Watch Demo</span>
+            <button className="secondary-btn" onClick={onShowLogin}>
+              <span>Sign in</span>
             </button>
           </div>
         </div>
@@ -1478,13 +1397,13 @@ export default function HireSightLanding({ onSignIn, onSignUp, authError, isLoad
             Start screening smarter with HireSight's open-source AI platform. No credit card
             required, instant results, and total transparency.
           </p>
-          <div className="cta-buttons">
-            <button
-              className="cta-primary"
-              onClick={() => openAuthModal('signup')}
-            >
-              Get Started Free
-            </button>
+        <div className="cta-buttons">
+          <button
+            className="cta-primary"
+            onClick={onShowSignup}
+          >
+            Get Started Free
+          </button>
             <button className="cta-secondary">View on GitHub</button>
           </div>
         </div>
@@ -1553,111 +1472,6 @@ export default function HireSightLanding({ onSignIn, onSignUp, authError, isLoad
           <p>© 2026 HireSight. MIT License. Built with ❤️ for better hiring.</p>
         </div>
       </footer>
-
-      {/* Auth Modal */}
-      {showAuthModal && (
-        <div className="auth-modal-overlay" onClick={() => setShowAuthModal(false)}>
-          <div className="auth-modal" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => setShowAuthModal(false)}>
-              <X size={20} />
-            </button>
-
-            <div className="modal-logo">
-              <div className="modal-logo-icon">H</div>
-              <span className="modal-logo-text">HireSight</span>
-            </div>
-
-            <div className="auth-toggle">
-              <button
-                className={authMode === 'signin' ? 'auth-toggle-btn active' : 'auth-toggle-btn'}
-                onClick={() => setAuthMode('signin')}
-              >
-                Sign In
-              </button>
-              <button
-                className={authMode === 'signup' ? 'auth-toggle-btn active' : 'auth-toggle-btn'}
-                onClick={() => setAuthMode('signup')}
-              >
-                Sign Up
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit} className="auth-form">
-              {authMode === 'signup' && (
-                <input
-                  type="text"
-                  placeholder="Full name"
-                  value={formData.fullName}
-                  onChange={handleChange('fullName')}
-                  required
-                  maxLength={72}
-                  className={authError ? 'error' : ''}
-                />
-              )}
-              <input
-                type="email"
-                placeholder="Email address"
-                value={formData.email}
-                onChange={handleChange('email')}
-                required
-                className={authError ? 'error' : ''}
-              />
-              <input
-                type="password"
-                placeholder="Password"
-                value={formData.password}
-                onChange={handleChange('password')}
-                required
-                minLength={8}
-                maxLength={72}
-                className={authError ? 'error' : ''}
-              />
-              {authMode === 'signup' && (
-                <div className="role-selector">
-                  <button
-                    type="button"
-                    className={`role-pill ${formData.accountType === 'personal' ? 'active' : ''}`}
-                    onClick={() => handleRoleChange('personal')}
-                  >
-                    Job Seeker
-                  </button>
-                  <button
-                    type="button"
-                    className={`role-pill ${formData.accountType === 'company' ? 'active' : ''}`}
-                    onClick={() => handleRoleChange('company')}
-                  >
-                    Company
-                  </button>
-                </div>
-              )}
-              {authMode === 'signup' && formData.accountType === 'company' && (
-                <input
-                  type="text"
-                  placeholder="Company / Business name"
-                  value={formData.companyName}
-                  onChange={handleChange('companyName')}
-                  required
-                  className={authError ? 'error' : ''}
-                />
-              )}
-              {authError && <p className="auth-error">{authError}</p>}
-              <button type="submit" className="auth-submit" disabled={isLoading}>
-                {isLoading ? (
-                  <>
-                    <Loader size={20} className="spin" />
-                    <span>Processing...</span>
-                  </>
-                ) : (
-                  <>
-                    {authMode === 'signin' ? <Zap size={20} /> : <ArrowRight size={20} />}
-                    <span>{authMode === 'signin' ? 'Access Dashboard' : 'Create Account'}</span>
-                  </>
-                )}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
 
       <Footer />
     </div>

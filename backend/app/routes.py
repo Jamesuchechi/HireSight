@@ -1,8 +1,9 @@
 from pathlib import Path
 from uuid import uuid4
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
+import logging
 import shutil
-from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, status
+from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, Request, Response, status
 from sqlalchemy.orm import Session
 
 from . import crud, models
@@ -13,8 +14,35 @@ from .utils.security import (
     get_current_user, get_current_verified_user,
     get_current_personal_user, get_current_company_user
 )
+from .utils.parser import parse_resume
+from .utils.ratelimit import registration_rate_limiter
 
 router = APIRouter()
+
+def _format_company_location(profile: models.CompanyProfile) -> Optional[str]:
+    if profile.locations:
+        primary = profile.locations[0]
+        parts = [primary.get("city"), primary.get("state")]
+        return ", ".join([part for part in parts if part])
+    return None
+
+
+def _build_company_public(profile: models.CompanyProfile, db: Session) -> CompanyPublicOut:
+    location = _format_company_location(profile)
+    follower_count = crud.get_company_followers_count(db, profile.user_id)
+    open_jobs = crud.get_company_open_jobs_count(db, profile.user_id)
+    return CompanyPublicOut(
+        id=profile.user_id,
+        company_name=profile.company_name,
+        logo_url=profile.logo_url,
+        industry=profile.industry,
+        company_size=profile.company_size,
+        location=location,
+        follower_count=follower_count,
+        open_jobs_count=open_jobs
+    )
+
+logger = logging.getLogger(__name__)
 
 
 # Profile Routes
@@ -85,9 +113,21 @@ def list_companies(
     db: Session = Depends(get_db)
 ):
     """List verified companies."""
-    # TODO: Implement filtering and pagination
-    # For now, return empty list
-    return []
+    skip = (page - 1) * limit
+    companies = crud.get_verified_companies(db, industry, size, skip, limit)
+    return [_build_company_public(profile, db) for profile in companies]
+
+
+@router.get("/companies/{company_id}", response_model=CompanyPublicOut)
+def get_company(
+    company_id: str,
+    db: Session = Depends(get_db)
+):
+    """Get public data for a specific verified company."""
+    profile = crud.get_verified_company_by_id(db, company_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail="Company not found")
+    return _build_company_public(profile, db)
 
 
 # Resume Routes
@@ -123,8 +163,14 @@ async def upload_resume(
     with open(file_path, "wb") as destination:
         destination.write(file_content)
 
-    # TODO: Parse resume content
-    parsed_data = {}
+    parsed_data: Dict[str, Any] = {}
+    raw_text: Optional[str] = None
+    try:
+        parsed_result = parse_resume(str(file_path))
+        parsed_data = parsed_result
+        raw_text = parsed_result.get("raw_text")
+    except Exception as exc:
+        logger.error("Failed to parse resume %s: %s", file.filename, exc)
 
     resume = crud.create_resume(
         db,
@@ -133,7 +179,8 @@ async def upload_resume(
         file_url=str(file_path),
         file_size=file_size,
         version_name=version_name,
-        parsed_data=parsed_data
+        parsed_data=parsed_data,
+        raw_text=raw_text
     )
 
     return resume
@@ -194,6 +241,27 @@ def delete_resume(resume_id: str, current_user: models.User = Depends(get_curren
     return {"message": "Resume deleted successfully"}
 
 
+@router.post("/resumes/{resume_id}/parse", response_model=ResumeOut)
+def reparse_resume(resume_id: str, current_user: models.User = Depends(get_current_personal_user), db: Session = Depends(get_db)):
+    """Re-parse an existing resume."""
+    resume = crud.get_resume_by_id(db, resume_id)
+    if not resume or resume.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Resume not found")
+
+    try:
+        parsed_result = parse_resume(resume.file_url)
+    except Exception as exc:
+        logger.error("Failed to re-parse resume %s: %s", resume_id, exc)
+        raise HTTPException(status_code=500, detail="Failed to parse resume")
+
+    resume.parsed_data = parsed_result
+    resume.raw_text = parsed_result.get("raw_text")
+    db.commit()
+    db.refresh(resume)
+
+    return resume
+
+
 # Job Routes (Company)
 @router.post("/jobs", response_model=JobOut)
 def create_job(job_data: JobCreate, current_user: models.User = Depends(get_current_company_user), db: Session = Depends(get_db)):
@@ -251,6 +319,31 @@ def delete_job(job_id: str, current_user: models.User = Depends(get_current_comp
     return {"message": "Job deleted successfully"}
 
 
+@router.post("/jobs/{job_id}/close")
+def close_job(job_id: str, current_user: models.User = Depends(get_current_company_user), db: Session = Depends(get_db)):
+    """Close a job to new applications."""
+    job = crud.close_job(db, job_id, current_user.id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found or already closed")
+    return {"message": "Job closed successfully", "job": job}
+
+
+@router.post("/jobs/{job_id}/duplicate", response_model=JobOut)
+def duplicate_job(job_id: str, current_user: models.User = Depends(get_current_company_user), db: Session = Depends(get_db)):
+    """Duplicate an existing job posting."""
+    duplicate = crud.duplicate_job(db, job_id, current_user.id)
+    if not duplicate:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return duplicate
+
+
+@router.get("/jobs/{job_id}/similar", response_model=List[JobOut])
+def similar_jobs(job_id: str, limit: int = 3, db: Session = Depends(get_db)):
+    """Get similar active jobs based on shared skills."""
+    similar = crud.get_similar_jobs(db, job_id, limit)
+    return similar
+
+
 # Job Routes (Public/Personal)
 @router.get("/jobs/search", response_model=JobSearchResponse)
 def search_jobs(
@@ -265,7 +358,7 @@ def search_jobs(
     db: Session = Depends(get_db)
 ):
     """Search for jobs."""
-    skills_list = skills.split(",") if skills else None
+    skills_list = [skill.strip() for skill in skills.split(",") if skill.strip()] if skills else None
     result = crud.search_jobs(
         db, q, location, remote_type, employment_type,
         salary_min, skills_list, (page-1)*limit, limit
