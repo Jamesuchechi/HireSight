@@ -315,6 +315,8 @@ class ApplicationOut(BaseModel):
     rejection_reason: Optional[str] = None
     applied_at: datetime
     updated_at: datetime
+    job_title: Optional[str] = None
+    company_name: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -430,6 +432,74 @@ class DashboardActivity(BaseModel):
     message: str
     time: str
     link: Optional[str] = None
+
+
+class DashboardActivityListResponse(BaseModel):
+    activities: List[DashboardActivity]
+
+
+class SavedJobOut(BaseModel):
+    id: str
+    job_id: str
+    title: str
+    company_name: Optional[str] = None
+    company_logo: Optional[str] = None
+    location: Optional[str] = None
+    remote_type: Optional[str] = None
+    salary_min: Optional[int] = None
+    salary_max: Optional[int] = None
+    saved_at: datetime
+    status: Optional[str] = None
+
+
+class SavedJobListResponse(BaseModel):
+    saved_jobs: List[SavedJobOut]
+
+
+class RecommendedJobOut(BaseModel):
+    id: str
+    title: str
+    company_name: Optional[str] = None
+    company_logo: Optional[str] = None
+    location: Optional[str] = None
+    match_score: Optional[float] = None
+    skills_match: List[str] = Field(default_factory=list)
+    posted_date: datetime
+
+
+class RecommendedJobListResponse(BaseModel):
+    recommended_jobs: List[RecommendedJobOut]
+
+
+class InterviewOut(BaseModel):
+    id: str
+    job_title: Optional[str] = None
+    candidate_name: Optional[str] = None
+    company_name: Optional[str] = None
+    scheduled_at: datetime
+    duration_minutes: int
+    location: Optional[str] = None
+    meeting_link: Optional[str] = None
+    status: str
+
+
+class InterviewListResponse(BaseModel):
+    interviews: List[InterviewOut]
+
+
+class CandidateOut(BaseModel):
+    id: str
+    name: str
+    role: Optional[str] = None
+    score: float
+    skills: List[str] = Field(default_factory=list)
+    avatar: Optional[str] = None
+    status: Optional[str] = None
+    applied_at: Optional[datetime] = None
+
+
+class CandidateListResponse(BaseModel):
+    candidates: List[CandidateOut]
 
 
 # Screening Schemas

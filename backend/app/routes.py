@@ -1,6 +1,7 @@
 from pathlib import Path
 from uuid import uuid4
 from typing import Any, Dict, List, Optional
+from datetime import datetime, timedelta
 import logging
 import shutil
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, Request, Response, status
@@ -43,6 +44,49 @@ def _build_company_public(profile: models.CompanyProfile, db: Session) -> Compan
     )
 
 logger = logging.getLogger(__name__)
+
+
+def _estimate_profile_completion(profile: Optional[models.PersonalProfile]) -> int:
+    if not profile:
+        return 20
+    fields = [
+        profile.full_name,
+        profile.headline,
+        profile.location,
+        profile.bio,
+        profile.skills,
+        profile.experience
+    ]
+    filled = sum(bool(value) for value in fields)
+    return min(100, int((filled / len(fields)) * 100))
+
+
+def _get_company_name_from_user(user: models.User) -> str:
+    profile = user.company_profile
+    if profile and profile.company_name:
+        return profile.company_name
+    return user.company_name or user.email
+
+
+def _build_interview_payload(app: models.Application, for_company: bool = False) -> InterviewOut:
+    job = app.job
+    company = job.company if job else None
+    scheduled_at = (app.applied_at or datetime.utcnow()) + timedelta(days=1)
+    candidate_name = None
+    if for_company and app.user:
+        candidate_name = app.user.full_name or app.user.email
+
+    return InterviewOut(
+        id=str(app.id),
+        job_title=job.title if job else None,
+        candidate_name=candidate_name,
+        company_name=_get_company_name_from_user(company) if company else None,
+        scheduled_at=scheduled_at,
+        duration_minutes=45,
+        location=job.location if job else None,
+        meeting_link=None,
+        status=app.status
+    )
 
 
 # Profile Routes
@@ -344,6 +388,123 @@ def similar_jobs(job_id: str, limit: int = 3, db: Session = Depends(get_db)):
     return similar
 
 
+@router.get("/jobs/saved", response_model=SavedJobListResponse)
+def list_saved_jobs(
+    limit: int = 12,
+    current_user: models.User = Depends(get_current_personal_user),
+    db: Session = Depends(get_db)
+):
+    """List jobs the personal user has saved."""
+    entries = crud.get_saved_jobs(db, current_user.id, limit=limit)
+    payload = []
+    for entry in entries:
+        job = entry.job
+        if not job:
+            continue
+        company = job.company or current_user
+        company_name = _get_company_name_from_user(company) if company else None
+        company_logo = (
+            company.company_profile.logo_url if company and company.company_profile else None
+        )
+        payload.append(
+            SavedJobOut(
+                id=entry.id,
+                job_id=job.id,
+                title=job.title,
+                company_name=company_name,
+                company_logo=company_logo,
+                location=job.location,
+                remote_type=job.remote_type,
+                salary_min=job.salary_min,
+                salary_max=job.salary_max,
+                saved_at=entry.saved_at,
+                status=job.status
+            )
+        )
+    return SavedJobListResponse(saved_jobs=payload)
+
+
+@router.get("/jobs/recommended", response_model=RecommendedJobListResponse)
+def list_recommended_jobs(
+    limit: int = 5,
+    current_user: models.User = Depends(get_current_personal_user),
+    db: Session = Depends(get_db)
+):
+    """Fetch recommended jobs for a personal user."""
+    entries = crud.get_recommended_jobs(db, current_user.id, limit=limit)
+    payload = []
+    for entry in entries:
+        job = entry["job"]
+        company = job.company
+        payload.append(
+            RecommendedJobOut(
+                id=job.id,
+                title=job.title,
+                company_name=_get_company_name_from_user(company) if company else None,
+                company_logo=company.company_profile.logo_url if company and company.company_profile else None,
+                location=job.location,
+                match_score=entry.get("match_score"),
+                skills_match=entry.get("skills_match", []),
+                posted_date=job.created_at or datetime.utcnow()
+            )
+        )
+    return RecommendedJobListResponse(recommended_jobs=payload)
+
+
+@router.get("/interviews", response_model=InterviewListResponse)
+def list_interviews(
+    limit: int = 6,
+    current_user: models.User = Depends(get_current_verified_user),
+    db: Session = Depends(get_db)
+):
+    """Return scheduled interviews for both roles."""
+    interviews = []
+    if current_user.account_type == "personal":
+        applications = crud.get_user_applications(db, current_user.id, limit=limit)
+        for app in applications:
+            if app.status == "interview":
+                interviews.append(_build_interview_payload(app, for_company=False))
+    else:
+        applications = crud.get_company_applications(db, current_user.id, limit=limit)
+        for app in applications:
+            if app.status == "interview":
+                interviews.append(_build_interview_payload(app, for_company=True))
+    return InterviewListResponse(interviews=interviews)
+
+
+@router.get("/candidates", response_model=CandidateListResponse)
+def list_candidates(
+    limit: int = 10,
+    current_user: models.User = Depends(get_current_company_user),
+    db: Session = Depends(get_db)
+):
+    """List candidates for company jobs."""
+    applications = crud.get_company_applications(db, current_user.id, limit=limit * 3)
+    seen = set()
+    candidates = []
+    for app in applications:
+        if not app.user or app.user.id in seen:
+            continue
+        seen.add(app.user.id)
+        profile = app.user.personal_profile
+        skills = _flatten_skill_entries(profile.skills) if profile else []
+        candidates.append(
+            CandidateOut(
+                id=app.user.id,
+                name=profile.full_name if profile and profile.full_name else app.user.email,
+                role=profile.headline if profile else None,
+                score=float(app.match_score or 0),
+                skills=skills[:5],
+                avatar=profile.avatar_url if profile else None,
+                status=app.status,
+                applied_at=app.applied_at
+            )
+        )
+        if len(candidates) >= limit:
+            break
+    return CandidateListResponse(candidates=candidates)
+
+
 # Job Routes (Public/Personal)
 @router.get("/jobs/search", response_model=JobSearchResponse)
 def search_jobs(
@@ -396,6 +557,7 @@ def create_application(
 @router.get("/applications", response_model=ApplicationListResponse)
 def list_applications(
     status: Optional[str] = None,
+    job_id: Optional[str] = None,
     page: int = 1,
     limit: int = 20,
     current_user: models.User = Depends(get_current_verified_user),
@@ -407,8 +569,9 @@ def list_applications(
     if current_user.account_type == "personal":
         applications = crud.get_user_applications(db, current_user.id, status, skip, limit)
     else:
-        # For company, this would need job_id parameter - simplified for now
-        applications = []
+        applications = crud.get_company_applications(
+            db, current_user.id, status=status, job_id=job_id, skip=skip, limit=limit
+        )
 
     return ApplicationListResponse(
         applications=applications,
@@ -574,37 +737,87 @@ def get_conversation_messages(
 
 
 # Dashboard Routes
-@router.get("/dashboard/stats")
+@router.get("/dashboard/stats", response_model=DashboardStats)
 def get_dashboard_stats(current_user: models.User = Depends(get_current_verified_user), db: Session = Depends(get_db)):
     """Get dashboard statistics."""
-    # TODO: Implement actual stats calculation
     if current_user.account_type == "personal":
+        applications = crud.get_user_applications(db, current_user.id, limit=200)
+        pending_count = sum(1 for app in applications if app.status in ("pending", "screening"))
+        interview_count = sum(1 for app in applications if app.status == "interview")
+        offer_count = sum(1 for app in applications if app.status == "offer")
+        rejected_count = sum(1 for app in applications if app.status == "rejected")
+        profile = crud.get_personal_profile(db, current_user.id)
+        recommended = crud.get_recommended_jobs(db, current_user.id, limit=5)
+
         return DashboardStats(
-            total_applications=0,
-            pending_count=0,
-            interview_count=0,
-            offer_count=0,
-            rejected_count=0,
-            profile_completion=50,
+            total_applications=len(applications),
+            pending_count=pending_count,
+            interview_count=interview_count,
+            offer_count=offer_count,
+            rejected_count=rejected_count,
+            profile_completion=_estimate_profile_completion(profile),
             profile_views=0,
-            recommended_jobs_count=0
-        )
-    else:
-        return DashboardStats(
-            active_jobs=0,
-            total_applications=0,
-            avg_match_score=0,
-            time_saved_hours=0,
-            new_applications_today=0,
-            interviews_scheduled=0
+            recommended_jobs_count=len(recommended)
         )
 
+    jobs = crud.get_company_jobs(db, current_user.id, limit=200)
+    active_jobs = sum(1 for job in jobs if job.status == "active")
+    applications = crud.get_company_applications(db, current_user.id, limit=500)
+    total_applications = len(applications)
+    match_scores = [app.match_score for app in applications if app.match_score is not None]
+    avg_match_score = float(sum(match_scores) / len(match_scores)) if match_scores else 0.0
+    now = datetime.utcnow()
+    new_applications_today = sum(
+        1 for app in applications if app.applied_at and app.applied_at >= now - timedelta(days=1)
+    )
+    interviews_scheduled = sum(1 for app in applications if app.status == "interview")
 
-@router.get("/dashboard/recent-activity")
+    return DashboardStats(
+        active_jobs=active_jobs,
+        total_applications=total_applications,
+        avg_match_score=avg_match_score,
+        time_saved_hours=int(total_applications * 0.5),
+        new_applications_today=new_applications_today,
+        interviews_scheduled=interviews_scheduled
+    )
+
+
+@router.get("/dashboard/activities", response_model=DashboardActivityListResponse)
 def get_recent_activity(current_user: models.User = Depends(get_current_verified_user), db: Session = Depends(get_db)):
     """Get recent activity for dashboard."""
-    # TODO: Implement recent activity
-    return {"activities": []}
+    activities: List[DashboardActivity] = []
+
+    if current_user.account_type == "personal":
+        applications = crud.get_user_applications(db, current_user.id, limit=5)
+        for app in applications[:5]:
+            job_title = app.job.title if app.job else "a job"
+            status_label = app.status.replace("_", " ").title()
+            activities.append(
+                DashboardActivity(
+                    id=str(app.id),
+                    type="application",
+                    message=f"Your application to {job_title} is now {status_label}.",
+                    time=(app.updated_at or app.applied_at or datetime.utcnow()).isoformat(),
+                    link=f"/applications/{app.id}"
+                )
+            )
+    else:
+        applications = crud.get_company_applications(db, current_user.id, limit=5)
+        for app in applications[:5]:
+            job_title = app.job.title if app.job else "a role"
+            candidate_name = app.user.full_name if app.user and app.user.full_name else "A candidate"
+            status_label = app.status.replace("_", " ").title()
+            activities.append(
+                DashboardActivity(
+                    id=str(app.id),
+                    type="application",
+                    message=f"{candidate_name} is now {status_label} for {job_title}.",
+                    time=(app.updated_at or app.applied_at or datetime.utcnow()).isoformat(),
+                    link=f"/applications/{app.id}"
+                )
+            )
+
+    return DashboardActivityListResponse(activities=activities)
 
 
 # Screening Routes (Company Only)

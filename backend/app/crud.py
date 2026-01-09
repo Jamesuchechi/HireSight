@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import and_, or_, func
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
@@ -10,6 +10,24 @@ from .schemas import (
 )
 from .config import settings
 from .utils.token_utils import generate_secure_token
+
+
+def _flatten_skill_entries(items: Any) -> List[str]:
+    skills: List[str] = []
+    if not items:
+        return skills
+    for item in items:
+        if isinstance(item, str):
+            cleaned = item.strip()
+            if cleaned:
+                skills.append(cleaned)
+        elif isinstance(item, dict):
+            for key in ("skill", "name", "label", "title"):
+                value = item.get(key)
+                if isinstance(value, str) and value.strip():
+                    skills.append(value.strip())
+                    break
+    return skills
 
 
 # User CRUD
@@ -327,6 +345,59 @@ def get_similar_jobs(db: Session, job_id: str, limit: int = 3) -> List[models.Jo
     return [job for _, job in scored[:limit]]
 
 
+def get_saved_jobs(db: Session, user_id: str, limit: int = 10) -> List[models.SavedJob]:
+    return (
+        db.query(models.SavedJob)
+        .options(
+            joinedload(models.SavedJob.job)
+            .joinedload(models.Job.company)
+            .joinedload(models.User.company_profile)
+        )
+        .filter(models.SavedJob.user_id == user_id)
+        .order_by(models.SavedJob.saved_at.desc())
+        .limit(limit)
+        .all()
+    )
+
+
+def get_recommended_jobs(db: Session, user_id: str, limit: int = 5) -> List[Dict[str, Any]]:
+    profile = get_personal_profile(db, user_id)
+    user_skills = {skill.lower() for skill in _flatten_skill_entries(profile.skills)} if profile else set()
+    jobs = (
+        db.query(models.Job)
+        .filter(models.Job.status == "active")
+        .order_by(models.Job.application_count.desc(), models.Job.created_at.desc())
+        .all()
+    )
+    scored: List[Dict[str, Any]] = []
+    for job in jobs:
+        job_requirements = job.requirements if isinstance(job.requirements, dict) else {}
+        job_skills = {skill.lower() for skill in _flatten_skill_entries(job_requirements.get("skills"))}
+        matched = sorted(list(user_skills & job_skills))
+        score = 50 + min(40, len(matched) * 8)
+        scored.append({"job": job, "match_score": float(min(95, score)), "skills_match": matched})
+    scored.sort(key=lambda item: item["match_score"], reverse=True)
+    return scored[:limit]
+
+
+def get_company_applications(db: Session, company_id: str, status: Optional[str] = None,
+                             job_id: Optional[str] = None, skip: int = 0, limit: int = 100) -> List[models.Application]:
+    query = (
+        db.query(models.Application)
+        .join(models.Job)
+        .options(
+            joinedload(models.Application.job),
+            joinedload(models.Application.user).joinedload(models.User.personal_profile)
+        )
+        .filter(models.Job.company_id == company_id)
+    )
+    if job_id:
+        query = query.filter(models.Job.id == job_id)
+    if status:
+        query = query.filter(models.Application.status == status)
+    return query.order_by(models.Application.applied_at.desc()).offset(skip).limit(limit).all()
+
+
 def delete_job(db: Session, job_id: str, company_id: str) -> bool:
     job = db.query(models.Job).filter(
         and_(models.Job.id == job_id, models.Job.company_id == company_id)
@@ -423,7 +494,14 @@ def get_application_by_id(db: Session, application_id: str) -> Optional[models.A
 
 
 def get_user_applications(db: Session, user_id: str, status: Optional[str] = None, skip: int = 0, limit: int = 100) -> List[models.Application]:
-    query = db.query(models.Application).filter(models.Application.user_id == user_id)
+    query = (
+        db.query(models.Application)
+        .options(
+            joinedload(models.Application.job).joinedload(models.Job.company),
+            joinedload(models.Application.user)
+        )
+        .filter(models.Application.user_id == user_id)
+    )
     if status:
         query = query.filter(models.Application.status == status)
     return query.order_by(models.Application.applied_at.desc()).offset(skip).limit(limit).all()

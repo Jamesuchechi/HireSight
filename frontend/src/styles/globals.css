@@ -3,7 +3,7 @@
 :root {
   --color-primary: #ffffff;
   --color-secondary: #1f59ff;
-  --color-tertiary-purple: #a855f7;
+  --color-tertiary-purple: #e7dfee;
   --color-tertiary-cyan: #22d3ee;
   --color-tertiary-black: #0f172a;
   --color-tertiary-gold: #f59e0b;
@@ -26,7 +26,7 @@ body {
   background: radial-gradient(circle at top right, rgba(29, 78, 216, 0.25), transparent 40%),
     radial-gradient(circle at 20% 20%, rgba(167, 139, 250, 0.4), transparent 35%),
     #0f172a;
-  color: #0f172a;
+  color: #d7dae4;
 }
 
 .app-shell {
@@ -433,15 +433,15 @@ label {
   margin-top: 0;
 }
 
-  .insight:hover {
-    transform: translateY(-4px);
-    border-color: var(--color-secondary);
-  }
+.insight:hover {
+  transform: translateY(-4px);
+  border-color: var(--color-secondary);
+}
 
-  @media (max-width: 640px) {
-    .hero-stats {
-      flex-direction: column;
-    }
+@media (max-width: 640px) {
+  .hero-stats {
+    flex-direction: column;
+  }
 
   .candidate-row {
     grid-template-columns: 1fr;
@@ -1678,6 +1678,7 @@ label {
     grid-column: span 2;
   }
 }
+
 .footer-content {
   max-width: 1200px;
   margin: 0 auto 3rem;
@@ -1742,4 +1743,17 @@ label {
     height: 60px;
     font-size: 1.5rem;
   }
+}
+
+.panel-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.panel-action.secondary {
+  background: rgba(31, 89, 255, 0.1);
+  color: var(--color-secondary);
+  border: 1px solid rgba(31, 89, 255, 0.3);
 }

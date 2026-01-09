@@ -2,6 +2,7 @@
 SQLAlchemy ORM models for database tables.
 """
 from enum import Enum as PyEnum
+from typing import Optional
 from sqlalchemy import Column, Integer, String, Text, Float, DateTime, ForeignKey, JSON, Boolean, Enum as SQLEnum, UniqueConstraint, Index
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
@@ -40,6 +41,7 @@ class User(Base):
     received_messages = relationship("Message", foreign_keys="Message.receiver_id", back_populates="receiver", cascade="all, delete-orphan")
     follows_as_follower = relationship("Follow", foreign_keys="Follow.follower_id", back_populates="follower", cascade="all, delete-orphan")
     follows_as_following = relationship("Follow", foreign_keys="Follow.following_id", back_populates="following", cascade="all, delete-orphan")
+    saved_jobs = relationship("SavedJob", back_populates="user", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<User(id={self.id}, email={self.email}, account_type={self.account_type})>"
@@ -226,6 +228,7 @@ class Job(Base):
     # Relationships
     company = relationship("User", back_populates="jobs")
     applications = relationship("Application", back_populates="job", cascade="all, delete-orphan")
+    saved_by = relationship("SavedJob", back_populates="job", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Job(id={self.id}, title={self.title}, company_id={self.company_id})>"
@@ -258,8 +261,37 @@ class Application(Base):
     user = relationship("User", back_populates="applications")
     resume = relationship("Resume", back_populates="applications")
 
+    @property
+    def job_title(self) -> Optional[str]:
+        return self.job.title if self.job else None
+
+    @property
+    def company_name(self) -> Optional[str]:
+        if not self.job or not self.job.company:
+            return None
+        profile = self.job.company.company_profile
+        if profile and profile.company_name:
+            return profile.company_name
+        return self.job.company.company_name or self.job.company.email
+
     def __repr__(self):
         return f"<Application(id={self.id}, job_id={self.job_id}, user_id={self.user_id}, status={self.status})>"
+
+
+class SavedJob(Base):
+    """Jobs that users have bookmarked."""
+    __tablename__ = "saved_jobs"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    job_id = Column(String, ForeignKey("jobs.id", ondelete="CASCADE"), nullable=False, index=True)
+    saved_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+    user = relationship("User", back_populates="saved_jobs")
+    job = relationship("Job", back_populates="saved_by")
+
+    def __repr__(self):
+        return f"<SavedJob(user_id={self.user_id}, job_id={self.job_id})>"
 
 
 # Following System
@@ -367,3 +399,5 @@ Index('idx_notifications_user_id', Notification.user_id)
 Index('idx_notifications_is_read', Notification.is_read)
 Index('idx_messages_conversation', Message.conversation_id)
 Index('idx_messages_sender', Message.sender_id)
+Index('idx_saved_jobs_user_id', SavedJob.user_id)
+Index('idx_saved_jobs_job_id', SavedJob.job_id)

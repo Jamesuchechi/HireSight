@@ -114,3 +114,118 @@ export type JobSearchResponse = {
   page: number;
   limit: number;
 };
+
+export type DashboardStats = {
+  total_applications: number;
+  pending_count: number;
+  interview_count: number;
+  offer_count: number;
+  rejected_count: number;
+  profile_completion: number;
+  profile_views: number;
+  recommended_jobs_count: number;
+  active_jobs?: number;
+  avg_match_score?: number;
+  time_saved_hours?: number;
+  new_applications_today?: number;
+  interviews_scheduled?: number;
+};
+
+export type DashboardActivity = {
+  id: string;
+  type: string;
+  message: string;
+  time: string;
+  link?: string;
+};
+
+export type DashboardActivityListResponse = {
+  activities: DashboardActivity[];
+};
+
+export type SavedJob = {
+  id: string;
+  job_id: string;
+  title: string;
+  company_name?: string;
+  company_logo?: string;
+  location?: string;
+  remote_type?: string;
+  salary_min?: number;
+  salary_max?: number;
+  saved_at: string;
+  status?: string;
+};
+
+export type SavedJobListResponse = {
+  saved_jobs: SavedJob[];
+};
+
+export type RecommendedJob = {
+  id: string;
+  title: string;
+  company_name?: string;
+  company_logo?: string;
+  location?: string;
+  match_score?: number;
+  skills_match: string[];
+  posted_date: string;
+};
+
+export type RecommendedJobListResponse = {
+  recommended_jobs: RecommendedJob[];
+};
+
+export type Interview = {
+  id: string;
+  job_title?: string;
+  candidate_name?: string;
+  company_name?: string;
+  scheduled_at: string;
+  duration_minutes: number;
+  location?: string;
+  meeting_link?: string;
+  status: string;
+};
+
+export type InterviewListResponse = {
+  interviews: Interview[];
+};
+
+export type DashboardCandidate = {
+  id: string;
+  name: string;
+  role?: string;
+  score: number;
+  skills: string[];
+  avatar?: string;
+  status?: string;
+  applied_at: string;
+};
+
+export type CandidateListResponse = {
+  candidates: DashboardCandidate[];
+};
+
+export type ApplicationOut = {
+  id: string;
+  job_id: string;
+  user_id: string;
+  resume_id: string;
+  cover_letter?: string;
+  status: string;
+  match_score?: number;
+  match_explanation: Record<string, unknown>;
+  rejection_reason?: string;
+  applied_at: string;
+  updated_at: string;
+  job_title?: string;
+  company_name?: string;
+};
+
+export type ApplicationListResponse = {
+  applications: ApplicationOut[];
+  total: number;
+  page: number;
+  limit: number;
+};

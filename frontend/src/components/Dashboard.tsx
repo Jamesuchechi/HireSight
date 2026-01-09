@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Home,
   Upload,
@@ -21,14 +21,39 @@ import {
   X,
   Target,
   ExternalLink,
-  CheckCircle
+  CheckCircle,
+  Calendar,
+  MapPin,
+  Bookmark
 } from 'lucide-react';
-import type { AuthUser, JobOut, ResumeOut } from '../types';
+import ResumeDetailModal from './ResumeDetailModal';
+import { updateProfile } from '../api/profile';
+import type {
+  AuthUser,
+  JobOut,
+  ResumeOut,
+  ApplicationOut as DashboardApplication,
+  DashboardActivity,
+  DashboardCandidate,
+  DashboardStats,
+  Interview,
+  RecommendedJob,
+  SavedJob
+} from '../types';
 import Profile from './Profile';
 import Footer from './Footer';
 import Logo from './Logo';
 import { listResumes, parseResume } from '../api/resumes';
 import { listJobs, closeJob, duplicateJob, getSimilarJobs } from '../api/jobs';
+import {
+  getDashboardActivities,
+  getDashboardStats,
+  listApplications,
+  listCandidates,
+  listInterviews,
+  listRecommendedJobs,
+  listSavedJobs
+} from '../api/dashboard';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -41,15 +66,6 @@ type NavItem = {
   badge?: string | number;
 };
 
-type Candidate = {
-  id: string | number;
-  name: string;
-  role: string;
-  score: number;
-  skills: string[];
-  avatar?: string;
-};
-
 type Stat = {
   label: string;
   value: string | number;
@@ -59,28 +75,10 @@ type Stat = {
   color: 'blue' | 'cyan' | 'gold' | 'green';
 };
 
-type Activity = {
-  id: string | number;
-  type: 'upload' | 'match' | 'report' | 'update' | 'general';
-  message: string;
-  time: string;
-};
-
-type QuickAction = {
-  id: string;
-  label: string;
-  icon: typeof Upload;
-  onClick: () => void;
-};
-
 type DashboardProps = {
   user: AuthUser & {
     avatar?: string;
   };
-  stats?: Stat[];
-  candidates?: Candidate[];
-  activities?: Activity[];
-  quickActions?: QuickAction[];
   onSignOut: () => void;
   onNavigate?: (route: string) => void;
   isLoading?: boolean;
@@ -92,10 +90,6 @@ type DashboardProps = {
 
 export default function Dashboard({
   user,
-  stats = [],
-  candidates = [],
-  activities = [],
-  quickActions = [],
   onSignOut,
   onNavigate,
   isLoading = false
@@ -123,27 +117,40 @@ export default function Dashboard({
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Navigation configuration
-  const navSections = [
+  // Navigation configuration (role-aware)
+  const navSections = user.account_type === 'company' ? [
     {
       title: 'Main',
       items: [
         { id: 'overview', label: 'Overview', icon: Home },
-        { id: 'upload', label: 'Upload Resumes', icon: Upload },
-        { id: 'candidates', label: 'All Candidates', icon: Users, badge: candidates.length || undefined },
-        { id: 'jobs', label: 'Job Postings', icon: Briefcase }
+        { id: 'jobs', label: 'Job Manager', icon: Briefcase },
+        { id: 'applicants', label: 'Applicants', icon: Users },
+        { id: 'screening', label: 'Screening Results', icon: Target }
       ]
     },
     {
       title: 'Insights',
       items: [
-        { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-        { id: 'reports', label: 'Reports', icon: FileText }
+        { id: 'analytics', label: 'Analytics', icon: BarChart3 }
       ]
     },
     {
       title: 'System',
-      items: [{ id: 'settings', label: 'Settings', icon: Settings }]
+      items: [{ id: 'settings', label: 'Profile', icon: Settings }]
+    }
+  ] : [
+    {
+      title: 'Main',
+      items: [
+        { id: 'overview', label: 'Overview', icon: Home },
+        { id: 'resumes', label: 'Resume Manager', icon: Upload },
+        { id: 'jobs', label: 'Job Discovery', icon: Briefcase },
+        { id: 'applications', label: 'My Applications', icon: FileText }
+      ]
+    },
+    {
+      title: 'System',
+      items: [{ id: 'settings', label: 'Profile', icon: Settings }]
     }
   ];
 
@@ -153,6 +160,53 @@ export default function Dashboard({
       onNavigate(route);
     }
   };
+
+  const refreshDashboard = useCallback(async () => {
+    setDashboardLoading(true);
+    setFetchError(null);
+    try {
+      const [statsResp, activitiesResp, interviewsResp] = await Promise.all([
+        getDashboardStats(),
+        getDashboardActivities(),
+        listInterviews()
+      ]);
+
+      setStatsData(statsResp.data);
+      setActivityFeed(activitiesResp.data.activities);
+      setInterviews(interviewsResp.data.interviews);
+
+      if (user.account_type === 'personal') {
+        const [applicationsResp, savedResp, recommendedResp] = await Promise.all([
+          listApplications({ limit: 8 }),
+          listSavedJobs({ limit: 6 }),
+          listRecommendedJobs({ limit: 6 })
+        ]);
+        setDashboardApplications(applicationsResp.data.applications);
+        setSavedJobs(savedResp.data.saved_jobs);
+        setRecommendedJobs(recommendedResp.data.recommended_jobs);
+      } else {
+        const candidatesResp = await listCandidates({ limit: 10 });
+        setCompanyCandidates(candidatesResp.data.candidates);
+      }
+    } catch (error) {
+      console.warn('Failed to load dashboard data', error);
+      setFetchError('Unable to load the dashboard right now. Please try again.');
+    } finally {
+      setDashboardLoading(false);
+    }
+  }, [user.account_type]);
+
+  useEffect(() => {
+    setStatsData(null);
+    setActivityFeed([]);
+    setDashboardApplications([]);
+    setSavedJobs([]);
+    setRecommendedJobs([]);
+    setInterviews([]);
+    setCompanyCandidates([]);
+    setFetchError(null);
+    refreshDashboard();
+  }, [user.account_type, refreshDashboard]);
 
   const getScoreStatus = (score: number): string => {
     if (score >= 90) return 'excellent';
@@ -176,6 +230,41 @@ export default function Dashboard({
     }
   };
 
+  const [statsData, setStatsData] = useState<DashboardStats | null>(null);
+
+  const personalStatCards: Stat[] = statsData
+    ? [
+      { label: 'Total Applications', value: statsData.total_applications, icon: FileText, color: 'blue' },
+      { label: 'Pending', value: statsData.pending_count, icon: Clock, color: 'gold' },
+      { label: 'Interviews', value: statsData.interview_count, icon: Calendar, color: 'cyan' },
+      { label: 'Offers', value: statsData.offer_count, icon: TrendingUp, color: 'green' }
+    ]
+    : [];
+
+  const companyStatCards: Stat[] = statsData
+    ? [
+      { label: 'Active Jobs', value: statsData.active_jobs ?? 0, icon: Briefcase, color: 'blue' },
+      { label: 'Applications', value: statsData.total_applications, icon: FileText, color: 'cyan' },
+      {
+        label: 'Avg Match',
+        value: statsData.avg_match_score?.toFixed(1) ?? '0.0',
+        icon: Target,
+        color: 'gold'
+      },
+      { label: 'Interviews', value: statsData.interviews_scheduled ?? 0, icon: Calendar, color: 'green' }
+    ]
+    : [];
+
+  const statsCards = user.account_type === 'company' ? companyStatCards : personalStatCards;
+
+  const formatStatusLabel = (status: string) =>
+    status
+      .split('_')
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(' ');
+
+  const statusBadgeClass = (status: string) => `status-pill ${status.replace(/[^a-zA-Z]+/g, '-')}`;
+
   const getInitials = (name: string): string => {
     return name
       .split(' ')
@@ -191,11 +280,21 @@ export default function Dashboard({
   const [resumesLoading, setResumesLoading] = useState(false);
   const [parsingResumeId, setParsingResumeId] = useState<string | null>(null);
   const [resumeMessage, setResumeMessage] = useState<string | null>(null);
+  const [selectedResume, setSelectedResume] = useState<ResumeOut | null>(null);
+  const [autoFillLoading, setAutoFillLoading] = useState(false);
 
   const [companyJobs, setCompanyJobs] = useState<JobOut[]>([]);
   const [similarJobs, setSimilarJobs] = useState<JobOut[]>([]);
   const [jobMessage, setJobMessage] = useState<string | null>(null);
   const [jobActionLoading, setJobActionLoading] = useState<string | null>(null);
+  const [activityFeed, setActivityFeed] = useState<DashboardActivity[]>([]);
+  const [dashboardApplications, setDashboardApplications] = useState<DashboardApplication[]>([]);
+  const [savedJobs, setSavedJobs] = useState<SavedJob[]>([]);
+  const [recommendedJobs, setRecommendedJobs] = useState<RecommendedJob[]>([]);
+  const [interviews, setInterviews] = useState<Interview[]>([]);
+  const [companyCandidates, setCompanyCandidates] = useState<DashboardCandidate[]>([]);
+  const [dashboardLoading, setDashboardLoading] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   const loadResumes = async () => {
     setResumesLoading(true);
@@ -279,8 +378,45 @@ export default function Dashboard({
     }
   };
 
+  const handleAutoFillProfile = async () => {
+    if (!selectedResume) return;
+
+    setAutoFillLoading(true);
+    try {
+      const parsedData = selectedResume.parsed_data || {};
+      const skillsArray = (parsedData.skills as string[] || []).map((skill) => ({
+        skill,
+        proficiency: 'intermediate'
+      }));
+
+      const payload = {
+        full_name: (parsedData.name as string) || user.full_name,
+        phone: (parsedData.phone as string) || undefined,
+        location: (parsedData.location as string) || undefined,
+        skills: skillsArray,
+        experience: (parsedData.experience as any[] || []),
+        education: (parsedData.education as any[] || [])
+      };
+
+      await updateProfile(payload);
+      setResumeMessage('Profile auto-filled successfully!');
+      setSelectedResume(null);
+    } catch (error) {
+      console.error('Failed to auto-fill profile:', error);
+      setResumeMessage('Failed to auto-fill profile. Please try again.');
+    } finally {
+      setAutoFillLoading(false);
+    }
+  };
+
   return (
     <div className="dashboard">
+      <ResumeDetailModal
+        resume={selectedResume}
+        onClose={() => setSelectedResume(null)}
+        onAutoFill={handleAutoFillProfile}
+        isLoading={autoFillLoading}
+      />
       <style>{`
         * {
           margin: 0;
@@ -309,6 +445,9 @@ export default function Dashboard({
           --gray-700: #495057;
           --gray-800: #343A40;
           --gray-900: #0A0E14;
+          --red: #FF3B30;
+          --orange: #FF9500;
+        }
           --red: #FF3B30;
           --orange: #FF9500;
         }
@@ -795,6 +934,91 @@ export default function Dashboard({
         /* ============================================================================
            CANDIDATES LIST
            ============================================================================ */
+
+        .application-list,
+        .job-list,
+        .interview-list {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+        }
+
+        .application-item,
+        .job-item,
+        .interview-item {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 1rem;
+          padding: 1rem;
+          border-radius: 14px;
+          border: 1px solid var(--gray-200);
+          background: var(--gray-50);
+        }
+
+        .job-meta {
+          display: flex;
+          gap: 0.5rem;
+          flex-wrap: wrap;
+          font-size: 0.8rem;
+          color: var(--gray-600);
+          margin-top: 0.35rem;
+        }
+
+        .job-meta-item {
+          display: flex;
+          align-items: center;
+          gap: 0.25rem;
+        }
+
+        .interview-item small {
+          display: block;
+        }
+
+        .status-pill {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0.35rem 0.8rem;
+          border-radius: 999px;
+          font-size: 0.75rem;
+          font-weight: 600;
+          text-transform: capitalize;
+        }
+
+        .status-pill.pending {
+          background: var(--gold-light);
+          color: var(--gold);
+        }
+
+        .status-pill.screening {
+          background: var(--cyan-light);
+          color: var(--cyan);
+        }
+
+        .status-pill.interview {
+          background: var(--blue-light);
+          color: var(--blue);
+        }
+
+        .status-pill.offer {
+          background: rgba(98, 0, 234, 0.1);
+          color: #6200ea;
+        }
+
+        .status-pill.hired {
+          background: var(--green-light);
+          color: var(--green);
+        }
+
+        .status-pill.rejected {
+          background: var(--red);
+          color: white;
+        }
+
 
         .candidates-list {
           display: flex;
@@ -1506,10 +1730,10 @@ export default function Dashboard({
               </div>
 
               {/* Stats Grid */}
-              {stats.length > 0 && (
+              {statsCards.length > 0 ? (
                 <div className="stats-grid">
-                  {stats.map((stat, index) => (
-                    <div key={index} className="stat-card">
+                  {statsCards.map((stat, index) => (
+                    <div key={`${stat.label}-${index}`} className="stat-card">
                       <div className="stat-header">
                         <div className={`stat-icon ${stat.color}`}>
                           <stat.icon size={24} />
@@ -1526,80 +1750,292 @@ export default function Dashboard({
                     </div>
                   ))}
                 </div>
+              ) : dashboardLoading ? (
+                <p className="panel-empty">Loading stats…</p>
+              ) : (
+                <p className="panel-empty">Stats are not available yet.</p>
               )}
+              {fetchError && <p className="panel-empty" role="alert">{fetchError}</p>}
 
               {/* Main Cards Grid */}
               <div className="cards-grid">
-                {/* Candidates List */}
-                <div className="card wide">
-                  <div className="card-header">
-                    <h2 className="card-title">Recent Candidates</h2>
-                    {candidates.length > 0 && (
-                      <a href="#" className="card-action">
-                        View All
-                        <ExternalLink size={14} />
-                      </a>
-                    )}
-                  </div>
-                  {candidates.length > 0 ? (
-                    <div className="candidates-list">
-                      {candidates.slice(0, 5).map((candidate) => (
-                        <div key={candidate.id} className="candidate-card">
-                          <div className="candidate-avatar">
-                            {candidate.avatar || getInitials(candidate.name)}
+                {user.account_type === 'personal' ? (
+                  <>
+                    <div className="card wide">
+                      <div className="card-header">
+                        <h2 className="card-title">My Applications</h2>
+                        {dashboardApplications.length > 0 && (
+                          <span className="panel-badge">
+                            {dashboardApplications.length} tracked
+                          </span>
+                        )}
+                      </div>
+                      {dashboardApplications.length > 0 ? (
+                        <ul className="application-list">
+                          {dashboardApplications.slice(0, 6).map((application) => (
+                            <li key={application.id} className="application-item">
+                              <div>
+                                <strong>{application.job_title || 'Job opportunity'}</strong>
+                                <div className="muted-text">
+                                  {application.company_name || 'Hiring team'}
+                                </div>
+                                <small className="muted-text">
+                                  Applied on {new Date(application.applied_at).toLocaleDateString()}
+                                </small>
+                              </div>
+                              <span className={statusBadgeClass(application.status)}>
+                                {formatStatusLabel(application.status)}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <div className="empty-state">
+                          <div className="empty-state-icon">
+                            <FileText size={32} />
                           </div>
-                          <div className="candidate-info">
-                            <div className="candidate-name">{candidate.name}</div>
-                            <div className="candidate-role">{candidate.role}</div>
-                            <div className="candidate-skills">
-                              {candidate.skills.slice(0, 3).map((skill, idx) => (
-                                <span key={idx} className="skill-tag">
-                                  {skill}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                          <div className="candidate-score">
-                            <div className={`score-value ${getScoreStatus(candidate.score)}`}>
-                              {candidate.score}
-                            </div>
-                            <div className="score-label">Match</div>
-                          </div>
-                          <div className="candidate-actions">
-                            <button className="action-button primary" type="button">
-                              <Eye size={16} />
-                            </button>
-                            <button className="action-button" type="button">
-                              <Star size={16} />
-                            </button>
-                            <button className="action-button" type="button">
-                              <Download size={16} />
-                            </button>
+                          <div className="empty-state-title">No applications yet</div>
+                          <div className="empty-state-description">
+                            Browse roles and apply to start tracking progress.
                           </div>
                         </div>
-                      ))}
+                      )}
                     </div>
-                  ) : (
-                    <div className="empty-state">
-                      <div className="empty-state-icon">
-                        <Users size={32} />
+                    <div className="card">
+                      <div className="card-header">
+                        <h2 className="card-title">Saved Jobs</h2>
                       </div>
-                      <div className="empty-state-title">No candidates yet</div>
-                      <div className="empty-state-description">
-                        Upload resumes to start screening candidates
-                      </div>
+                      {savedJobs.length > 0 ? (
+                        <ul className="job-list">
+                          {savedJobs.map((job) => (
+                            <li key={job.id} className="job-item">
+                              <div>
+                                <strong>{job.title}</strong>
+                                <div className="muted-text">{job.company_name}</div>
+                                <div className="job-meta">
+                                  {job.location && (
+                                    <span className="job-meta-item">
+                                      <MapPin size={14} />
+                                      <span>{job.location}</span>
+                                    </span>
+                                  )}
+                                  {job.remote_type && (
+                                    <span className="job-meta-item">{job.remote_type}</span>
+                                  )}
+                                </div>
+                              </div>
+                              <span className="panel-badge">
+                                {job.status ? job.status.toUpperCase() : 'Saved'}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <div className="empty-state">
+                          <div className="empty-state-icon">
+                            <Bookmark size={32} />
+                          </div>
+                          <div className="empty-state-title">No saved jobs yet</div>
+                          <div className="empty-state-description">
+                            Star the roles you like so they stay within reach.
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-
-                {/* Recent Activity */}
+                    <div className="card">
+                      <div className="card-header">
+                        <h2 className="card-title">Recommended Jobs</h2>
+                      </div>
+                      {recommendedJobs.length > 0 ? (
+                        <ul className="job-list">
+                          {recommendedJobs.map((job) => (
+                            <li key={job.id} className="job-item">
+                              <div>
+                                <strong>{job.title}</strong>
+                                <div className="muted-text">{job.company_name}</div>
+                                <div className="job-meta">
+                                  {job.match_score != null && (
+                                    <span className="job-meta-item">
+                                      Match {Math.round(job.match_score)}
+                                    </span>
+                                  )}
+                                  {job.location && (
+                                    <span className="job-meta-item">
+                                      <MapPin size={14} />
+                                      <span>{job.location}</span>
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="candidate-skills">
+                                  {job.skills_match.slice(0, 4).map((skill) => (
+                                    <span key={skill} className="skill-tag">
+                                      {skill}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                              <span className="panel-badge">
+                                {new Date(job.posted_date).toLocaleDateString()}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <div className="empty-state">
+                          <div className="empty-state-icon">
+                            <Star size={32} />
+                          </div>
+                          <div className="empty-state-title">Recommendations are warming up</div>
+                          <div className="empty-state-description">
+                            Complete your profile to unlock more tailored matches.
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <div className="card">
+                      <div className="card-header">
+                        <h2 className="card-title">Upcoming Interviews</h2>
+                      </div>
+                      {interviews.length > 0 ? (
+                        <ul className="interview-list">
+                          {interviews.map((interview) => (
+                            <li key={interview.id} className="interview-item">
+                              <div>
+                                <strong>{interview.job_title || 'Interview'}</strong>
+                                <div className="muted-text">
+                                  {interview.candidate_name || interview.company_name || 'Scheduled'}
+                                </div>
+                                <small className="muted-text">
+                                  {new Date(interview.scheduled_at).toLocaleString()} •{' '}
+                                  {interview.duration_minutes} mins
+                                </small>
+                              </div>
+                              <span className={statusBadgeClass(interview.status)}>
+                                {formatStatusLabel(interview.status)}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <div className="empty-state">
+                          <div className="empty-state-icon">
+                            <Calendar size={32} />
+                          </div>
+                          <div className="empty-state-title">No interviews scheduled</div>
+                          <div className="empty-state-description">
+                            Interviews appear here after they are scheduled.
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="card wide">
+                      <div className="card-header">
+                        <h2 className="card-title">Recent Candidates</h2>
+                        {companyCandidates.length > 0 && (
+                          <a href="#" className="card-action">
+                            View All
+                            <ExternalLink size={14} />
+                          </a>
+                        )}
+                      </div>
+                      {companyCandidates.length > 0 ? (
+                        <div className="candidates-list">
+                          {companyCandidates.slice(0, 5).map((candidate) => (
+                            <div key={candidate.id} className="candidate-card">
+                              <div className="candidate-avatar">
+                                {candidate.avatar || getInitials(candidate.name)}
+                              </div>
+                              <div className="candidate-info">
+                                <div className="candidate-name">{candidate.name}</div>
+                                <div className="candidate-role">{candidate.role}</div>
+                                <div className="candidate-skills">
+                                  {candidate.skills.slice(0, 3).map((skill, idx) => (
+                                    <span key={idx} className="skill-tag">
+                                      {skill}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                              <div className="candidate-score">
+                                <div className={`score-value ${getScoreStatus(candidate.score)}`}>
+                                  {candidate.score}
+                                </div>
+                                <div className="score-label">Match</div>
+                              </div>
+                              <div className="candidate-actions">
+                                <button className="action-button primary" type="button">
+                                  <Eye size={16} />
+                                </button>
+                                <button className="action-button" type="button">
+                                  <Star size={16} />
+                                </button>
+                                <button className="action-button" type="button">
+                                  <Download size={16} />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="empty-state">
+                          <div className="empty-state-icon">
+                            <Users size={32} />
+                          </div>
+                          <div className="empty-state-title">No candidates yet</div>
+                          <div className="empty-state-description">
+                            Post jobs or invite candidates to begin seeing matches.
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <div className="card">
+                      <div className="card-header">
+                        <h2 className="card-title">Upcoming Interviews</h2>
+                      </div>
+                      {interviews.length > 0 ? (
+                        <ul className="interview-list">
+                          {interviews.map((interview) => (
+                            <li key={interview.id} className="interview-item">
+                              <div>
+                                <strong>{interview.job_title || 'Interview'}</strong>
+                                <div className="muted-text">
+                                  {interview.candidate_name || interview.company_name || 'Interview'}
+                                </div>
+                                <small className="muted-text">
+                                  {new Date(interview.scheduled_at).toLocaleString()} •{' '}
+                                  {interview.duration_minutes} mins
+                                </small>
+                              </div>
+                              <span className={statusBadgeClass(interview.status)}>
+                                {formatStatusLabel(interview.status)}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <div className="empty-state">
+                          <div className="empty-state-icon">
+                            <Calendar size={32} />
+                          </div>
+                          <div className="empty-state-title">No interviews scheduled</div>
+                          <div className="empty-state-description">
+                            Interviews will populate as soon as they are confirmed.
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
                 <div className="card">
                   <div className="card-header">
                     <h2 className="card-title">Recent Activity</h2>
                   </div>
-                  {activities.length > 0 ? (
+                  {activityFeed.length > 0 ? (
                     <div className="activity-feed">
-                      {activities.slice(0, 4).map((activity) => {
+                      {activityFeed.slice(0, 4).map((activity) => {
                         const ActivityIcon = getActivityIcon(activity.type);
                         return (
                           <div key={activity.id} className="activity-item">
@@ -1621,35 +2057,12 @@ export default function Dashboard({
                       </div>
                       <div className="empty-state-title">No recent activity</div>
                       <div className="empty-state-description">
-                        Activity will appear here as you use the platform
+                        Activity will appear here as you engage with the platform.
                       </div>
                     </div>
                   )}
                 </div>
               </div>
-
-              {/* Quick Actions */}
-              {quickActions.length > 0 && (
-                <div className="card">
-                  <div className="card-header">
-                    <h2 className="card-title">Quick Actions</h2>
-                  </div>
-                  <div className="quick-actions">
-                    {quickActions.map((action) => (
-                      <div
-                        key={action.id}
-                        className="quick-action"
-                        onClick={action.onClick}
-                      >
-                        <div className="quick-action-icon">
-                          <action.icon size={24} />
-                        </div>
-                        <div className="quick-action-label">{action.label}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </>
           )}
 
@@ -1707,14 +2120,25 @@ export default function Dashboard({
                               {new Date(resume.uploaded_at).toLocaleString()}
                             </small>
                           </div>
-                          <button
-                            type="button"
-                            className="panel-action"
-                            disabled={parsingResumeId === resume.id}
-                            onClick={() => handleParseResume(resume.id)}
-                          >
-                            {parsingResumeId === resume.id ? 'Parsing…' : 'Re-run parser'}
-                          </button>
+                          <div className="panel-actions">
+                            {resume.parsed_data && (
+                              <button
+                                type="button"
+                                className="panel-action secondary"
+                                onClick={() => setSelectedResume(resume)}
+                              >
+                                View Details
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              className="panel-action"
+                              disabled={parsingResumeId === resume.id}
+                              onClick={() => handleParseResume(resume.id)}
+                            >
+                              {parsingResumeId === resume.id ? 'Parsing…' : 'Re-run parser'}
+                            </button>
+                          </div>
                         </li>
                       ))}
                     </ul>
@@ -1809,7 +2233,7 @@ export default function Dashboard({
         </div>
 
         {/* Loading Overlay */}
-        {isLoading && (
+        {(isLoading || dashboardLoading) && (
           <div className="loading-overlay">
             <div className="loading-spinner" />
           </div>

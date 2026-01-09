@@ -80,10 +80,20 @@ def extract_email(text: str) -> Optional[str]:
 
 def extract_phone(text: str) -> Optional[str]:
     """Extract phone number from text."""
-    # Simple pattern for common US/international formats
-    pattern = r'(\+?1?\s?)(\d{3}[-.\s]?)\d{3}[-.\s]?\d{4}'
-    matches = re.findall(pattern, text)
-    return ''.join(matches[0]) if matches else None
+    # Multiple patterns for common US/international formats
+    patterns = [
+        r'\((\d{3})\)\s*(\d{3})[-.\s]?(\d{4})',  # (415) 555-1234 or (415)555-1234
+        r'(?:\+1\s?)?(\d{3})[-.\s]?(\d{3})[-.\s]?(\d{4})',  # 415-555-1234, +1 415 555 1234
+    ]
+    
+    for pattern in patterns:
+        matches = re.findall(pattern, text)
+        if matches:
+            # Reconstruct the phone number from groups
+            match = matches[0]
+            return f"{match[0]}-{match[1]}-{match[2]}"
+    
+    return None
 
 
 def extract_skills(text: str) -> List[str]:
@@ -132,6 +142,135 @@ def extract_skills(text: str) -> List[str]:
     return sorted(list(found_skills))
 
 
+def extract_experience(text: str) -> List[Dict[str, Any]]:
+    """
+    Extract work experience from resume text.
+    Looks for patterns like "Company Name", "Role Title", "2020-2023", etc.
+    """
+    experience = []
+    
+    # Look for common experience section headers
+    experience_section = ""
+    patterns = [
+        r'(?:experience|work experience|professional experience)(.*?)(?:education|skills|projects|certifications|$)',
+    ]
+    
+    for pattern in patterns:
+        match = re.search(pattern, text, re.IGNORECASE | re.DOTALL)
+        if match:
+            experience_section = match.group(1)
+            break
+    
+    if not experience_section:
+        experience_section = text  # Fallback to whole text
+    
+    # Extract individual entries (heuristic based on date patterns)
+    date_pattern = r'(\d{4}|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[.,\s\-]*(\d{4}|present|current|ongoing)?'
+    
+    # Split by potential entry boundaries
+    entries = re.split(r'\n\n+', experience_section)
+    
+    for entry in entries:
+        if len(entry.strip()) < 20:
+            continue
+        
+        # Try to find company and role
+        lines = [l.strip() for l in entry.split('\n') if l.strip()]
+        if len(lines) >= 2:
+            # Assume first line is company or role, second is the other
+            company = lines[0][:80]
+            role = lines[1][:80] if len(lines) > 1 else ""
+            
+            # Extract dates
+            dates = re.findall(date_pattern, entry, re.IGNORECASE)
+            start_date = None
+            end_date = None
+            
+            if dates:
+                start_date = f"{dates[0][0]}"
+                if len(dates[0]) > 1 and dates[0][1]:
+                    end_date = f"{dates[0][1]}"
+            
+            # Extract description (up to 200 chars)
+            description = ' '.join(lines[2:])[:200] if len(lines) > 2 else ""
+            
+            experience.append({
+                "company": company,
+                "role": role,
+                "start_date": start_date,
+                "end_date": end_date,
+                "description": description
+            })
+    
+    return experience[:5]  # Limit to 5 most recent
+
+
+def extract_education(text: str) -> List[Dict[str, Any]]:
+    """
+    Extract education information from resume text.
+    Looks for patterns like "University Name", "Degree", "GPA", graduation date, etc.
+    """
+    education = []
+    
+    # Look for education section
+    education_section = ""
+    patterns = [
+        r'(?:education|academic|university|college|degree)(.*?)(?:experience|skills|projects|certifications|$)',
+    ]
+    
+    for pattern in patterns:
+        match = re.search(pattern, text, re.IGNORECASE | re.DOTALL)
+        if match:
+            education_section = match.group(1)
+            break
+    
+    if not education_section:
+        education_section = text  # Fallback
+    
+    # Common degree types
+    degree_pattern = r'\b(bachelor|master|phd|associate|diploma|graduate|bs|ba|ms|ma|mba|md|jd|btec|hnd)\b'
+    
+    # Extract entries
+    entries = re.split(r'\n\n+', education_section)
+    
+    for entry in entries:
+        if len(entry.strip()) < 15:
+            continue
+        
+        lines = [l.strip() for l in entry.split('\n') if l.strip()]
+        
+        # Find degree type
+        degree = ""
+        for line in lines:
+            degree_match = re.search(degree_pattern, line, re.IGNORECASE)
+            if degree_match:
+                degree = degree_match.group(1)
+                break
+        
+        # Institution is usually first line or line before degree
+        institution = lines[0][:100] if lines else ""
+        
+        # Try to extract graduation year
+        year_pattern = r'\b(20\d{2}|19\d{2})\b'
+        years = re.findall(year_pattern, entry)
+        graduation_date = years[-1] if years else None
+        
+        # GPA extraction
+        gpa_pattern = r'(?:gpa|cumulative|overall)[:\s]*([\d.]+)'
+        gpa_match = re.search(gpa_pattern, entry, re.IGNORECASE)
+        gpa = gpa_match.group(1) if gpa_match else None
+        
+        education.append({
+            "institution": institution,
+            "degree": degree,
+            "graduation_date": graduation_date,
+            "gpa": gpa,
+            "description": ' '.join(lines[1:])[:150] if len(lines) > 1 else ""
+        })
+    
+    return education[:3]  # Limit to 3 most recent
+
+
 def parse_resume(file_path: str) -> Dict[str, Any]:
     """
     Parse resume and extract structured data.
@@ -164,6 +303,8 @@ def parse_resume(file_path: str) -> Dict[str, Any]:
         email = extract_email(raw_text)
         phone = extract_phone(raw_text)
         skills = extract_skills(raw_text)
+        experience = extract_experience(raw_text)
+        education = extract_education(raw_text)
         
         # Try to extract name from beginning (heuristic)
         lines = [l.strip() for l in raw_text.split('\n') if l.strip()]
@@ -180,6 +321,8 @@ def parse_resume(file_path: str) -> Dict[str, Any]:
             "phone": phone,
             "location": location,
             "skills": skills,
+            "experience": experience,
+            "education": education,
             "raw_text": raw_text[:5000],  # First 5000 chars for storage
             "normalized_text": normalized_text[:5000],
             "success": True
@@ -195,5 +338,7 @@ def parse_resume(file_path: str) -> Dict[str, Any]:
             "phone": None,
             "location": None,
             "skills": [],
+            "experience": [],
+            "education": [],
             "raw_text": ""
         }
