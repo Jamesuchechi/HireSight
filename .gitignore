@@ -12,6 +12,7 @@ backend/uploads/
 backend/embeddings_cache/
 backend/nltk_data/
 *.log
+.gitignore
 coverage/
 *.sqlite3
 *.egg-info/

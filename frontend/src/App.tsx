@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import HireSightLanding from './components/HireSightLanding';
 import Dashboard from './components/Dashboard';
+import DashboardShell from './components/DashboardShell';
 import LoginPage from './components/LoginPage';
 import SignUpPage from './components/SignUpPage';
 import EmailVerificationPage from './components/EmailVerificationPage';
@@ -257,7 +258,7 @@ function App() {
     return <LogoutPrompt onConfirm={confirmLogout} onCancel={() => setView('landing')} />;
   }
 
-  return <Dashboard user={user} onSignOut={initiateLogout} />;
+  return <DashboardShell user={user} onSignOut={initiateLogout} />;
 }
 
 export default App;

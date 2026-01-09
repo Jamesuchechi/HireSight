@@ -1,5 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+import logging
+
+# Configure logging to show email debug messages
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 # Make sure NLP dependencies can run
 from .utils.nltk_download import ensure_nltk_stopwords

@@ -23,6 +23,7 @@ cymem==2.0.13
 dnspython==2.8.0
 docx==0.2.4
 docx2txt==0.9
+python-dotenv==1.0.0
 email-validator==2.3.0
 fastapi==0.128.0
 filelock==3.20.0

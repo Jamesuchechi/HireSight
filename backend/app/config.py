@@ -9,6 +9,15 @@ import os
 from pathlib import Path
 from functools import lru_cache
 
+# Load .env file if it exists
+try:
+    from dotenv import load_dotenv
+    env_path = Path(__file__).resolve().parent.parent.parent / ".env"
+    if env_path.exists():
+        load_dotenv(env_path)
+except ImportError:
+    pass
+
 
 class Settings:
     """Central configuration for the application."""

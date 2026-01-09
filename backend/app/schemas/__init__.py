@@ -105,6 +105,8 @@ class UserOut(BaseModel):
     is_active: bool
     created_at: datetime
     updated_at: datetime
+    full_name: Optional[str] = None
+    company_name: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 

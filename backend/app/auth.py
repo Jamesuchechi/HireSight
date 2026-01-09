@@ -2,6 +2,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request,
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 import uuid
+import logging
 
 from . import crud, models
 from .database import get_db
@@ -17,6 +18,9 @@ from .utils.security import (
 )
 from .config import settings
 from .services.email import send_verification_email, send_password_reset_email
+from .utils.ratelimit import registration_rate_limiter
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -45,6 +49,36 @@ def _get_user_display_name(user: models.User) -> str:
     if user.company_profile and user.company_profile.company_name:
         return user.company_profile.company_name
     return user.email
+
+
+def _send_verification_email_with_error_handling(
+    recipient: str, token: str, full_name: str
+) -> None:
+    """Wrapper around send_verification_email that logs all errors."""
+    try:
+        logger.info(f"Background task: Sending verification email to {recipient}")
+        send_verification_email(recipient, token, full_name)
+        logger.info(f"Background task: Verification email sent successfully to {recipient}")
+    except Exception as e:
+        logger.error(
+            f"Background task: Failed to send verification email to {recipient}: {type(e).__name__}: {e}",
+            exc_info=True
+        )
+
+
+def _send_password_reset_email_with_error_handling(
+    recipient: str, token: str, full_name: str
+) -> None:
+    """Wrapper around send_password_reset_email that logs all errors."""
+    try:
+        logger.info(f"Background task: Sending password reset email to {recipient}")
+        send_password_reset_email(recipient, token, full_name)
+        logger.info(f"Background task: Password reset email sent successfully to {recipient}")
+    except Exception as e:
+        logger.error(
+            f"Background task: Failed to send password reset email to {recipient}: {type(e).__name__}: {e}",
+            exc_info=True
+        )
 
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
@@ -83,7 +117,7 @@ def register_user(
     expires_at = datetime.utcnow() + timedelta(hours=24)
     verification_token = crud.create_verification_token(db, user.id, expires_at)
     background_tasks.add_task(
-        send_verification_email,
+        _send_verification_email_with_error_handling,
         user.email,
         verification_token.token,
         user_data.name,
@@ -262,7 +296,7 @@ def forgot_password(
         expires_at = datetime.utcnow() + timedelta(hours=settings.PASSWORD_RESET_TOKEN_EXPIRE_HOURS)
         reset_token = crud.create_password_reset_token(db, user.id, expires_at)
         background_tasks.add_task(
-            send_password_reset_email,
+            _send_password_reset_email_with_error_handling,
             user.email,
             reset_token.token,
             _get_user_display_name(user),

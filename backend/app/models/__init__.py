@@ -45,6 +45,16 @@ class User(Base):
         return f"<User(id={self.id}, email={self.email}, account_type={self.account_type})>"
 
 
+    @property
+    def full_name(self):
+        """Convenience property to expose personal profile full_name."""
+        return self.personal_profile.full_name if self.personal_profile else None
+
+    @property
+    def company_name(self):
+        """Convenience property to expose company profile company_name."""
+        return self.company_profile.company_name if self.company_profile else None
+
 class VerificationToken(Base):
     """Email verification tokens."""
     __tablename__ = "verification_tokens"

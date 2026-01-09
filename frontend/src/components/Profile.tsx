@@ -1,61 +1,61 @@
 import { useState } from 'react';
 import {
-    User,
-    Mail,
-    Building,
-    Edit,
-    Save,
-    X,
-    Camera,
-    Shield,
-    Bell,
-    Key
+  User,
+  Mail,
+  Building,
+  Edit,
+  Save,
+  X,
+  Camera,
+  Shield,
+  Bell,
+  Key
 } from 'lucide-react';
 import type { AuthUser } from '../types';
 
 type ProfileProps = {
-    user: AuthUser & {
-        avatar?: string;
-        company_name?: string;
-        created_at?: string;
-    };
-    onUpdateProfile?: (data: Partial<AuthUser>) => void;
-    onNavigate?: (route: string) => void;
-    isLoading?: boolean;
+  user: AuthUser & {
+    avatar?: string;
+    company_name?: string;
+    created_at?: string;
+  };
+  onUpdateProfile?: (data: Partial<AuthUser>) => void;
+  onNavigate?: (route: string) => void;
+  isLoading?: boolean;
 };
 
 export default function Profile({
-    user,
-    onUpdateProfile,
-    onNavigate,
-    isLoading = false
+  user,
+  onUpdateProfile,
+  onNavigate,
+  isLoading = false
 }: ProfileProps) {
-    const [isEditing, setIsEditing] = useState(false);
-    const [formData, setFormData] = useState({
-        full_name: user.full_name,
-        email: user.email,
-        company_name: user.company_name || ''
+  const [isEditing, setIsEditing] = useState(false);
+  const [formData, setFormData] = useState({
+    full_name: user.full_name,
+    email: user.email,
+    company_name: user.company_name || ''
+  });
+
+  const handleSave = () => {
+    if (onUpdateProfile) {
+      onUpdateProfile(formData);
+    }
+    setIsEditing(false);
+  };
+
+  const handleCancel = () => {
+    setFormData({
+      full_name: user.full_name,
+      email: user.email,
+      company_name: user.company_name || ''
     });
+    setIsEditing(false);
+  };
 
-    const handleSave = () => {
-        if (onUpdateProfile) {
-            onUpdateProfile(formData);
-        }
-        setIsEditing(false);
-    };
-
-    const handleCancel = () => {
-        setFormData({
-            full_name: user.full_name,
-            email: user.email,
-            company_name: user.company_name || ''
-        });
-        setIsEditing(false);
-    };
-
-    return (
-        <div className="profile-page">
-            <style>{`
+  return (
+    <div className="profile-page">
+      <style>{`
         .profile-page {
           padding: 2rem;
           max-width: 800px;
@@ -369,182 +369,182 @@ export default function Profile({
         }
       `}</style>
 
-            <div className="profile-header">
-                <div className="profile-avatar">
-                    {user.avatar || user.full_name.split(' ').map(n => n[0]).join('').toUpperCase()}
-                    <div className="avatar-edit">
-                        <Camera size={16} />
-                    </div>
-                </div>
-                <div className="profile-info">
-                    <h1>{user.full_name}</h1>
-                    <p className="profile-role">
-                        {user.role === 'company' ? 'Company Partner' : 'Talent Seeker'}
-                    </p>
-                    <div className="profile-stats">
-                        <div className="stat-item">
-                            <div className="stat-value">12</div>
-                            <div className="stat-label">Jobs Posted</div>
-                        </div>
-                        <div className="stat-item">
-                            <div className="stat-value">48</div>
-                            <div className="stat-label">Candidates</div>
-                        </div>
-                        <div className="stat-item">
-                            <div className="stat-value">95%</div>
-                            <div className="stat-label">Match Rate</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div className="profile-content">
-                <div className="profile-form">
-                    <div className="form-section">
-                        <h2 className="section-title">
-                            <User size={20} />
-                            Personal Information
-                        </h2>
-
-                        <div className="form-group">
-                            <label className="form-label">Full Name</label>
-                            <input
-                                type="text"
-                                className="form-input"
-                                value={formData.full_name}
-                                onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                                disabled={!isEditing}
-                            />
-                        </div>
-
-                        <div className="form-group">
-                            <label className="form-label">Email Address</label>
-                            <input
-                                type="email"
-                                className="form-input"
-                                value={formData.email}
-                                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                disabled={!isEditing}
-                            />
-                        </div>
-
-                        {user.role === 'company' && (
-                            <div className="form-group">
-                                <label className="form-label">Company Name</label>
-                                <input
-                                    type="text"
-                                    className="form-input"
-                                    value={formData.company_name}
-                                    onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
-                                    disabled={!isEditing}
-                                />
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="form-actions">
-                        {!isEditing ? (
-                            <button
-                                className="btn btn-primary"
-                                onClick={() => setIsEditing(true)}
-                            >
-                                <Edit size={16} />
-                                Edit Profile
-                            </button>
-                        ) : (
-                            <>
-                                <button
-                                    className="btn btn-primary"
-                                    onClick={handleSave}
-                                    disabled={isLoading}
-                                >
-                                    <Save size={16} />
-                                    Save Changes
-                                </button>
-                                <button
-                                    className="btn btn-secondary"
-                                    onClick={handleCancel}
-                                >
-                                    <X size={16} />
-                                    Cancel
-                                </button>
-                            </>
-                        )}
-                    </div>
-                </div>
-
-                <div className="profile-sidebar">
-                    <div className="sidebar-card">
-                        <h3>Account Information</h3>
-                        <div className="account-info">
-                            <div className="info-item">
-                                <div className="info-icon">
-                                    <Mail size={20} />
-                                </div>
-                                <div className="info-content">
-                                    <h4>Email Verified</h4>
-                                    <p>Your email is verified</p>
-                                </div>
-                            </div>
-
-                            <div className="info-item">
-                                <div className="info-icon">
-                                    <Shield size={20} />
-                                </div>
-                                <div className="info-content">
-                                    <h4>Account Security</h4>
-                                    <p>Password last changed 30 days ago</p>
-                                </div>
-                            </div>
-
-                            <div className="info-item">
-                                <div className="info-icon">
-                                    <User size={20} />
-                                </div>
-                                <div className="info-content">
-                                    <h4>Member Since</h4>
-                                    <p>{user.created_at ? new Date(user.created_at).toLocaleDateString() : 'Recently'}</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="sidebar-card">
-                        <h3>Quick Actions</h3>
-                        <div className="quick-actions">
-                            <div className="quick-action">
-                                <div className="quick-action-icon">
-                                    <Key size={18} />
-                                </div>
-                                <div className="quick-action-text">
-                                    <div className="quick-action-title">Change Password</div>
-                                    <div className="quick-action-desc">Update your account password</div>
-                                </div>
-                            </div>
-
-                            <div className="quick-action">
-                                <div className="quick-action-icon">
-                                    <Bell size={18} />
-                                </div>
-                                <div className="quick-action-text">
-                                    <div className="quick-action-title">Notification Settings</div>
-                                    <div className="quick-action-desc">Manage your preferences</div>
-                                </div>
-                            </div>
-
-                            <div className="quick-action">
-                                <div className="quick-action-icon">
-                                    <Shield size={18} />
-                                </div>
-                                <div className="quick-action-text">
-                                    <div className="quick-action-title">Privacy Settings</div>
-                                    <div className="quick-action-desc">Control your data sharing</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+      <div className="profile-header">
+        <div className="profile-avatar">
+          {user.avatar || (user.full_name || user.company_name || user.email || '').split(' ').map(n => n[0]).join('').toUpperCase()}
+          <div className="avatar-edit">
+            <Camera size={16} />
+          </div>
         </div>
-    );
+        <div className="profile-info">
+          <h1>{user.full_name || user.company_name || user.email}</h1>
+          <p className="profile-role">
+            {user.role === 'company' ? 'Company Partner' : 'Talent Seeker'}
+          </p>
+          <div className="profile-stats">
+            <div className="stat-item">
+              <div className="stat-value">12</div>
+              <div className="stat-label">Jobs Posted</div>
+            </div>
+            <div className="stat-item">
+              <div className="stat-value">48</div>
+              <div className="stat-label">Candidates</div>
+            </div>
+            <div className="stat-item">
+              <div className="stat-value">95%</div>
+              <div className="stat-label">Match Rate</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="profile-content">
+        <div className="profile-form">
+          <div className="form-section">
+            <h2 className="section-title">
+              <User size={20} />
+              Personal Information
+            </h2>
+
+            <div className="form-group">
+              <label className="form-label">Full Name</label>
+              <input
+                type="text"
+                className="form-input"
+                value={formData.full_name}
+                onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                disabled={!isEditing}
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Email Address</label>
+              <input
+                type="email"
+                className="form-input"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                disabled={!isEditing}
+              />
+            </div>
+
+            {user.role === 'company' && (
+              <div className="form-group">
+                <label className="form-label">Company Name</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={formData.company_name}
+                  onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
+                  disabled={!isEditing}
+                />
+              </div>
+            )}
+          </div>
+
+          <div className="form-actions">
+            {!isEditing ? (
+              <button
+                className="btn btn-primary"
+                onClick={() => setIsEditing(true)}
+              >
+                <Edit size={16} />
+                Edit Profile
+              </button>
+            ) : (
+              <>
+                <button
+                  className="btn btn-primary"
+                  onClick={handleSave}
+                  disabled={isLoading}
+                >
+                  <Save size={16} />
+                  Save Changes
+                </button>
+                <button
+                  className="btn btn-secondary"
+                  onClick={handleCancel}
+                >
+                  <X size={16} />
+                  Cancel
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+
+        <div className="profile-sidebar">
+          <div className="sidebar-card">
+            <h3>Account Information</h3>
+            <div className="account-info">
+              <div className="info-item">
+                <div className="info-icon">
+                  <Mail size={20} />
+                </div>
+                <div className="info-content">
+                  <h4>Email Verified</h4>
+                  <p>Your email is verified</p>
+                </div>
+              </div>
+
+              <div className="info-item">
+                <div className="info-icon">
+                  <Shield size={20} />
+                </div>
+                <div className="info-content">
+                  <h4>Account Security</h4>
+                  <p>Password last changed 30 days ago</p>
+                </div>
+              </div>
+
+              <div className="info-item">
+                <div className="info-icon">
+                  <User size={20} />
+                </div>
+                <div className="info-content">
+                  <h4>Member Since</h4>
+                  <p>{user.created_at ? new Date(user.created_at).toLocaleDateString() : 'Recently'}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="sidebar-card">
+            <h3>Quick Actions</h3>
+            <div className="quick-actions">
+              <div className="quick-action">
+                <div className="quick-action-icon">
+                  <Key size={18} />
+                </div>
+                <div className="quick-action-text">
+                  <div className="quick-action-title">Change Password</div>
+                  <div className="quick-action-desc">Update your account password</div>
+                </div>
+              </div>
+
+              <div className="quick-action">
+                <div className="quick-action-icon">
+                  <Bell size={18} />
+                </div>
+                <div className="quick-action-text">
+                  <div className="quick-action-title">Notification Settings</div>
+                  <div className="quick-action-desc">Manage your preferences</div>
+                </div>
+              </div>
+
+              <div className="quick-action">
+                <div className="quick-action-icon">
+                  <Shield size={18} />
+                </div>
+                <div className="quick-action-text">
+                  <div className="quick-action-title">Privacy Settings</div>
+                  <div className="quick-action-desc">Control your data sharing</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }

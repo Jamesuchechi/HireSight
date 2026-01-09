@@ -35,25 +35,29 @@ def send_email(
     if html_body:
         message.add_alternative(html_body, subtype="html")
 
+    logger.debug(f"Email sending attempt: SMTP_HOST={settings.SMTP_HOST}, SMTP_USERNAME={settings.SMTP_USERNAME}, has_password={bool(settings.SMTP_PASSWORD)}")
+
     if settings.SMTP_HOST and settings.SMTP_PASSWORD:
         try:
+            logger.info(f"Attempting to send email to {recipient} via SMTP host {settings.SMTP_HOST}:{settings.SMTP_PORT}")
             context = ssl.create_default_context()
             with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=settings.SMTP_TIMEOUT) as smtp:
                 if settings.SMTP_USE_TLS:
+                    logger.debug("Starting TLS...")
                     smtp.starttls(context=context)
                 if settings.SMTP_USERNAME and settings.SMTP_PASSWORD:
+                    logger.debug(f"Logging in as {settings.SMTP_USERNAME}...")
                     smtp.login(settings.SMTP_USERNAME, settings.SMTP_PASSWORD)
+                logger.debug(f"Sending message to {recipient}...")
                 smtp.send_message(message)
-            logger.info("Sent email to %s via configured SMTP.", recipient)
+            logger.info(f"Successfully sent email to {recipient}")
             return
         except Exception as exc:  # pragma: no cover - best-effort logging
-            logger.error("Failed to send email to %s: %s", recipient, exc)
+            logger.error(f"Failed to send email to {recipient}: {type(exc).__name__}: {exc}", exc_info=True)
+            raise
 
-    logger.info(
-        "SMTP not configured; logging email to console.\nTo: %s\nSubject: %s\nBody:\n%s",
-        recipient,
-        subject,
-        text_body,
+    logger.warning(
+        f"SMTP not fully configured (SMTP_HOST={settings.SMTP_HOST}, SMTP_PASSWORD set={bool(settings.SMTP_PASSWORD)}). Email would not be sent.\nTo: {recipient}\nSubject: {subject}\n\nBody:\n{text_body}"
     )
 
 

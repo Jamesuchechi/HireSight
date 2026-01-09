@@ -185,7 +185,7 @@ export default function Dashboard({
       .slice(0, 2);
   };
 
-  const firstName = user.full_name.split(' ')[0];
+  const firstName = (user.full_name || user.company_name || user.email || '').split(' ')[0] || '';
 
   const [resumes, setResumes] = useState<ResumeOut[]>([]);
   const [resumesLoading, setResumesLoading] = useState(false);
@@ -1440,10 +1440,10 @@ export default function Dashboard({
         <div className="sidebar-footer">
           <div className="user-profile" onClick={() => handleNavigation('profile')}>
             <div className="user-avatar">
-              {user.avatar || getInitials(user.full_name)}
+              {user.avatar || getInitials(user.full_name || user.company_name || user.email || '')}
             </div>
             <div className="user-info">
-              <div className="user-name">{user.full_name}</div>
+              <div className="user-name">{user.full_name || user.company_name || user.email}</div>
               <div className="user-role">
                 {user.account_type === 'company' ? 'Company Partner' : 'Talent Seeker'}
               </div>
