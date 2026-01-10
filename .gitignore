@@ -6,6 +6,12 @@ dist/
 build/
 venv/
 env/
+__pycache__/
+*.pyc
+.gitignore
+resumes.db
+sqlite3.db
+cache/
 
 # Django
 *.log

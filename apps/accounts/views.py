@@ -1,11 +1,14 @@
-from django.shortcuts import render, redirect, get_object_or_404
+from django.http import JsonResponse
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.views.generic import View, TemplateView, FormView, UpdateView
 from django.urls import reverse_lazy
+from django.shortcuts import redirect, get_object_or_404, render
 from django.utils import timezone
-from django.core.mail import send_mail
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
+from django.core.exceptions import ValidationError
 from django.conf import settings
 from datetime import timedelta
 import secrets
@@ -23,11 +26,18 @@ class RegisterView(FormView):
     template_name = 'accounts/register.html'
     form_class = RegisterForm
     success_url = reverse_lazy('accounts:verify_email_notice')
-    
+
     def dispatch(self, request, *args, **kwargs):
         """Redirect authenticated users to dashboard."""
         if request.user.is_authenticated:
-            return redirect('dashboard:index')
+            return redirect('dashboard:dashboard_home')
+        
+        # Apply rate limiting for POST requests
+        if request.method == 'POST':
+            from django_ratelimit.core import is_ratelimited
+            if is_ratelimited(request, group='register', key='ip', rate='3/h', increment=True):
+                return ratelimit_view(request, None)
+        
         return super().dispatch(request, *args, **kwargs)
     
     def form_valid(self, form):
@@ -49,13 +59,21 @@ class RegisterView(FormView):
             reverse_lazy('accounts:verify_email', kwargs={'token': token})
         )
         
-        send_mail(
-            subject='Verify your HireSight email',
-            message=f'Click the link to verify your email: {verification_url}\n\nThis link expires in 24 hours.',
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[user.email],
-            fail_silently=True,
-        )
+        # Send HTML email
+        subject = 'Verify your HireSight email'
+        from_email = settings.DEFAULT_FROM_EMAIL
+        to_email = [user.email]
+        
+        # Render HTML content
+        html_content = render_to_string('emails/email_verification.html', {
+            'user': user,
+            'verification_url': verification_url,
+        })
+        
+        # Create email message
+        email = EmailMultiAlternatives(subject, '', from_email, to_email)
+        email.attach_alternative(html_content, "text/html")
+        email.send(fail_silently=True)
         
         messages.success(
             self.request,
@@ -76,12 +94,25 @@ class LoginView(FormView):
     """User login view."""
     template_name = 'accounts/login.html'
     form_class = LoginForm
-    success_url = reverse_lazy('dashboard:index')
-    
+    success_url = reverse_lazy('dashboard:dashboard_home')
+
+    def get_form_kwargs(self):
+        """Pass request to form."""
+        kwargs = super().get_form_kwargs()
+        kwargs['request'] = self.request
+        return kwargs
+
     def dispatch(self, request, *args, **kwargs):
         """Redirect authenticated users to dashboard."""
         if request.user.is_authenticated:
-            return redirect('dashboard:index')
+            return redirect('dashboard:dashboard_home')
+        
+        # Apply rate limiting for POST requests
+        if request.method == 'POST':
+            from django_ratelimit.core import is_ratelimited
+            if is_ratelimited(request, group='login', key='ip', rate='5/m', increment=True):
+                return ratelimit_view(request, None)
+        
         return super().dispatch(request, *args, **kwargs)
     
     def form_valid(self, form):
@@ -90,10 +121,20 @@ class LoginView(FormView):
         password = form.cleaned_data.get('password')
         remember_me = form.cleaned_data.get('remember_me', False)
         
-        # Authenticate user
+        # Authenticate user with request
         user = authenticate(self.request, username=email, password=password)
         
         if user is not None:
+            # Check if user is allowed to login (for Axes)
+            from django.contrib.auth.forms import AuthenticationForm
+            temp_form = AuthenticationForm()
+            temp_form.user_cache = user
+            try:
+                temp_form.confirm_login_allowed(user)
+            except ValidationError as e:
+                messages.error(self.request, str(e))
+                return self.form_invalid(form)
+            
             login(self.request, user)
             
             # Set session expiry
@@ -168,13 +209,13 @@ class VerifyEmailFormView(LoginRequiredMixin, FormView):
     """Email verification via manual token entry."""
     template_name = 'accounts/verify_email.html'
     form_class = EmailVerificationForm
-    success_url = reverse_lazy('dashboard:index')
+    success_url = reverse_lazy('dashboard:dashboard_home')
     
     def dispatch(self, request, *args, **kwargs):
         """Redirect if already verified."""
         if request.user.is_verified:
             messages.info(request, 'Your email is already verified.')
-            return redirect('dashboard:index')
+            return redirect('dashboard:dashboard_home')
         return super().dispatch(request, *args, **kwargs)
     
     def form_valid(self, form):
@@ -213,7 +254,7 @@ class ResendVerificationView(LoginRequiredMixin, View):
         """Send new verification email."""
         if request.user.is_verified:
             messages.info(request, 'Your email is already verified.')
-            return redirect('dashboard:index')
+            return redirect('dashboard:dashboard_home')
         
         # Delete old tokens
         EmailVerificationToken.objects.filter(user=request.user).delete()
@@ -233,13 +274,21 @@ class ResendVerificationView(LoginRequiredMixin, View):
             reverse_lazy('accounts:verify_email', kwargs={'token': token})
         )
         
-        send_mail(
-            subject='Verify your HireSight email',
-            message=f'Click the link to verify your email: {verification_url}\n\nThis link expires in 24 hours.',
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[request.user.email],
-            fail_silently=True,
-        )
+        # Send HTML email
+        subject = 'Verify your HireSight email'
+        from_email = settings.DEFAULT_FROM_EMAIL
+        to_email = [request.user.email]
+        
+        # Render HTML content
+        html_content = render_to_string('emails/email_verification.html', {
+            'user': request.user,
+            'verification_url': verification_url,
+        })
+        
+        # Create email message
+        email = EmailMultiAlternatives(subject, '', from_email, to_email)
+        email.attach_alternative(html_content, "text/html")
+        email.send(fail_silently=True)
         
         messages.success(request, 'Verification email sent! Please check your inbox.')
         return redirect('accounts:verify_email_form')
@@ -250,6 +299,16 @@ class ForgotPasswordView(FormView):
     template_name = 'accounts/forgot_password.html'
     form_class = ForgotPasswordForm
     success_url = reverse_lazy('accounts:forgot_password_done')
+
+    def dispatch(self, request, *args, **kwargs):
+        """Handle rate limiting for password reset requests."""
+        # Apply rate limiting for POST requests
+        if request.method == 'POST':
+            from django_ratelimit.core import is_ratelimited
+            if is_ratelimited(request, group='forgot_password', key='ip', rate='3/h', increment=True):
+                return ratelimit_view(request, None)
+        
+        return super().dispatch(request, *args, **kwargs)
     
     def form_valid(self, form):
         """Send password reset email."""
@@ -273,13 +332,21 @@ class ForgotPasswordView(FormView):
                 reverse_lazy('accounts:reset_password', kwargs={'token': token})
             )
             
-            send_mail(
-                subject='Reset your HireSight password',
-                message=f'Click the link to reset your password: {reset_url}\n\nThis link expires in 1 hour.',
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[user.email],
-                fail_silently=True,
-            )
+            # Send HTML email
+            subject = 'Reset your HireSight password'
+            from_email = settings.DEFAULT_FROM_EMAIL
+            to_email = [user.email]
+            
+            # Render HTML content
+            html_content = render_to_string('emails/password_reset.html', {
+                'user': user,
+                'reset_url': reset_url,
+            })
+            
+            # Create email message
+            email = EmailMultiAlternatives(subject, '', from_email, to_email)
+            email.attach_alternative(html_content, "text/html")
+            email.send(fail_silently=True)
         
         except User.DoesNotExist:
             # Don't reveal if email exists
@@ -291,6 +358,26 @@ class ForgotPasswordView(FormView):
 class ForgotPasswordDoneView(TemplateView):
     """Password reset email sent confirmation."""
     template_name = 'accounts/forgot_password_done.html'
+
+
+class SettingsView(LoginRequiredMixin, TemplateView):
+    """User settings view."""
+    template_name = 'accounts/settings.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Account Settings'
+        return context
+
+
+class ProfileView(LoginRequiredMixin, TemplateView):
+    """User profile view."""
+    template_name = 'accounts/profile.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'My Profile'
+        return context
 
 
 class ResetPasswordView(FormView):
@@ -355,7 +442,7 @@ class EditPersonalProfileView(LoginRequiredMixin, UpdateView):
         """Ensure user has personal account."""
         if request.user.account_type != 'personal':
             messages.error(request, 'This page is only for job seeker accounts.')
-            return redirect('dashboard:index')
+            return redirect('dashboard:dashboard_home')
         return super().dispatch(request, *args, **kwargs)
     
     def get_object(self, queryset=None):
@@ -379,7 +466,7 @@ class EditCompanyProfileView(LoginRequiredMixin, UpdateView):
         """Ensure user has company account."""
         if request.user.account_type != 'company':
             messages.error(request, 'This page is only for recruiter accounts.')
-            return redirect('dashboard:index')
+            return redirect('dashboard:dashboard_home')
         return super().dispatch(request, *args, **kwargs)
     
     def get_object(self, queryset=None):
@@ -408,7 +495,7 @@ class PublicPersonalProfileView(TemplateView):
         if profile.profile_visibility == 'private':
             if not self.request.user.is_authenticated or self.request.user != user:
                 messages.error(self.request, 'This profile is private.')
-                return redirect('dashboard:index')
+                return redirect('dashboard:dashboard_home')
         
         context['profile_user'] = user
         context['profile'] = profile
@@ -430,3 +517,67 @@ class PublicCompanyProfileView(TemplateView):
         context['profile_user'] = user
         context['profile'] = profile
         return context
+
+
+def ratelimit_view(request, exception):
+    """
+    View shown when rate limit is exceeded.
+    Used by django-ratelimit.
+    """
+    return render(request, 'errors/rate_limit.html', {
+        'exception': exception,
+    }, status=429)
+
+
+def health_check(request):
+    """
+    Health check endpoint for monitoring.
+    Returns JSON with system status.
+    """
+    from django.db import connection
+    from django.core.cache import cache
+    import psutil
+    import json
+    from datetime import datetime
+
+    health_data = {
+        'status': 'healthy',
+        'timestamp': datetime.utcnow().isoformat(),
+        'checks': {}
+    }
+
+    # Database check
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+        health_data['checks']['database'] = 'healthy'
+    except Exception as e:
+        health_data['checks']['database'] = f'unhealthy: {str(e)}'
+        health_data['status'] = 'unhealthy'
+
+    # Cache check
+    try:
+        cache.set('health_check', 'ok', 10)
+        cache_value = cache.get('health_check')
+        if cache_value == 'ok':
+            health_data['checks']['cache'] = 'healthy'
+        else:
+            health_data['checks']['cache'] = 'unhealthy: cache not working'
+            health_data['status'] = 'unhealthy'
+    except Exception as e:
+        health_data['checks']['cache'] = f'unhealthy: {str(e)}'
+        health_data['status'] = 'unhealthy'
+
+    # System resources
+    try:
+        health_data['system'] = {
+            'cpu_percent': psutil.cpu_percent(interval=1),
+            'memory_percent': psutil.virtual_memory().percent,
+            'disk_percent': psutil.disk_usage('/').percent,
+        }
+    except ImportError:
+        health_data['system'] = {'note': 'psutil not available'}
+
+    status_code = 200 if health_data['status'] == 'healthy' else 503
+
+    return JsonResponse(health_data, status=status_code)

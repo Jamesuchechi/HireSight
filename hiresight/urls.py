@@ -18,8 +18,10 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from apps.dashboard import views as dashboard_views
 
 urlpatterns = [
+    path('', dashboard_views.landing, name='home'),
     path('admin/', admin.site.urls),
     path('accounts/', include('apps.accounts.urls')),
     path('resumes/', include('apps.resumes.urls')),

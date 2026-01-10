@@ -17,7 +17,7 @@ def personal_required(view_func):
         
         if request.user.account_type != 'personal':
             messages.error(request, 'This page is only accessible to Job Seeker accounts.')
-            return redirect('dashboard:index')
+            return redirect('dashboard:dashboard_home')
         
         return view_func(request, *args, **kwargs)
     
@@ -37,7 +37,7 @@ def company_required(view_func):
         
         if request.user.account_type != 'company':
             messages.error(request, 'This page is only accessible to Recruiter accounts.')
-            return redirect('dashboard:index')
+            return redirect('dashboard:dashboard_home')
         
         return view_func(request, *args, **kwargs)
     
@@ -75,7 +75,7 @@ def verified_company_required(view_func):
         
         if request.user.account_type != 'company':
             messages.error(request, 'This page is only accessible to Recruiter accounts.')
-            return redirect('dashboard:index')
+            return redirect('dashboard:dashboard_home')
         
         if not hasattr(request.user, 'company_profile') or not request.user.company_profile.is_verified():
             messages.warning(request, 'Your company needs to be verified to access this feature.')

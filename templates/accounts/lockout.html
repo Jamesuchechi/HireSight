@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+
+{% block title %}Account Locked - HireSight{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+  <div class="max-w-md w-full space-y-8">
+    <div>
+      <div class="mx-auto h-12 w-12 flex items-center justify-center rounded-full bg-red-100">
+        <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+        </svg>
+      </div>
+      <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+        Account Temporarily Locked
+      </h2>
+      <p class="mt-2 text-center text-sm text-gray-600">
+        Too many failed login attempts have been detected.
+      </p>
+    </div>
+
+    <div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+      <div class="text-center">
+        <div class="bg-yellow-50 border border-yellow-200 rounded-md p-4 mb-6">
+          <div class="flex">
+            <div class="flex-shrink-0">
+              <svg class="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+              </svg>
+            </div>
+            <div class="ml-3">
+              <h3 class="text-sm font-medium text-yellow-800">
+                Security Measure
+              </h3>
+              <div class="mt-2 text-sm text-yellow-700">
+                <p>
+                  Your account has been temporarily locked due to multiple failed login attempts.
+                  This is a security measure to protect your account.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="space-y-4">
+          <p class="text-gray-700">
+            <strong>What happened?</strong><br>
+            We detected {{ failure_limit }} consecutive failed login attempts from your IP address.
+          </p>
+
+          <p class="text-gray-700">
+            <strong>When can I try again?</strong><br>
+            You can try logging in again after {{ cooloff_time }} hour{{ cooloff_time|pluralize }}.
+          </p>
+
+          <p class="text-gray-700">
+            <strong>Forgot your password?</strong><br>
+            If you've forgotten your password, you can
+            <a href="{% url 'accounts:forgot_password' %}" class="text-blue-600 hover:text-blue-500 font-medium">
+              reset it here
+            </a>.
+          </p>
+        </div>
+
+        <div class="mt-8">
+          <a href="{% url 'accounts:login' %}"
+             class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            Try Again Later
+          </a>
+        </div>
+
+        <div class="mt-4 text-center">
+          <a href="{% url 'landing:home' %}" class="text-sm text-gray-600 hover:text-gray-500">
+            ← Back to Home
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

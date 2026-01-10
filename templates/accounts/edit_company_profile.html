@@ -1,0 +1,218 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Company Profile - HireSight{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-12">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900">Edit Company Profile</h1>
+            <p class="mt-2 text-gray-600">Update your company information to attract top talent.</p>
+        </div>
+
+        <!-- Profile Form -->
+        <div class="bg-white shadow-lg rounded-xl overflow-hidden">
+            <form method="post" enctype="multipart/form-data" class="divide-y divide-gray-200">
+                {% csrf_token %}
+
+                <!-- Basic Information -->
+                <div class="px-6 py-8">
+                    <h2 class="text-xl font-semibold text-gray-900 mb-6">Basic Information</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="{{ form.company_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                Company Name *
+                            </label>
+                            {{ form.company_name }}
+                            {% if form.company_name.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.company_name.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <div>
+                            <label for="{{ form.industry.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                Industry
+                            </label>
+                            {{ form.industry }}
+                            {% if form.industry.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.industry.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="{{ form.company_size.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                Company Size
+                            </label>
+                            {{ form.company_size }}
+                            {% if form.company_size.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.company_size.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <div>
+                            <label for="{{ form.founded_year.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                Founded Year
+                            </label>
+                            {{ form.founded_year }}
+                            {% if form.founded_year.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.founded_year.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mt-6">
+                        <label for="{{ form.logo.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Company Logo
+                        </label>
+                        {{ form.logo }}
+                        {% if form.logo.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.logo.errors.0 }}</p>
+                        {% endif %}
+                        <p class="mt-1 text-sm text-gray-500">Upload your company logo. Max 5MB, JPG/PNG.</p>
+                    </div>
+                </div>
+
+                <!-- Company Details -->
+                <div class="px-6 py-8">
+                    <h2 class="text-xl font-semibold text-gray-900 mb-6">Company Details</h2>
+                    <div class="space-y-6">
+                        <div>
+                            <label for="{{ form.website.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                Website
+                            </label>
+                            {{ form.website }}
+                            {% if form.website.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.website.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <div>
+                            <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                Company Description
+                            </label>
+                            {{ form.description }}
+                            {% if form.description.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.description.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <div>
+                            <label for="{{ form.mission.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                Mission Statement
+                            </label>
+                            {{ form.mission }}
+                            {% if form.mission.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.mission.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <div>
+                            <label for="{{ form.culture.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                Company Culture
+                            </label>
+                            {{ form.culture }}
+                            {% if form.culture.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.culture.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Benefits -->
+                <div class="px-6 py-8">
+                    <h2 class="text-xl font-semibold text-gray-900 mb-6">Benefits & Perks</h2>
+                    <div id="benefits-container">
+                        <!-- Benefits will be dynamically added here -->
+                    </div>
+                    <button type="button" id="add-benefit-btn" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                        Add Benefit
+                    </button>
+                </div>
+
+                <!-- Locations -->
+                <div class="px-6 py-8">
+                    <h2 class="text-xl font-semibold text-gray-900 mb-6">Locations</h2>
+                    <div id="locations-container">
+                        <!-- Locations will be dynamically added here -->
+                    </div>
+                    <button type="button" id="add-location-btn" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                        Add Location
+                    </button>
+                </div>
+
+                <!-- Submit Buttons -->
+                <div class="px-6 py-6 bg-gray-50 flex justify-end space-x-4">
+                    <a href="{% url 'accounts:profile' %}" class="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition">
+                        Cancel
+                    </a>
+                    <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                        Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Benefits management
+document.addEventListener('DOMContentLoaded', function() {
+    const benefitsContainer = document.getElementById('benefits-container');
+    const addBenefitBtn = document.getElementById('add-benefit-btn');
+
+    addBenefitBtn.addEventListener('click', function() {
+        const benefitDiv = document.createElement('div');
+        benefitDiv.className = 'flex items-center space-x-2 mb-2';
+        benefitDiv.innerHTML = `
+            <input type="text" name="benefits[]" placeholder="Benefit (e.g., Health Insurance)" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg">
+            <button type="button" class="remove-benefit px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">Remove</button>
+        `;
+        benefitsContainer.appendChild(benefitDiv);
+
+        benefitDiv.querySelector('.remove-benefit').addEventListener('click', function() {
+            benefitDiv.remove();
+        });
+    });
+});
+
+// Locations management
+document.addEventListener('DOMContentLoaded', function() {
+    const locationsContainer = document.getElementById('locations-container');
+    const addLocationBtn = document.getElementById('add-location-btn');
+
+    addLocationBtn.addEventListener('click', function() {
+        const locationDiv = document.createElement('div');
+        locationDiv.className = 'grid grid-cols-1 md:grid-cols-4 gap-4 mb-4 p-4 border border-gray-200 rounded-lg';
+        locationDiv.innerHTML = `
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">City</label>
+                <input type="text" name="locations[][city]" placeholder="San Francisco" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">State</label>
+                <input type="text" name="locations[][state]" placeholder="CA" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Country</label>
+                <input type="text" name="locations[][country]" placeholder="USA" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+            </div>
+            <div class="flex items-end space-x-2">
+                <label class="flex items-center">
+                    <input type="checkbox" name="locations[][is_hq]" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                    <span class="ml-2 text-sm text-gray-700">HQ</span>
+                </label>
+                <button type="button" class="remove-location px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">Remove</button>
+            </div>
+        `;
+        locationsContainer.appendChild(locationDiv);
+
+        locationDiv.querySelector('.remove-location').addEventListener('click', function() {
+            locationDiv.remove();
+        });
+    });
+});
+</script>
+{% endblock %}

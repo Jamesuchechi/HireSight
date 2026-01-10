@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ object.title }} - HireSight{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-display font-bold text-gray-900">{{ object.title }}</h1>
+                    <p class="text-gray-600 mt-1">{{ object.original_filename }}</p>
+                </div>
+                <div class="flex items-center space-x-3">
+                    {% if object.is_primary %}
+                    <span class="bg-primary text-white px-3 py-1 rounded-full text-sm font-medium">Primary Resume</span>
+                    {% else %}
+                    <a href="{% url 'resumes:set_primary' object.pk %}" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors">
+                        Set as Primary
+                    </a>
+                    {% endif %}
+                    <a href="{% url 'resumes:download' object.pk %}" class="bg-gray-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors">
+                        Download
+                    </a>
+                    <a href="{% url 'resumes:list' %}" class="text-primary hover:text-primary/80 font-medium">
+                        ← Back to Resumes
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Left Column - File Info & Actions -->
+            <div class="lg:col-span-1">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">Resume Details</h2>
+
+                    <!-- Status -->
+                    <div class="mb-4">
+                        <div class="flex items-center">
+                            {% if object.status == 'parsed' %}
+                            <div class="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+                            <span class="text-sm text-green-700 font-medium">Successfully Parsed</span>
+                            {% elif object.status == 'parsing' %}
+                            <div class="w-3 h-3 bg-yellow-500 rounded-full mr-2 animate-pulse"></div>
+                            <span class="text-sm text-yellow-700 font-medium">Parsing in Progress...</span>
+                            {% elif object.status == 'failed' %}
+                            <div class="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
+                            <span class="text-sm text-red-700 font-medium">Parsing Failed</span>
+                            {% else %}
+                            <div class="w-3 h-3 bg-gray-500 rounded-full mr-2"></div>
+                            <span class="text-sm text-gray-700 font-medium">Uploaded</span>
+                            {% endif %}
+                        </div>
+                        {% if object.error_message %}
+                        <p class="text-xs text-red-600 mt-1">{{ object.error_message }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- File Info -->
+                    <div class="space-y-3 text-sm">
+                        <div>
+                            <span class="font-medium text-gray-700">File Size:</span>
+                            <span class="text-gray-600">{{ object.file_size|filesizeformat }}</span>
+                        </div>
+                        <div>
+                            <span class="font-medium text-gray-700">Uploaded:</span>
+                            <span class="text-gray-600">{{ object.uploaded_at|date:"M j, Y g:i A" }}</span>
+                        </div>
+                        {% if object.parsed_at %}
+                        <div>
+                            <span class="font-medium text-gray-700">Parsed:</span>
+                            <span class="text-gray-600">{{ object.parsed_at|date:"M j, Y g:i A" }}</span>
+                        </div>
+                        {% endif %}
+                        {% if object.experience_years %}
+                        <div>
+                            <span class="font-medium text-gray-700">Experience:</span>
+                            <span class="text-gray-600">{{ object.experience_years }} years</span>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="mt-6 space-y-2">
+                        <a href="{% url 'resumes:preview' object.pk %}" class="w-full bg-primary text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors text-center block">
+                            Preview Parsed Content
+                        </a>
+                        <a href="{% url 'resumes:edit' object.pk %}" class="w-full bg-gray-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors text-center block">
+                            Edit Details
+                        </a>
+                        <a href="{% url 'resumes:delete' object.pk %}" class="w-full bg-red-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors text-center block" onclick="return confirm('Are you sure you want to delete this resume?')">
+                            Delete Resume
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column - Parsed Data -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Skills -->
+                {% if parsed_skills %}
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Skills Identified</h3>
+                    <div class="flex flex-wrap gap-2">
+                        {% for skill in parsed_skills %}
+                        <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">{{ skill }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Education -->
+                {% if parsed_education %}
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Education</h3>
+                    <div class="space-y-3">
+                        {% for edu in parsed_education %}
+                        <div class="border-l-4 border-primary pl-4">
+                            <p class="font-medium text-gray-900">{{ edu.text }}</p>
+                            {% if edu.degree %}
+                            <p class="text-sm text-gray-600">Degree: {{ edu.degree }}</p>
+                            {% endif %}
+                            {% if edu.institution %}
+                            <p class="text-sm text-gray-600">Institution: {{ edu.institution }}</p>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Contact Info -->
+                {% if parsed_contact %}
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Contact Information</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {% if parsed_contact.email %}
+                        <div>
+                            <span class="font-medium text-gray-700">Email:</span>
+                            <span class="text-gray-600 ml-2">{{ parsed_contact.email }}</span>
+                        </div>
+                        {% endif %}
+                        {% if parsed_contact.phone %}
+                        <div>
+                            <span class="font-medium text-gray-700">Phone:</span>
+                            <span class="text-gray-600 ml-2">{{ parsed_contact.phone }}</span>
+                        </div>
+                        {% endif %}
+                        {% if parsed_contact.linkedin %}
+                        <div class="md:col-span-2">
+                            <span class="font-medium text-gray-700">LinkedIn:</span>
+                            <a href="{{ parsed_contact.linkedin }}" class="text-primary hover:text-primary/80 ml-2" target="_blank">{{ parsed_contact.linkedin }}</a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Raw Text Preview -->
+                {% if object.parsed_text %}
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Resume Text Preview</h3>
+                    <div class="bg-gray-50 rounded-lg p-4 max-h-64 overflow-y-auto">
+                        <pre class="text-sm text-gray-700 whitespace-pre-wrap">{{ object.parsed_text|truncatechars:1000 }}</pre>
+                        {% if object.parsed_text|length > 1000 %}
+                        <p class="text-xs text-gray-500 mt-2">Showing first 1000 characters. <a href="{% url 'resumes:preview' object.pk %}" class="text-primary hover:text-primary/80">View full text</a></p>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

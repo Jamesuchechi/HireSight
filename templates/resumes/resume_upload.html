@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+
+{% block title %}Upload Resume - HireSight{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-display font-bold text-gray-900">Upload Resume</h1>
+                    <p class="text-gray-600 mt-1">Upload your resume for AI-powered parsing and job matching</p>
+                </div>
+                <a href="{% url 'resumes:list' %}" class="text-primary hover:text-primary/80 font-medium flex items-center">
+                    <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                    </svg>
+                    Back to Resumes
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+            <form method="post" enctype="multipart/form-data" class="space-y-6">
+                {% csrf_token %}
+
+                <!-- Title Field -->
+                <div>
+                    <label for="{{ form.title.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        Resume Title
+                    </label>
+                    {{ form.title }}
+                    {% if form.title.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.title.errors.0 }}</p>
+                    {% endif %}
+                    <p class="mt-1 text-sm text-gray-500">Give your resume a descriptive name (e.g., "Software Engineer Resume")</p>
+                </div>
+
+                <!-- File Field -->
+                <div>
+                    <label for="{{ form.file.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        Resume File
+                    </label>
+                    {{ form.file }}
+                    {% if form.file.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.file.errors.0 }}</p>
+                    {% endif %}
+                    <div class="mt-1 text-sm text-gray-500">
+                        <p>Supported formats: PDF, DOCX</p>
+                        <p>Maximum file size: 5MB</p>
+                    </div>
+                </div>
+
+                <!-- Primary Checkbox -->
+                <div class="flex items-center">
+                    {{ form.is_primary }}
+                    <label for="{{ form.is_primary.id_for_label }}" class="ml-2 block text-sm text-gray-700">
+                        Set as primary resume
+                    </label>
+                </div>
+                {% if form.is_primary.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ form.is_primary.errors.0 }}</p>
+                {% endif %}
+
+                <!-- Submit Button -->
+                <div class="pt-4">
+                    <button type="submit" class="w-full bg-primary text-white py-3 px-4 rounded-xl font-semibold hover:bg-primary/90 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
+                        Upload & Parse Resume
+                    </button>
+                </div>
+            </form>
+
+            <!-- Info Section -->
+            <div class="mt-8 p-4 bg-blue-50 rounded-lg">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <h3 class="text-sm font-medium text-blue-800">What happens next?</h3>
+                        <div class="mt-2 text-sm text-blue-700">
+                            <p>After upload, our AI will automatically:</p>
+                            <ul class="list-disc list-inside mt-1 space-y-1">
+                                <li>Extract text from your resume</li>
+                                <li>Identify skills and technologies</li>
+                                <li>Parse education and experience</li>
+                                <li>Extract contact information</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,195 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Personal Profile - HireSight{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-12">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900">Edit Your Profile</h1>
+            <p class="mt-2 text-gray-600">Keep your profile up to date to get better job matches.</p>
+        </div>
+
+        <!-- Profile Form -->
+        <div class="bg-white shadow-lg rounded-xl overflow-hidden">
+            <form method="post" enctype="multipart/form-data" class="divide-y divide-gray-200">
+                {% csrf_token %}
+
+                <!-- Basic Information -->
+                <div class="px-6 py-8">
+                    <h2 class="text-xl font-semibold text-gray-900 mb-6">Basic Information</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="{{ form.full_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                Full Name *
+                            </label>
+                            {{ form.full_name }}
+                            {% if form.full_name.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.full_name.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <div>
+                            <label for="{{ form.headline.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                Professional Headline
+                            </label>
+                            {{ form.headline }}
+                            {% if form.headline.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.headline.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mt-6">
+                        <label for="{{ form.bio.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Professional Summary
+                        </label>
+                        {{ form.bio }}
+                        {% if form.bio.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.bio.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <div class="mt-6">
+                        <label for="{{ form.avatar.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Profile Picture
+                        </label>
+                        {{ form.avatar }}
+                        {% if form.avatar.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.avatar.errors.0 }}</p>
+                        {% endif %}
+                        <p class="mt-1 text-sm text-gray-500">Upload a professional headshot. Max 5MB, JPG/PNG.</p>
+                    </div>
+                </div>
+
+                <!-- Contact Information -->
+                <div class="px-6 py-8">
+                    <h2 class="text-xl font-semibold text-gray-900 mb-6">Contact Information</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="{{ form.location.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                Location
+                            </label>
+                            {{ form.location }}
+                            {% if form.location.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.location.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <div>
+                            <label for="{{ form.phone.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                Phone Number
+                            </label>
+                            {{ form.phone }}
+                            {% if form.phone.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.phone.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Job Preferences -->
+                <div class="px-6 py-8">
+                    <h2 class="text-xl font-semibold text-gray-900 mb-6">Job Preferences</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="{{ form.salary_expectation_min.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                Minimum Salary Expectation ({{ form.salary_currency.value }})
+                            </label>
+                            {{ form.salary_expectation_min }}
+                            {% if form.salary_expectation_min.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.salary_expectation_min.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <div>
+                            <label for="{{ form.salary_expectation_max.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                Maximum Salary Expectation ({{ form.salary_currency.value }})
+                            </label>
+                            {{ form.salary_expectation_max }}
+                            {% if form.salary_expectation_max.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.salary_expectation_max.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mt-6">
+                        <label for="{{ form.availability.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Availability
+                        </label>
+                        {{ form.availability }}
+                        {% if form.availability.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.availability.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Skills -->
+                <div class="px-6 py-8">
+                    <h2 class="text-xl font-semibold text-gray-900 mb-6">Skills</h2>
+                    <div id="skills-container">
+                        <!-- Skills will be dynamically added here -->
+                    </div>
+                    <button type="button" id="add-skill-btn" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                        Add Skill
+                    </button>
+                </div>
+
+                <!-- Privacy Settings -->
+                <div class="px-6 py-8">
+                    <h2 class="text-xl font-semibold text-gray-900 mb-6">Privacy Settings</h2>
+                    <div>
+                        <label for="{{ form.profile_visibility.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Profile Visibility
+                        </label>
+                        {{ form.profile_visibility }}
+                        {% if form.profile_visibility.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.profile_visibility.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Submit Buttons -->
+                <div class="px-6 py-6 bg-gray-50 flex justify-end space-x-4">
+                    <a href="{% url 'accounts:profile' %}" class="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition">
+                        Cancel
+                    </a>
+                    <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                        Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Skills management (simplified - would need proper JSON handling)
+document.addEventListener('DOMContentLoaded', function() {
+    const skillsContainer = document.getElementById('skills-container');
+    const addSkillBtn = document.getElementById('add-skill-btn');
+
+    addSkillBtn.addEventListener('click', function() {
+        const skillDiv = document.createElement('div');
+        skillDiv.className = 'flex items-center space-x-2 mb-2';
+        skillDiv.innerHTML = `
+            <input type="text" name="skills[]" placeholder="Skill name" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg">
+            <select name="proficiency[]" class="px-3 py-2 border border-gray-300 rounded-lg">
+                <option value="beginner">Beginner</option>
+                <option value="intermediate">Intermediate</option>
+                <option value="advanced">Advanced</option>
+                <option value="expert">Expert</option>
+            </select>
+            <button type="button" class="remove-skill px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">Remove</button>
+        `;
+        skillsContainer.appendChild(skillDiv);
+
+        // Add remove functionality
+        skillDiv.querySelector('.remove-skill').addEventListener('click', function() {
+            skillDiv.remove();
+        });
+    });
+});
+</script>
+{% endblock %}

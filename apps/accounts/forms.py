@@ -1,5 +1,6 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm, PasswordResetForm, SetPasswordForm
+from django.contrib.auth import authenticate
 from django.core.exceptions import ValidationError
 from .models import User, PersonalProfile, CompanyProfile
 
@@ -103,6 +104,21 @@ class LoginForm(AuthenticationForm):
             'class': 'w-4 h-4 text-blue border-gray-300 rounded focus:ring-blue'
         })
     )
+    
+    def __init__(self, request=None, *args, **kwargs):
+        self.request = request
+        super().__init__(*args, **kwargs)
+    
+    def clean(self):
+        """Override to skip authentication - we'll handle it in the view."""
+        username = self.cleaned_data.get('username')
+        password = self.cleaned_data.get('password')
+
+        if username and password:
+            # Don't authenticate here - let the view handle it
+            pass
+
+        return self.cleaned_data
 
 
 class EmailVerificationForm(forms.Form):

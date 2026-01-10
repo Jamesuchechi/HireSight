@@ -22,10 +22,14 @@ urlpatterns = [
     
     # Profile Management
     path('profile/', views.ProfileView.as_view(), name='profile'),
+    path('settings/', views.SettingsView.as_view(), name='settings'),
     path('profile/edit/personal/', views.EditPersonalProfileView.as_view(), name='edit_personal_profile'),
     path('profile/edit/company/', views.EditCompanyProfileView.as_view(), name='edit_company_profile'),
     
     # Public Profiles
     path('profile/<uuid:user_id>/personal/', views.PublicPersonalProfileView.as_view(), name='public_personal_profile'),
     path('profile/<uuid:user_id>/company/', views.PublicCompanyProfileView.as_view(), name='public_company_profile'),
+    
+    # Monitoring
+    path('health/', views.health_check, name='health_check'),
 ]
