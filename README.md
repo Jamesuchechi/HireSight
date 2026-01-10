@@ -4,9 +4,6 @@
 
 [![MIT License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.10+-blue)](https://www.python.org/)
-[![React](https://img.shields.io/badge/React-18+-61dafb)](https://reactjs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5+-3178c6)](https://www.typescriptlang.org/)
-
 ---
 
 ## 🎯 Vision
@@ -115,26 +112,22 @@ Transform the hiring process from a tedious, biased, manual task into an intelli
 
 | Layer | Technology | Purpose |
 |-------|-----------|---------|
-| **Frontend** | React 18 + TypeScript + Vite | Modern, type-safe UI with fast HMR |
-| **UI Framework** | Tailwind CSS + shadcn/ui | Utility-first styling with pre-built components |
-| **Icons** | Lucide React | Consistent, customizable icon set |
-| **State Management** | React Context + Zustand | Global state for auth, notifications, theme |
-| **Backend** | FastAPI (Python 3.10+) | High-performance async API |
+| **Framework** | Django 5.0 | Full-stack web framework with batteries included |
+| **Frontend** | HTML5 + Tailwind CSS + Alpine.js | Modern, utility-first styling with lightweight JS |
+| **Interactive Updates** | HTMX | Dynamic updates without full page reload |
 | **Database** | PostgreSQL 15+ | Relational data with JSONB for flexibility |
-| **ORM** | SQLAlchemy 2.0 | Type-safe database interactions |
-| **Authentication** | JWT + httpOnly cookies | Secure, token-based auth |
-| **File Storage** | AWS S3 / Cloudinary | Resume and image uploads |
-| **Resume Parsing** | pyresparser + PyMuPDF | Extract structured data from PDFs/DOCX |
+| **ORM** | Django ORM | Built-in, powerful database abstraction |
+| **Authentication** | Django Auth + Custom User | Email-based auth with role separation |
+| **File Storage** | Django Storage / AWS S3 | Resume and image uploads |
+| **Resume Parsing** | spaCy + PyPDF2 + python-docx | Extract structured data from PDFs/DOCX |
 | **NLP & AI** | spaCy + Sentence Transformers | Semantic matching and skill extraction |
 | **Embeddings** | all-MiniLM-L6-v2 | Fast, accurate sentence embeddings |
 | **Task Queue** | Celery + Redis | Background jobs (email, resume processing) |
-| **Email** | SendGrid / AWS SES | Transactional emails and notifications |
-| **Real-time** | Socket.IO | Live notifications and messaging |
+| **Email** | Django Email / SendGrid | Transactional emails and notifications |
 | **Caching** | Redis | Session storage, rate limiting, caching |
-| **Monitoring** | Sentry + Prometheus | Error tracking and performance metrics |
-| **Deployment** | Docker + Docker Compose | Containerized, reproducible environments |
-| **CI/CD** | GitHub Actions | Automated testing and deployment |
-| **Testing** | pytest + React Testing Library | Backend and frontend test coverage |
+| **Monitoring** | Django Debug Toolbar + Logging | Development debugging and error tracking |
+| **Deployment** | Gunicorn + Nginx | Production WSGI server with reverse proxy |
+| **Testing** | pytest + pytest-django | Comprehensive test coverage |
 
 ---
 
@@ -184,36 +177,15 @@ Transform the hiring process from a tedious, biased, manual task into an intelli
 
 ### **Prerequisites**
 - Python 3.10+
-- Node.js 18+
 - PostgreSQL 15+
 - Redis 7+
-- (Optional) Docker & Docker Compose
 
-### **Quick Start with Docker**
+### **Quick Start**
 
 ```bash
 # Clone repository
 git clone https://github.com/yourusername/HireSight.git
 cd HireSight
-
-# Copy environment variables
-cp .env.example .env
-# Edit .env with your database credentials, API keys, etc.
-
-# Start all services
-docker-compose up -d
-
-# Access application
-# Frontend: http://localhost:5173
-# Backend API: http://localhost:8000
-# API Docs: http://localhost:8000/docs
-```
-
-### **Manual Setup**
-
-#### **Backend**
-```bash
-cd backend
 
 # Create virtual environment
 python -m venv venv
@@ -225,37 +197,26 @@ pip install -r requirements.txt
 # Download spaCy model
 python -m spacy download en_core_web_sm
 
-# Run database migrations
-alembic upgrade head
+# Create .env file
+cp .env.example .env
+# Edit .env with your database credentials, API keys, etc.
 
-# Seed database (optional)
-python scripts/seed_data.py
+# Create database
+createdb hiresight_db  # PostgreSQL
 
-# Start backend server
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-```
+# Run migrations
+python manage.py makemigrations
+python manage.py migrate
 
-#### **Frontend**
-```bash
-cd frontend
+# Create superuser
+python manage.py createsuperuser
 
-# Install dependencies
-npm install
+# Collect static files
+python manage.py collectstatic
 
-# Start development server
-npm run dev
-# Access at http://localhost:5173
-```
-
-#### **Background Workers (Celery)**
-```bash
-cd backend
-
-# Start Celery worker
-celery -A app.worker worker --loglevel=info
-
-# Start Celery beat (for scheduled tasks)
-celery -A app.worker beat --loglevel=info
+# Run development server
+python manage.py runserver
+# Access at http://localhost:8000
 ```
 
 ---
@@ -291,72 +252,53 @@ celery -A app.worker beat --loglevel=info
 
 ```
 HireSight/
-├── backend/
-│   ├── app/
-│   │   ├── api/                  # API route handlers
-│   │   │   ├── auth.py           # Authentication endpoints
-│   │   │   ├── users.py          # User management
-│   │   │   ├── jobs.py           # Job CRUD operations
-│   │   │   ├── applications.py   # Application management
-│   │   │   ├── resumes.py        # Resume upload & parsing
-│   │   │   ├── screening.py      # AI screening endpoints
-│   │   │   ├── following.py      # Follow system
-│   │   │   └── messaging.py      # In-app messaging
-│   │   ├── core/
-│   │   │   ├── config.py         # Environment configuration
-│   │   │   ├── security.py       # JWT, password hashing
-│   │   │   └── database.py       # DB connection
-│   │   ├── models/               # SQLAlchemy models
-│   │   │   ├── user.py
-│   │   │   ├── profile.py
-│   │   │   ├── job.py
-│   │   │   ├── application.py
-│   │   │   ├── resume.py
-│   │   │   ├── follow.py
-│   │   │   └── notification.py
-│   │   ├── schemas/              # Pydantic schemas for validation
-│   │   ├── services/             # Business logic
-│   │   │   ├── auth_service.py
-│   │   │   ├── resume_parser.py
-│   │   │   ├── ai_matcher.py
-│   │   │   ├── email_service.py
-│   │   │   └── notification_service.py
-│   │   ├── utils/                # Helper functions
-│   │   ├── worker.py             # Celery task definitions
-│   │   └── main.py               # FastAPI app entry point
-│   ├── alembic/                  # Database migrations
-│   ├── tests/                    # Backend tests
-│   ├── requirements.txt
-│   └── Dockerfile
-├── frontend/
-│   ├── src/
-│   │   ├── components/           # Reusable UI components
-│   │   │   ├── ui/               # shadcn/ui components
-│   │   │   ├── layout/           # Header, Sidebar, Footer
-│   │   │   ├── auth/             # Login, Signup modals
-│   │   │   └── shared/           # Buttons, Cards, etc.
-│   │   ├── pages/                # Route-specific pages
-│   │   │   ├── Landing.tsx
-│   │   │   ├── Dashboard.tsx
-│   │   │   ├── Jobs.tsx
-│   │   │   ├── Applications.tsx
-│   │   │   ├── Profile.tsx
-│   │   │   └── Settings.tsx
-│   │   ├── context/              # React Context providers
-│   │   ├── hooks/                # Custom React hooks
-│   │   ├── services/             # API client functions
-│   │   ├── types/                # TypeScript type definitions
-│   │   ├── utils/                # Helper functions
-│   │   ├── App.tsx
-│   │   └── main.tsx
-│   ├── public/
-│   ├── package.json
-│   └── Dockerfile
-├── docker-compose.yml
-├── .env.example
+├── manage.py                       # Django management script
+├── requirements.txt                # Python dependencies
+├── .env.example                    # Environment variables template
 ├── README.md
-├── TODO.md                        # Development roadmap
-└── LICENSE
+├── TODO.md
+│
+├── hiresight/                      # Main Django project
+│   ├── settings.py
+│   ├── urls.py
+│   ├── wsgi.py
+│   └── asgi.py
+│
+├── apps/                           # Django applications
+│   ├── accounts/                   # Authentication & profiles
+│   ├── resumes/                    # Resume management & parsing
+│   ├── jobs/                       # Job posting & browsing
+│   ├── applications/               # Application system
+│   ├── screening/                  # AI-powered screening
+│   ├── dashboard/                  # Role-based dashboards
+│   ├── notifications/              # Notification system
+│   ├── messages/                   # In-app messaging
+│   ├── following/                  # Follow system
+│   └── analytics/                  # Reports & analytics
+│
+├── templates/                      # HTML templates
+│   ├── base.html
+│   ├── components/                 # Reusable components
+│   ├── accounts/                   # Auth pages
+│   ├── dashboard/                  # Dashboards
+│   ├── jobs/                       # Job pages
+│   ├── applications/               # Application pages
+│   └── errors/                     # Error pages
+│
+├── static/                         # Static files (CSS, JS, images)
+│   ├── css/
+│   ├── js/
+│   └── images/
+│
+├── media/                          # User uploads
+│   ├── resumes/
+│   ├── avatars/
+│   └── company_logos/
+│
+└── utils/                          # Utility functions
+    ├── email.py
+    ├── validators.py
+    └── helpers.py
 ```
 
 ---
@@ -607,12 +549,6 @@ If you find HireSight useful, please consider giving it a ⭐ on GitHub! It help
 ---
 
 ## 📊 Project Stats
-
-![GitHub stars](https://img.shields.io/github/stars/yourusername/HireSight?style=social)
-![GitHub forks](https://img.shields.io/github/forks/yourusername/HireSight?style=social)
-![GitHub issues](https://img.shields.io/github/issues/yourusername/HireSight)
-![GitHub pull requests](https://img.shields.io/github/issues-pr/yourusername/HireSight)
-![GitHub last commit](https://img.shields.io/github/last-commit/yourusername/HireSight)
 
 ---
 
