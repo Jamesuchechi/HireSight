@@ -1,0 +1,216 @@
+{% extends 'base.html' %}
+
+{% block title %}Notifications - HireSight{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Hero Header -->
+    <div class="bg-gradient-to-r from-secondary via-primary to-purple text-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div>
+                    <h1 class="text-3xl font-display font-bold mb-1">Notifications</h1>
+                    <p class="text-white/80 text-sm">
+                        {{ selected_filter_label }} updates keep you in sync with applications, jobs, and messages.
+                    </p>
+                </div>
+                <div class="flex flex-wrap gap-3">
+                    <form method="post" action="{% url 'notifications:mark_all_as_read' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                        <button type="submit"
+                                class="btn btn-primary inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 border border-white/30 text-white text-sm font-semibold transition-all hover:bg-white/30 focus:outline-none focus:ring focus:ring-white/50 disabled:opacity-40 disabled:pointer-events-none"
+                                {% if not has_unread %}disabled aria-disabled="true"{% endif %}>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            Mark all read
+                        </button>
+                    </form>
+                    {% if total_notifications %}
+                        <form method="post"
+                              action="{% url 'notifications:delete_all_notifications' %}"
+                              onsubmit="return confirm('Delete all notifications? This cannot be undone.');">
+                            {% csrf_token %}
+                            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                            <button type="submit"
+                                    class="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/60 text-white/80 text-sm font-semibold transition-all hover:bg-white/20 focus:outline-none focus:ring focus:ring-white/50">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                                Empty
+                            </button>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+        <!-- Filters -->
+        <div class="bg-white rounded-2xl shadow-md border border-gray-200 px-6 py-4">
+            <div class="flex flex-wrap gap-3">
+                {% for option in filter_options %}
+                    <a href="?filter={{ option.key }}"
+                       class="px-4 py-2 rounded-full text-sm font-medium transition-all border border-transparent
+                              {% if selected_filter == option.key %}
+                                  bg-primary text-white border-primary shadow-lg
+                              {% else %}
+                                  bg-gray-100 text-gray-700 hover:bg-gray-200
+                              {% endif %}">
+                        {{ option.label }}
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+
+        {% if total_notifications %}
+            <!-- Notification List -->
+            <div class="space-y-4">
+                {% for notification in notifications %}
+                    <article class="bg-white rounded-2xl border shadow-sm overflow-hidden transition-all
+                                    {% if not notification.is_read %}border-primary/60 ring-1 ring-primary/10{% else %}border-gray-200{% endif %}">
+                        <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-6 px-6 py-5">
+                            <!-- Icon -->
+                            <div class="flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center text-lg font-bold
+                                        {% if notification.notification_type == 'application' %}
+                                            bg-blue-100 text-blue-600
+                                        {% elif notification.notification_type == 'message' %}
+                                            bg-emerald-100 text-emerald-600
+                                        {% elif notification.notification_type == 'job' %}
+                                            bg-purple-100 text-purple-600
+                                        {% else %}
+                                            bg-gray-100 text-gray-700
+                                        {% endif %}">
+                                {% if notification.notification_type == 'application' %}
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                    </svg>
+                                {% elif notification.notification_type == 'message' %}
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                              d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                                    </svg>
+                                {% elif notification.notification_type == 'job' %}
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                              d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                                    </svg>
+                                {% else %}
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                {% endif %}
+                            </div>
+
+                            <!-- Content -->
+                            <div class="flex-1 space-y-3">
+                                <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                                    <div>
+                                <p class="text-lg font-semibold text-gray-900 mb-1">
+                                    <a href="{% url 'notifications:detail' notification.pk %}" class="hover:text-primary underline-animate">
+                                        {{ notification.title }}
+                                    </a>
+                                </p>
+                                        <p class="text-sm text-gray-600">{{ notification.message }}</p>
+                                    </div>
+                                    <div class="text-xs text-gray-500 text-right">
+                                        {{ notification.created_at|timesince }} ago
+                                    </div>
+                                </div>
+
+                                {% if notification.action_url %}
+                                    <a href="{{ notification.action_url }}"
+                                       class="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:text-primary-dark">
+                                        {{ notification.action_text|default:"View Details" }}
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                  d="M9 5l7 7-7 7"></path>
+                                        </svg>
+                                    </a>
+                                {% endif %}
+
+                                <div class="flex flex-wrap gap-2">
+                                    <form method="post" action="{% url 'notifications:toggle_read' notification.pk %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                        <button type="submit"
+                                                class="px-3 py-1 text-xs font-semibold rounded-full border
+                                                       {% if notification.is_read %}
+                                                           border-gray-300 text-gray-600 hover:bg-gray-50
+                                                       {% else %}
+                                                           border-primary text-primary hover:bg-primary/10
+                                                       {% endif %}">
+                                            {% if notification.is_read %}
+                                                Mark as unread
+                                            {% else %}
+                                                Mark as read
+                                            {% endif %}
+                                        </button>
+                                    </form>
+
+                                    <form method="post"
+                                          action="{% url 'notifications:delete_notification' notification.pk %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                        <button type="submit"
+                                                class="px-3 py-1 text-xs font-semibold rounded-full border border-danger text-danger hover:bg-danger/10">
+                                            Delete
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+                {% endfor %}
+            </div>
+
+            <!-- Pagination -->
+            {% if notifications.has_other_pages %}
+                <div class="mt-6 flex flex-wrap items-center justify-center gap-3 text-sm text-gray-600">
+                    {% if notifications.has_previous %}
+                        <a href="?page={{ notifications.previous_page_number }}{{ query_suffix }}"
+                           class="px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-100 transition">
+                            Previous
+                        </a>
+                    {% endif %}
+                    <span class="px-3 py-2 rounded-lg border border-gray-100 bg-white shadow-sm">
+                        Page {{ notifications.number }} of {{ notifications.paginator.num_pages }}
+                    </span>
+                    {% if notifications.has_next %}
+                        <a href="?page={{ notifications.next_page_number }}{{ query_suffix }}"
+                           class="px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-100 transition">
+                            Next
+                        </a>
+                    {% endif %}
+                </div>
+            {% endif %}
+        {% else %}
+            <!-- Empty State -->
+            <div class="bg-white rounded-2xl shadow-lg border border-gray-200 p-10 text-center">
+                <svg class="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M15 17h5l-5 5v-5zM4.868 12.683A17.925 17.925 0 0112 21c7.962 0 12-1.21 12-2.683m-12 2.683a17.925 17.925 0 01-7.132-8.317M12 21c4.411 0 8-4.03 8-9s-3.589-9-8-9-8 4.03-8 9a9.06 9.06 0 001.832 5.683L4 21l4.868-8.317z"></path>
+                </svg>
+                <h3 class="text-xl font-semibold text-gray-900 mb-2">No notifications yet</h3>
+                <p class="text-gray-600 mb-6">When you receive updates about applications, jobs, or messages, they'll appear here.</p>
+                <div class="flex justify-center gap-4">
+                    <a href="{% url 'dashboard:landing' %}"
+                       class="px-6 py-3 bg-primary text-white rounded-xl hover:bg-primary/90 transition-all">
+                        Go to Dashboard
+                    </a>
+                    <a href="{% url 'jobs:browse' %}"
+                       class="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-all">
+                        Browse Jobs
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

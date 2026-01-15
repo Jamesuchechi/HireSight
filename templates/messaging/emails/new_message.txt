@@ -1,0 +1,11 @@
+Hi {{ recipient.email }},
+
+You have received a new message from {{ sender_name }} on HireSight:
+
+{{ message_preview }}
+
+View the full message: {{ conversation_url }}
+
+---
+This is an automated notification from HireSight.
+You can manage your notification preferences in your account settings.

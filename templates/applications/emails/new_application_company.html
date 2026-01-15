@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Application Received</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .email-container {
+            background-color: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .content {
+            padding: 30px;
+        }
+        .button {
+            display: inline-block;
+            padding: 14px 28px;
+            background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+            color: white !important;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+        .button:hover {
+            transform: translateY(-2px);
+        }
+        .button-secondary {
+            background: linear-gradient(135deg, #28a745 0%, #218838 100%);
+            margin-left: 10px;
+        }
+        .applicant-info {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #2196F3;
+        }
+        .applicant-info h3 {
+            margin-top: 0;
+            color: #2196F3;
+        }
+        .applicant-info ul {
+            list-style: none;
+            padding: 0;
+            margin: 10px 0;
+        }
+        .applicant-info li {
+            padding: 8px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .applicant-info li:last-child {
+            border-bottom: none;
+        }
+        .applicant-info strong {
+            color: #495057;
+            display: inline-block;
+            min-width: 120px;
+        }
+        .highlight {
+            background: linear-gradient(135deg, #FFF9C4 0%, #FFF59D 100%);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #FBC02D;
+        }
+        .highlight p {
+            margin: 5px 0;
+        }
+        .footer {
+            background-color: #f8f9fa;
+            text-align: center;
+            padding: 20px;
+            font-size: 12px;
+            color: #6c757d;
+        }
+        .footer p {
+            margin: 5px 0;
+        }
+        .notification-icon {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 15px;
+            background-color: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+        }
+        .cover-letter-preview {
+            background-color: white;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+            border: 1px solid #e9ecef;
+            font-style: italic;
+            color: #6c757d;
+        }
+        .tip-box {
+            background-color: #e7f3ff;
+            border-left: 4px solid #0c5460;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .tip-box p {
+            margin: 0;
+            color: #0c5460;
+        }
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        .stat-item {
+            text-align: center;
+            padding: 10px;
+            flex: 1;
+            min-width: 150px;
+        }
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2196F3;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #6c757d;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            <div class="notification-icon">🎉</div>
+            <h1>New Application Received</h1>
+        </div>
+        
+        <div class="content">
+            <p>Hello {{ recipient.first_name|default:"Team" }},</p>
+            
+            <p>Great news! A new candidate has applied for the <strong>{{ application.job.title }}</strong> position. Here are the details:</p>
+            
+            <div class="applicant-info">
+                <h3>👤 Applicant Information</h3>
+                <ul>
+                    <li><strong>Name:</strong> {{ application.applicant.get_full_name|default:"Not provided" }}</li>
+                    <li><strong>Email:</strong> <a href="mailto:{{ application.applicant.email }}">{{ application.applicant.email }}</a></li>
+                    <li><strong>Phone:</strong> {{ application.applicant.phone|default:"Not provided" }}</li>
+                    <li><strong>Location:</strong> {{ application.applicant.location|default:"Not specified" }}</li>
+                    <li><strong>Applied on:</strong> {{ application.applied_at|date:"F d, Y at h:i A" }}</li>
+                </ul>
+            </div>
+            
+            <div class="highlight">
+                <p><strong>📋 Position Details</strong></p>
+                <p><strong>Title:</strong> {{ application.job.title }}</p>
+                <p><strong>Department:</strong> {{ application.job.department|default:"Not specified" }}</p>
+                <p><strong>Location:</strong> {{ application.job.location }}</p>
+                <p><strong>Employment Type:</strong> {{ application.job.get_job_type_display|default:"Full-time" }}</p>
+            </div>
+            
+            {% if application.cover_letter %}
+            <div class="applicant-info">
+                <h4>📝 Cover Letter Preview</h4>
+                <div class="cover-letter-preview">
+                    "{{ application.cover_letter|truncatewords:75 }}"
+                </div>
+                <p style="font-size: 12px; color: #6c757d; margin-top: 10px;">
+                    <em>View the full cover letter and resume in the application details.</em>
+                </p>
+            </div>
+            {% endif %}
+            
+            {% if application.resume %}
+            <div class="applicant-info">
+                <h4>📄 Resume</h4>
+                <p>✓ Resume attached - View in application details</p>
+            </div>
+            {% endif %}
+            
+            <div class="tip-box">
+                <p><strong>💡 Quick Tip:</strong> Candidates who receive a response within 24-48 hours are 40% more likely to accept an offer. Act fast to secure top talent!</p>
+            </div>
+            
+            <p style="text-align: center; margin: 30px 0;">
+                <a href="{{ site_url }}/dashboard/applications/{{ application.id }}/" class="button">Review Application</a>
+                <a href="{{ site_url }}/dashboard/applications/{{ application.id }}/schedule-interview/" class="button button-secondary">Schedule Interview</a>
+            </p>
+            
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-number">{{ total_applications|default:"--" }}</div>
+                    <div class="stat-label">Total Applications</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">{{ pending_reviews|default:"--" }}</div>
+                    <div class="stat-label">Pending Review</div>
+                </div>
+            </div>
+            
+            <p style="margin-top: 30px;">
+                Best regards,<br>
+                <strong>HireSight Platform</strong><br>
+                <span style="color: #6c757d; font-size: 14px;">Your AI-Powered Recruitment Assistant</span>
+            </p>
+        </div>
+        
+        <div class="footer">
+            <p>This is an automated notification from HireSight.</p>
+            <p>To manage your notification preferences, visit your <a href="{{ site_url }}/settings/notifications/">account settings</a>.</p>
+            <p style="margin-top: 15px;">&copy; 2026 HireSight. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

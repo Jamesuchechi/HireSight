@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HireSight - AI-Powered Recruitment Made Simple</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': '#0066FF',
+                        'primary-light': '#E6F0FF',
+                        'secondary': '#00D4FF',
+                        'accent': '#FFB800',
+                        'success': '#00C853',
+                        'purple': '#9333EA',
+                    },
+                    fontFamily: {
+                        'display': ['Cal Sans', 'Poppins', 'sans-serif'],
+                        'body': ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .font-display {
+            font-family: 'Poppins', sans-serif;
+        }
+        
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        /* Gradient animations */
+        @keyframes gradient-shift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        
+        .animate-gradient {
+            background-size: 200% 200%;
+            animation: gradient-shift 8s ease infinite;
+        }
+        
+        /* Floating animation */
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+        
+        .animate-float {
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        @keyframes float-delayed {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-25px); }
+        }
+        
+        .animate-float-delayed {
+            animation: float-delayed 7s ease-in-out infinite;
+            animation-delay: 1s;
+        }
+        
+        /* Pulse glow */
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(0, 102, 255, 0.4); }
+            50% { box-shadow: 0 0 40px rgba(0, 102, 255, 0.6); }
+        }
+        
+        .animate-pulse-glow {
+            animation: pulse-glow 3s ease-in-out infinite;
+        }
+        
+        /* 3D Card hover effect */
+        .card-3d {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+        }
+        
+        .card-3d:hover {
+            transform: translateY(-12px) rotateX(5deg);
+            box-shadow: 
+                0 24px 48px rgba(0, 102, 255, 0.12),
+                0 12px 24px rgba(0, 0, 0, 0.08);
+        }
+        
+        .card-3d::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(0, 102, 255, 0.05), transparent);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            border-radius: inherit;
+            z-index: -1;
+        }
+        
+        .card-3d:hover::before {
+            opacity: 1;
+        }
+        
+        /* Underline animation */
+        .underline-animate {
+            position: relative;
+        }
+        
+        .underline-animate::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: -4px;
+            width: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #0066FF, #00D4FF);
+            transition: width 0.3s ease;
+            border-radius: 2px;
+        }
+        
+        .underline-animate:hover::after {
+            width: 100%;
+        }
+        
+        /* Fade in animations */
+        @keyframes fade-in-up {
+            from {
+                opacity: 0;
+                transform: translateY(40px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes fade-in {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes scale-in {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        
+        .animate-fade-in-up {
+            animation: fade-in-up 0.8s ease-out forwards;
+        }
+        
+        .animate-fade-in {
+            animation: fade-in 1s ease-out forwards;
+        }
+        
+        .animate-scale-in {
+            animation: scale-in 0.6s ease-out forwards;
+        }
+        
+        .delay-100 { animation-delay: 0.1s; opacity: 0; }
+        .delay-200 { animation-delay: 0.2s; opacity: 0; }
+        .delay-300 { animation-delay: 0.3s; opacity: 0; }
+        .delay-400 { animation-delay: 0.4s; opacity: 0; }
+        .delay-500 { animation-delay: 0.5s; opacity: 0; }
+        .delay-600 { animation-delay: 0.6s; opacity: 0; }
+        .delay-700 { animation-delay: 0.7s; opacity: 0; }
+        
+        /* Scroll reveal */
+        .scroll-reveal {
+            opacity: 0;
+            transform: translateY(50px);
+            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .scroll-reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        /* Button hover effects */
+        .btn-primary {
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s ease, height 0.6s ease;
+        }
+        
+        .btn-primary:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px rgba(0, 102, 255, 0.3);
+        }
+        
+        /* Logo animation */
+        @keyframes rotate-slow {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .logo-rotate {
+            animation: rotate-slow 20s linear infinite;
+        }
+        
+        /* Blob shapes */
+        @keyframes blob-1 {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(30px, -50px) scale(1.1); }
+            66% { transform: translate(-20px, 20px) scale(0.9); }
+        }
+        
+        @keyframes blob-2 {
+            0%, 100% { transform: translate(0, 0) scale(1) rotate(0deg); }
+            33% { transform: translate(-30px, 50px) scale(1.2) rotate(120deg); }
+            66% { transform: translate(50px, -30px) scale(0.8) rotate(240deg); }
+        }
+        
+        .blob-1 {
+            animation: blob-1 20s ease-in-out infinite;
+        }
+        
+        .blob-2 {
+            animation: blob-2 25s ease-in-out infinite;
+        }
+        
+        /* Number counter animation */
+        @keyframes count-up {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .stat-number {
+            animation: count-up 0.8s ease-out forwards;
+        }
+        
+        /* Shine effect */
+        @keyframes shine {
+            0% { left: -100%; }
+            20%, 100% { left: 100%; }
+        }
+        
+        .shine {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .shine::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 50%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            animation: shine 3s infinite;
+        }
+    </style>
+</head>
+<body class="bg-white text-gray-900 antialiased overflow-x-hidden">
+    
+    <!-- Navigation -->
+    <nav class="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-100" 
+         x-data="{ scrolled: false, mobileMenuOpen: false }" 
+         @scroll.window="scrolled = window.pageYOffset > 50"
+         :class="{ 'shadow-lg': scrolled }">
+        <div class="max-w-7xl mx-auto px-6 lg:px-8">
+            <div class="flex items-center justify-between h-20">
+                <!-- Logo -->
+                <a href="/" class="flex items-center space-x-3 group">
+                    <div class="relative">
+                        <!-- Outer rotating ring -->
+                        <div class="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary via-secondary to-accent opacity-20 blur-xl logo-rotate"></div>
+                        
+                        <!-- Logo container -->
+                        <div class="relative w-12 h-12 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center transform group-hover:scale-110 transition-transform duration-300 shadow-lg">
+                            <!-- Abstract icon -->
+                            <svg class="w-7 h-7 text-white" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                                <path d="M12 6L12 12L16 16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                <circle cx="12" cy="12" r="2" fill="currentColor"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <span class="font-display text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                        HireSight
+                    </span>
+                </a>
+                
+                <!-- Desktop Menu -->
+                <div class="hidden lg:flex items-center space-x-8">
+                    <a href="#features" class="text-gray-700 hover:text-primary transition-colors font-medium underline-animate">Features</a>
+                    <a href="#how-it-works" class="text-gray-700 hover:text-primary transition-colors font-medium underline-animate">How It Works</a>
+                    <a href="#pricing" class="text-gray-700 hover:text-primary transition-colors font-medium underline-animate">Pricing</a>
+                    <a href="#testimonials" class="text-gray-700 hover:text-primary transition-colors font-medium underline-animate">Testimonials</a>
+                </div>
+                
+                <!-- CTA Buttons -->
+                <div class="hidden lg:flex items-center space-x-4">
+                    <a href="{% url 'accounts:login' %}" class="px-5 py-2.5 text-gray-700 hover:text-primary font-semibold transition-colors underline-animate">
+                        Sign In
+                    </a>
+                    <a href="{% url 'accounts:register' %}" class="btn-primary px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-xl font-semibold shadow-lg relative z-10">
+                        Get Started Free
+                    </a>
+                </div>
+                
+                <!-- Mobile Menu Button -->
+                <button @click="mobileMenuOpen = !mobileMenuOpen" class="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path x-show="!mobileMenuOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                        <path x-show="mobileMenuOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Mobile Menu -->
+        <div x-show="mobileMenuOpen" 
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 transform -translate-y-4"
+             x-transition:enter-end="opacity-100 transform translate-y-0"
+             x-transition:leave="transition ease-in duration-150"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             class="lg:hidden bg-white border-t border-gray-100">
+            <div class="px-6 py-4 space-y-4">
+                <a href="#features" class="block text-gray-700 hover:text-primary font-medium py-2">Features</a>
+                <a href="#how-it-works" class="block text-gray-700 hover:text-primary font-medium py-2">How It Works</a>
+                <a href="#pricing" class="block text-gray-700 hover:text-primary font-medium py-2">Pricing</a>
+                <a href="#testimonials" class="block text-gray-700 hover:text-primary font-medium py-2">Testimonials</a>
+                <div class="pt-4 border-t border-gray-200 space-y-3">
+                    <a href="{% url 'accounts:login' %}" class="block text-center py-3 border-2 border-gray-200 rounded-xl text-gray-700 font-semibold hover:border-primary hover:text-primary transition-all">
+                        Sign In
+                    </a>
+                    <a href="{% url 'accounts:register' %}" class="block text-center py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-xl font-semibold shadow-lg">
+                        Get Started Free
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Hero Section -->
+    <section class="relative min-h-screen flex items-center justify-center overflow-hidden pt-20 bg-gradient-to-b from-primary-light/30 via-white to-white">
+        <!-- Animated background shapes -->
+        <div class="absolute inset-0 overflow-hidden pointer-events-none">
+            <!-- Large blob 1 -->
+            <div class="blob-1 absolute -top-20 -right-20 w-96 h-96 bg-gradient-to-br from-primary/10 to-secondary/10 rounded-full blur-3xl"></div>
+            
+            <!-- Large blob 2 -->
+            <div class="blob-2 absolute -bottom-20 -left-20 w-96 h-96 bg-gradient-to-br from-secondary/10 to-accent/10 rounded-full blur-3xl"></div>
+            
+            <!-- Grid pattern overlay -->
+            <div class="absolute inset-0" style="background-image: radial-gradient(circle at 1px 1px, rgba(0, 102, 255, 0.03) 1px, transparent 0); background-size: 40px 40px;"></div>
+        </div>
+        
+        <!-- Content -->
+        <div class="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 py-24 lg:py-32">
+            <div class="grid lg:grid-cols-2 gap-16 items-center">
+                <!-- Left Column - Text Content -->
+                <div>
+                    <!-- Badge -->
+                    <div class="inline-flex items-center space-x-2 px-4 py-2 bg-primary-light rounded-full mb-6 animate-fade-in-up">
+                        <span class="w-2 h-2 bg-primary rounded-full animate-pulse"></span>
+                        <span class="text-primary text-sm font-semibold">AI-Powered • Bias-Free • Lightning Fast</span>
+                    </div>
+                    
+                    <!-- Headline -->
+                    <h1 class="font-display text-5xl lg:text-7xl font-bold leading-tight mb-6 animate-fade-in-up delay-100">
+                        Find the
+                        <span class="bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent animate-gradient">
+                            Perfect Talent
+                        </span>
+                        in Minutes, Not Weeks
+                    </h1>
+                    
+                    <!-- Subheadline -->
+                    <p class="text-xl text-gray-600 mb-8 leading-relaxed animate-fade-in-up delay-200">
+                        HireSight's AI analyzes resumes at superhuman speed, matching candidates based on real skills—not just keywords. Say goodbye to biased hiring and hello to your dream team.
+                    </p>
+                    
+                    <!-- CTA Buttons -->
+                    <div class="flex flex-col sm:flex-row gap-4 mb-10 animate-fade-in-up delay-300">
+                        <a href="{% url 'accounts:register' %}" class="btn-primary px-8 py-4 bg-gradient-to-r from-primary to-secondary text-white rounded-xl text-lg font-bold shadow-xl relative z-10 text-center">
+                            Start Free Trial
+                        </a>
+                        <a href="#how-it-works" class="px-8 py-4 bg-white border-2 border-gray-200 hover:border-primary text-gray-700 hover:text-primary rounded-xl text-lg font-bold transition-all text-center">
+                            Watch Demo
+                        </a>
+                    </div>
+                    
+                    <!-- Social Proof -->
+                    <div class="flex flex-wrap items-center gap-6 text-sm text-gray-600 animate-fade-in-up delay-400">
+                        <div class="flex items-center space-x-2">
+                            <div class="flex -space-x-2">
+                                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary ring-2 ring-white"></div>
+                                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-secondary to-accent ring-2 ring-white"></div>
+                                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-accent to-success ring-2 ring-white"></div>
+                            </div>
+                            <span class="font-semibold text-gray-700">2,000+ companies trust us</span>
+                        </div>
+                        <div class="flex items-center space-x-1">
+                            <svg class="w-5 h-5 text-accent" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                            </svg>
+                            <span class="font-semibold text-gray-700">4.9/5 rating</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Right Column - Hero Visual -->
+                <div class="relative animate-fade-in delay-500">
+                    <!-- Main illustration card -->
+                    <div class="relative bg-white rounded-3xl shadow-2xl p-8 animate-float">
+                        <!-- Header -->
+                        <div class="flex items-center justify-between mb-6">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-xl"></div>
+                                <div>
+                                    <div class="font-semibold text-gray-900">Screening Results</div>
+                                    <div class="text-sm text-gray-500">50 candidates analyzed</div>
+                                </div>
+                            </div>
+                            <div class="px-3 py-1 bg-success/10 text-success rounded-full text-sm font-semibold">
+                                Complete
+                            </div>
+                        </div>
+                        
+                        <!-- Candidate cards -->
+                        <div class="space-y-3">
+                            <!-- Candidate 1 -->
+                            <div class="flex items-center justify-between p-4 bg-gradient-to-r from-primary-light to-white rounded-xl border-2 border-primary shadow-lg">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-12 h-12 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center text-white font-bold">
+                                        SJ
+                                    </div>
+                                    <div>
+                                        <div class="font-bold text-gray-900">Sarah Johnson</div>
+                                        <div class="text-sm text-gray-600">Senior Developer</div>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-3xl font-bold text-success">98</div>
+                                    <div class="text-xs text-gray-500">Match Score</div>
+                                </div>
+                            </div>
+                            
+                            <!-- Candidate 2 -->
+                            <div class="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-200">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-12 h-12 bg-gradient-to-br from-secondary to-accent rounded-xl flex items-center justify-center text-white font-bold">
+                                        MC
+                                    </div>
+                                    <div>
+                                        <div class="font-bold text-gray-900">Michael Chen</div>
+                                        <div class="text-sm text-gray-600">Full Stack Engineer</div>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-3xl font-bold text-primary">94</div>
+                                    <div class="text-xs text-gray-500">Match Score</div>
+                                </div>
+                            </div>
+                            
+                            <!-- Candidate 3 -->
+                            <div class="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-200">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-12 h-12 bg-gradient-to-br from-accent to-success rounded-xl flex items-center justify-center text-white font-bold">
+                                        EP
+                                    </div>
+                                    <div>
+                                        <div class="font-bold text-gray-900">Emily Park</div>
+                                        <div class="text-sm text-gray-600">Product Designer</div>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-3xl font-bold text-primary">91</div>
+                                    <div class="text-xs text-gray-500">Match Score</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Floating badge 1 -->
+                    <div class="absolute -top-6 -right-6 bg-white rounded-2xl shadow-xl p-4 animate-float-delayed">
+                        <div class="flex items-center space-x-2">
+                            <svg class="w-6 h-6 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                            </svg>
+                            <div>
+                                <div class="text-2xl font-bold text-gray-900">10x</div>
+                                <div class="text-xs text-gray-600">Faster</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Floating badge 2 -->
+                    <div class="absolute -bottom-6 -left-6 bg-white rounded-2xl shadow-xl p-4 animate-float">
+                        <div class="flex items-center space-x-2">
+                            <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <div>
+                                <div class="text-2xl font-bold text-gray-900">0%</div>
+                                <div class="text-xs text-gray-600">Bias</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Scroll Indicator -->
+        <div class="absolute bottom-10 left-1/2 transform -translate-x-1/2 animate-bounce">
+            <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+            </svg>
+        </div>
+    </section>
+    
+    <!-- Trusted By Section -->
+    <section class="py-16 bg-gray-50 border-y border-gray-100">
+        <div class="max-w-7xl mx-auto px-6 lg:px-8">
+            <p class="text-center text-gray-500 font-semibold mb-8 uppercase tracking-wider text-sm">
+                Trusted by Leading Companies
+            </p>
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-8 items-center opacity-40">
+                <!-- Logo placeholders -->
+                <div class="h-12 bg-gray-300 rounded-lg"></div>
+                <div class="h-12 bg-gray-300 rounded-lg"></div>
+                <div class="h-12 bg-gray-300 rounded-lg"></div>
+                <div class="h-12 bg-gray-300 rounded-lg"></div>
+                <div class="h-12 bg-gray-300 rounded-lg"></div>
+                <div class="h-12 bg-gray-300 rounded-lg"></div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Stats Section -->
+    <section class="py-24 bg-white">
+        <div class="max-w-7xl mx-auto px-6 lg:px-8">
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-8">
+                <div class="text-center scroll-reveal">
+                    <div class="stat-number text-5xl lg:text-6xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-2">
+                        10M+
+                    </div>
+                    <div class="text-gray-600 font-medium">Resumes Analyzed</div>
+                </div>
+                <div class="text-center scroll-reveal">
+                    <div class="stat-number text-5xl lg:text-6xl font-bold bg-gradient-to-r from-secondary to-accent bg-clip-text text-transparent mb-2">
+                        94%
+                    </div>
+                    <div class="text-gray-600 font-medium">Match Accuracy</div>
+                </div>
+                <div class="text-center scroll-reveal">
+                    <div class="stat-number text-5xl lg:text-6xl font-bold bg-gradient-to-r from-accent to-success bg-clip-text text-transparent mb-2">
+                        48hr
+                    </div>
+                    <div class="text-gray-600 font-medium">Time Saved</div>
+                </div>
+                <div class="text-center scroll-reveal">
+                    <div class="stat-number text-5xl lg:text-6xl font-bold bg-gradient-to-r from-success to-primary bg-clip-text text-transparent mb-2">
+                        2K+
+                    </div>
+                    <div class="text-gray-600 font-medium">Happy Companies</div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Features Section -->
+    <section id="features" class="py-32 bg-gradient-to-b from-white to-gray-50">
+        <div class="max-w-7xl mx-auto px-6 lg:px-8">
+            <!-- Section Header -->
+            <div class="text-center mb-20 scroll-reveal">
+                <div class="inline-block px-4 py-2 bg-primary-light rounded-full text-primary font-semibold text-sm mb-4">
+                    FEATURES
+                </div>
+                <h2 class="font-display text-4xl lg:text-6xl font-bold mb-6 text-gray-900">
+                    Everything You Need to
+                    <span class="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                        Hire Better
+                    </span>
+                </h2>
+                <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                    Our AI-powered platform combines cutting-edge technology with intuitive design to make hiring effortless.
+                </p>
+            </div>
+            
+            <!-- Features Grid -->
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Feature 1 -->
+                <div class="card-3d relative bg-white rounded-3xl p-8 border-2 border-gray-100 scroll-reveal">
+                    <div class="w-16 h-16 bg-gradient-to-br from-primary to-secondary rounded-2xl flex items-center justify-center mb-6 shadow-lg shine">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="font-display text-2xl font-bold mb-4 text-gray-900">AI-Powered Matching</h3>
+                    <p class="text-gray-600 leading-relaxed">
+                        Our semantic AI goes beyond keywords, analyzing skills, experience, and potential to find candidates who truly fit.
+                    </p>
+                </div>
+                
+                <!-- Feature 2 -->
+                <div class="card-3d relative bg-white rounded-3xl p-8 border-2 border-gray-100 scroll-reveal">
+                    <div class="w-16 h-16 bg-gradient-to-br from-secondary to-accent rounded-2xl flex items-center justify-center mb-6 shadow-lg shine">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="font-display text-2xl font-bold mb-4 text-gray-900">Lightning Fast Screening</h3>
+                    <p class="text-gray-600 leading-relaxed">
+                        Upload 50 resumes and get ranked results in seconds. What takes days now takes minutes with HireSight.
+                    </p>
+                </div>
+                
+                <!-- Feature 3 -->
+                <div class="card-3d relative bg-white rounded-3xl p-8 border-2 border-gray-100 scroll-reveal">
+                    <div class="w-16 h-16 bg-gradient-to-br from-accent to-success rounded-2xl flex items-center justify-center mb-6 shadow-lg shine">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="font-display text-2xl font-bold mb-4 text-gray-900">Bias-Free Hiring</h3>
+                    <p class="text-gray-600 leading-relaxed">
+                        Focus purely on skills and potential. Our AI actively prevents discriminatory patterns for fair hiring.
+                    </p>
+                </div>
+                
+                <!-- Feature 4 -->
+                <div class="card-3d relative bg-white rounded-3xl p-8 border-2 border-gray-100 scroll-reveal">
+                    <div class="w-16 h-16 bg-gradient-to-br from-success to-purple rounded-2xl flex items-center justify-center mb-6 shadow-lg shine">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="font-display text-2xl font-bold mb-4 text-gray-900">Visual Pipeline</h3>
+                    <p class="text-gray-600 leading-relaxed">
+                        Kanban-style boards let you drag and drop candidates through your hiring stages with ease.
+                    </p>
+                </div>
+                
+                <!-- Feature 5 -->
+                <div class="card-3d relative bg-white rounded-3xl p-8 border-2 border-gray-100 scroll-reveal">
+                    <div class="w-16 h-16 bg-gradient-to-br from-purple to-primary rounded-2xl flex items-center justify-center mb-6 shadow-lg shine">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="font-display text-2xl font-bold mb-4 text-gray-900">Built-In Messaging</h3>
+                    <p class="text-gray-600 leading-relaxed">
+                        Connect directly with candidates, schedule interviews, and collaborate—all within the platform.
+                    </p>
+                </div>
+                
+                <!-- Feature 6 -->
+                <div class="card-3d relative bg-white rounded-3xl p-8 border-2 border-gray-100 scroll-reveal">
+                    <div class="w-16 h-16 bg-gradient-to-br from-primary via-secondary to-accent rounded-2xl flex items-center justify-center mb-6 shadow-lg shine">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="font-display text-2xl font-bold mb-4 text-gray-900">Deep Analytics</h3>
+                    <p class="text-gray-600 leading-relaxed">
+                        Track time-to-hire, conversion rates, diversity metrics, and make data-driven decisions.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- How It Works Section -->
+    <section id="how-it-works" class="py-32 bg-white">
+        <div class="max-w-7xl mx-auto px-6 lg:px-8">
+            <!-- Section Header -->
+            <div class="text-center mb-20 scroll-reveal">
+                <div class="inline-block px-4 py-2 bg-secondary/10 rounded-full text-secondary font-semibold text-sm mb-4">
+                    HOW IT WORKS
+                </div>
+                <h2 class="font-display text-4xl lg:text-6xl font-bold mb-6 text-gray-900">
+                    From Job Post to
+                    <span class="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                        Perfect Hire
+                    </span>
+                </h2>
+                <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                    Our streamlined 4-step process makes hiring effortless, from posting a job to extending an offer.
+                </p>
+            </div>
+            
+            <!-- Steps -->
+            <div class="relative max-w-5xl mx-auto">
+                <!-- Connection Line (desktop) -->
+                <div class="hidden lg:block absolute top-32 left-0 right-0 h-1 bg-gradient-to-r from-primary via-secondary to-accent"></div>
+                
+                <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-12">
+                    <!-- Step 1 -->
+                    <div class="text-center scroll-reveal">
+                        <div class="relative inline-block mb-6">
+                            <div class="w-24 h-24 bg-gradient-to-br from-primary to-secondary rounded-3xl flex items-center justify-center mx-auto shadow-2xl shadow-primary/30 shine">
+                                <span class="font-display text-4xl font-bold text-white">1</span>
+                            </div>
+                        </div>
+                        <h3 class="font-display text-xl font-bold mb-3 text-gray-900">Post Your Job</h3>
+                        <p class="text-gray-600 leading-relaxed">
+                            Create a detailed job post in minutes with AI-powered suggestions
+                        </p>
+                    </div>
+                    
+                    <!-- Step 2 -->
+                    <div class="text-center scroll-reveal">
+                        <div class="relative inline-block mb-6">
+                            <div class="w-24 h-24 bg-gradient-to-br from-secondary to-accent rounded-3xl flex items-center justify-center mx-auto shadow-2xl shadow-secondary/30 shine">
+                                <span class="font-display text-4xl font-bold text-white">2</span>
+                            </div>
+                        </div>
+                        <h3 class="font-display text-xl font-bold mb-3 text-gray-900">AI Analyzes</h3>
+                        <p class="text-gray-600 leading-relaxed">
+                            Our AI screens and ranks candidates by actual skills and potential
+                        </p>
+                    </div>
+                    
+                    <!-- Step 3 -->
+                    <div class="text-center scroll-reveal">
+                        <div class="relative inline-block mb-6">
+                            <div class="w-24 h-24 bg-gradient-to-br from-accent to-success rounded-3xl flex items-center justify-center mx-auto shadow-2xl shadow-accent/30 shine">
+                                <span class="font-display text-4xl font-bold text-white">3</span>
+                            </div>
+                        </div>
+                        <h3 class="font-display text-xl font-bold mb-3 text-gray-900">Review Matches</h3>
+                        <p class="text-gray-600 leading-relaxed">
+                            See detailed explanations and move candidates through your pipeline
+                        </p>
+                    </div>
+                    
+                    <!-- Step 4 -->
+                    <div class="text-center scroll-reveal">
+                        <div class="relative inline-block mb-6">
+                            <div class="w-24 h-24 bg-gradient-to-br from-success to-purple rounded-3xl flex items-center justify-center mx-auto shadow-2xl shadow-success/30 shine">
+                                <span class="font-display text-4xl font-bold text-white">4</span>
+                            </div>
+                        </div>
+                        <h3 class="font-display text-xl font-bold mb-3 text-gray-900">Hire & Celebrate</h3>
+                        <p class="text-gray-600 leading-relaxed">
+                            Schedule interviews, collaborate, and extend offers in one place
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- CTA Section -->
+    <section class="py-32 bg-gradient-to-br from-primary via-secondary to-accent relative overflow-hidden">
+        <!-- Background pattern -->
+        <div class="absolute inset-0" style="background-image: radial-gradient(circle at 2px 2px, rgba(255, 255, 255, 0.15) 1px, transparent 0); background-size: 32px 32px;"></div>
+        
+        <div class="relative z-10 max-w-5xl mx-auto px-6 lg:px-8 text-center">
+            <div class="scroll-reveal">
+                <h2 class="font-display text-4xl lg:text-6xl font-bold mb-6 text-white">
+                    Ready to Transform Your Hiring?
+                </h2>
+                <p class="text-xl text-white/90 mb-10 max-w-2xl mx-auto leading-relaxed">
+                    Join 2,000+ companies using HireSight to find better candidates faster. Start your free trial today—no credit card required.
+                </p>
+                <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+                    <a href="{% url 'accounts:register' %}" class="btn-primary w-full sm:w-auto px-10 py-5 bg-white text-primary rounded-2xl text-lg font-bold shadow-2xl relative z-10">
+                        Start Free Trial
+                    </a>
+                    <a href="#features" class="w-full sm:w-auto px-10 py-5 bg-white/10 backdrop-blur-sm border-2 border-white text-white rounded-2xl text-lg font-bold hover:bg-white/20 transition-all">
+                        Learn More
+                    </a>
+                </div>
+                
+                <!-- Trust indicators -->
+                <div class="mt-12 flex flex-wrap items-center justify-center gap-8 text-white/80 text-sm">
+                    <div class="flex items-center space-x-2">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span class="font-semibold">No Credit Card Required</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span class="font-semibold">Bank-Level Security</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.8 2.4z"></path>
+                        </svg>
+                        <span class="font-semibold">14-Day Free Trial</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Footer -->
+    <footer class="py-16 bg-gray-50 border-t border-gray-200">
+        <div class="max-w-7xl mx-auto px-6 lg:px-8">
+            <div class="grid md:grid-cols-2 lg:grid-cols-5 gap-12 mb-12">
+                <!-- Brand -->
+                <div class="lg:col-span-2">
+                    <a href="/" class="flex items-center space-x-3 mb-6">
+                        <div class="w-12 h-12 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center shadow-lg">
+                            <svg class="w-7 h-7 text-white" viewBox="0 0 24 24" fill="none">
+                                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                                <path d="M12 6L12 12L16 16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                <circle cx="12" cy="12" r="2" fill="currentColor"/>
+                            </svg>
+                        </div>
+                        <span class="font-display text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                            HireSight
+                        </span>
+                    </a>
+                    <p class="text-gray-600 mb-6 max-w-sm leading-relaxed">
+                        AI-powered recruitment that finds the right talent, not just matching keywords. Fair, fast, and incredibly accurate.
+                    </p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="w-10 h-10 bg-gray-200 hover:bg-primary hover:text-white rounded-xl flex items-center justify-center transition-all">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                        </a>
+                        <a href="#" class="w-10 h-10 bg-gray-200 hover:bg-primary hover:text-white rounded-xl flex items-center justify-center transition-all">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/></svg>
+                        </a>
+                        <a href="#" class="w-10 h-10 bg-gray-200 hover:bg-primary hover:text-white rounded-xl flex items-center justify-center transition-all">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Links -->
+                <div>
+                    <h3 class="font-display font-bold mb-4 text-gray-900">Product</h3>
+                    <ul class="space-y-3">
+                        <li><a href="#features" class="text-gray-600 hover:text-primary transition-colors underline-animate">Features</a></li>
+                        <li><a href="#pricing" class="text-gray-600 hover:text-primary transition-colors underline-animate">Pricing</a></li>
+                        <li><a href="#" class="text-gray-600 hover:text-primary transition-colors underline-animate">Integrations</a></li>
+                        <li><a href="#" class="text-gray-600 hover:text-primary transition-colors underline-animate">API</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="font-display font-bold mb-4 text-gray-900">Company</h3>
+                    <ul class="space-y-3">
+                        <li><a href="#" class="text-gray-600 hover:text-primary transition-colors underline-animate">About</a></li>
+                        <li><a href="#" class="text-gray-600 hover:text-primary transition-colors underline-animate">Blog</a></li>
+                        <li><a href="#" class="text-gray-600 hover:text-primary transition-colors underline-animate">Careers</a></li>
+                        <li><a href="#" class="text-gray-600 hover:text-primary transition-colors underline-animate">Contact</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="font-display font-bold mb-4 text-gray-900">Legal</h3>
+                    <ul class="space-y-3">
+                        <li><a href="#" class="text-gray-600 hover:text-primary transition-colors underline-animate">Privacy</a></li>
+                        <li><a href="#" class="text-gray-600 hover:text-primary transition-colors underline-animate">Terms</a></li>
+                        <li><a href="#" class="text-gray-600 hover:text-primary transition-colors underline-animate">Security</a></li>
+                        <li><a href="#" class="text-gray-600 hover:text-primary transition-colors underline-animate">GDPR</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Bottom -->
+            <div class="pt-8 border-t border-gray-200 flex flex-col md:flex-row justify-between items-center gap-4">
+                <p class="text-gray-500 text-sm">
+                    © 2026 HireSight. All rights reserved.
+                </p>
+                <p class="text-gray-500 text-sm">
+                    Made with ❤️ for fair and intelligent hiring
+                </p>
+            </div>
+        </div>
+    </footer>
+    
+    <!-- Scroll Reveal Script -->
+    <script>
+        // Scroll reveal animation
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -100px 0px'
+        };
+        
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('active');
+                }
+            });
+        }, observerOptions);
+        
+        document.querySelectorAll('.scroll-reveal').forEach((el) => {
+            observer.observe(el);
+        });
+    </script>
+</body>
+</html>

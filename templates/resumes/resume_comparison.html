@@ -1,0 +1,173 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Resume Comparison - HireSight{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-6xl mx-auto">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">Resume Comparison</h1>
+            <p class="text-gray-600">Compare multiple resumes to identify strengths, weaknesses, and optimization opportunities.</p>
+        </div>
+
+        <!-- Resume Selection -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4">Select Resumes to Compare</h2>
+
+            <form method="get" class="mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                    {% for resume in user_resumes %}
+                    <div class="flex items-center">
+                        <input type="checkbox"
+                               name="resumes"
+                               value="{{ resume.pk }}"
+                               id="resume-{{ resume.pk }}"
+                               class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                               {% if resume.pk in selected_resumes %}checked{% endif %}>
+                        <label for="resume-{{ resume.pk }}" class="ml-2 text-sm text-gray-900">
+                            <div class="font-medium">{{ resume.title }}</div>
+                            <div class="text-gray-500">{{ resume.uploaded_at|date:"M j, Y" }}</div>
+                        </label>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <button type="submit"
+                        class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    Compare Selected Resumes
+                </button>
+            </form>
+        </div>
+
+        {% if comparison %}
+        <!-- Comparison Results -->
+        <div class="space-y-8">
+            <!-- Overview -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-semibold mb-4">Comparison Overview</h2>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Skills Comparison -->
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <h3 class="font-medium text-gray-900 mb-2">Skills Coverage</h3>
+                        <div class="space-y-2">
+                            {% for resume_data in comparison.resumes %}
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm text-gray-600">{{ resume_data.title|truncatechars:20 }}</span>
+                                <span class="text-sm font-medium">{{ resume_data.skill_count }} skills</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Experience Comparison -->
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <h3 class="font-medium text-gray-900 mb-2">Experience Years</h3>
+                        <div class="space-y-2">
+                            {% for resume_data in comparison.resumes %}
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm text-gray-600">{{ resume_data.title|truncatechars:20 }}</span>
+                                <span class="text-sm font-medium">{{ resume_data.experience_years|default:"N/A" }} years</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Optimization Scores -->
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <h3 class="font-medium text-gray-900 mb-2">Optimization Scores</h3>
+                        <div class="space-y-2">
+                            {% for resume_data in comparison.resumes %}
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm text-gray-600">{{ resume_data.title|truncatechars:20 }}</span>
+                                <div class="flex items-center">
+                                    <div class="w-16 bg-gray-200 rounded-full h-2 mr-2">
+                                        <div class="bg-blue-600 h-2 rounded-full"
+                                             style="width: {{ resume_data.optimization_score|default:0 }}%"></div>
+                                    </div>
+                                    <span class="text-sm font-medium">{{ resume_data.optimization_score|default:0 }}%</span>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detailed Analysis -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-semibold mb-4">Detailed Analysis</h2>
+
+                <div class="space-y-6">
+                    <!-- Unique Skills -->
+                    <div>
+                        <h3 class="text-lg font-medium text-gray-900 mb-3">Unique Skills by Resume</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {% for resume_data in comparison.resumes %}
+                            <div class="border rounded-lg p-4">
+                                <h4 class="font-medium text-gray-900 mb-2">{{ resume_data.title }}</h4>
+                                {% if resume_data.unique_skills %}
+                                <div class="flex flex-wrap gap-2">
+                                    {% for skill in resume_data.unique_skills %}
+                                    <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
+                                        {{ skill }}
+                                    </span>
+                                    {% endfor %}
+                                </div>
+                                {% else %}
+                                <p class="text-gray-500 text-sm">No unique skills found</p>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Common Skills -->
+                    {% if comparison.common_skills %}
+                    <div>
+                        <h3 class="text-lg font-medium text-gray-900 mb-3">Common Skills Across All Resumes</h3>
+                        <div class="flex flex-wrap gap-2">
+                            {% for skill in comparison.common_skills %}
+                            <span class="bg-blue-100 text-blue-800 text-sm px-3 py-1 rounded-full">
+                                {{ skill }}
+                            </span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Recommendations -->
+                    <div>
+                        <h3 class="text-lg font-medium text-gray-900 mb-3">Recommendations</h3>
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <ul class="space-y-2">
+                                {% for recommendation in comparison.recommendations %}
+                                <li class="flex items-start">
+                                    <span class="text-blue-600 mr-2">•</span>
+                                    <span class="text-gray-700">{{ recommendation }}</span>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex flex-wrap gap-4">
+                <a href="{% url 'resumes:list' %}"
+                   class="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
+                    Back to Resumes
+                </a>
+                <button onclick="window.print()"
+                        class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+                    Export Comparison
+                </button>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

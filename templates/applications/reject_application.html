@@ -1,0 +1,203 @@
+{% extends 'base.html' %}
+
+{% block title %}Reject Application - {{ application.applicant.get_full_name }} | HireSight{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-gradient-to-r from-red-500 via-red-600 to-red-700 text-white shadow-sm">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <a href="{% url 'applications:applicant_detail' pk=application.pk %}" class="p-2 bg-white/10 backdrop-blur-sm rounded-lg hover:bg-white/20 transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                        </svg>
+                    </a>
+                    <div>
+                        <h1 class="text-3xl font-display font-bold">Reject Application</h1>
+                        <p class="text-white/90 mt-1">{{ application.applicant.get_full_name }} - {{ application.job.title }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div class="bg-white rounded-2xl shadow-sm border p-8">
+            <!-- Warning Notice -->
+            <div class="bg-red-50 border border-red-200 rounded-xl p-6 mb-8">
+                <div class="flex items-start">
+                    <div class="w-12 h-12 rounded-xl bg-red-100 text-red-600 flex items-center justify-center flex-shrink-0 mr-4">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="text-lg font-semibold text-red-800 mb-2">Important Notice</h3>
+                        <p class="text-red-700 text-sm leading-relaxed">
+                            Rejecting this application will permanently change its status. The applicant will be notified
+                            via email if you choose to send the rejection notification. Please provide constructive feedback
+                            to help the candidate improve their future applications.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rejection Form -->
+            <form method="post" class="space-y-8">
+                {% csrf_token %}
+
+                <!-- Rejection Reason -->
+                <div>
+                    <label for="{{ form.rejection_reason.id_for_label }}" class="block text-lg font-semibold text-gray-900 mb-4">
+                        {{ form.rejection_reason.label }}
+                    </label>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {% for value, label in form.rejection_reason.field.choices %}
+                        <label class="relative">
+                            <input type="radio" name="rejection_reason" value="{{ value }}" class="sr-only peer" required>
+                            <div class="p-4 border-2 border-gray-200 rounded-xl cursor-pointer peer-checked:border-red-500 peer-checked:bg-red-50 hover:border-gray-300 transition-colors">
+                                <div class="flex items-center">
+                                    <div class="w-4 h-4 rounded-full border-2 border-gray-300 peer-checked:border-red-500 peer-checked:bg-red-500 mr-3 flex-shrink-0">
+                                        <div class="w-2 h-2 rounded-full bg-white mx-auto mt-0.5 peer-checked:block hidden"></div>
+                                    </div>
+                                    <span class="font-medium text-gray-900">{{ label }}</span>
+                                </div>
+                            </div>
+                        </label>
+                        {% endfor %}
+                    </div>
+                    {% if form.rejection_reason.errors %}
+                    <div class="mt-3 flex items-center space-x-2 text-sm text-red-600">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span>{{ form.rejection_reason.errors.0 }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Feedback to Applicant -->
+                <div>
+                    <label for="{{ form.feedback.id_for_label }}" class="block text-lg font-semibold text-gray-900 mb-4">
+                        {{ form.feedback.label }}
+                    </label>
+                    <div class="bg-blue-50 border border-blue-200 rounded-xl p-6">
+                        <div class="flex items-start space-x-3">
+                            <svg class="w-6 h-6 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <div class="flex-1">
+                                <p class="text-sm text-blue-800 mb-3">
+                                    <strong>Tips for constructive feedback:</strong>
+                                </p>
+                                <ul class="text-sm text-blue-700 space-y-1">
+                                    <li>• Be specific about what could be improved</li>
+                                    <li>• Focus on skills and experience rather than personal traits</li>
+                                    <li>• Suggest resources or next steps</li>
+                                    <li>• Keep it professional and encouraging</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        {{ form.feedback }}
+                        {% if form.feedback.errors %}
+                        <div class="mt-3 flex items-center space-x-2 text-sm text-red-600">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <span>{{ form.feedback.errors.0 }}</span>
+                        </div>
+                        {% endif %}
+                        <p class="text-sm text-gray-500 mt-2">{{ form.feedback.help_text }}</p>
+                    </div>
+                </div>
+
+                <!-- Internal Notes -->
+                <div>
+                    <label for="{{ form.internal_notes.id_for_label }}" class="block text-lg font-semibold text-gray-900 mb-4">
+                        {{ form.internal_notes.label }}
+                    </label>
+                    <div class="bg-gray-50 border border-gray-200 rounded-xl p-4">
+                        <div class="flex items-start space-x-3">
+                            <svg class="w-5 h-5 text-gray-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                            </svg>
+                            <div class="flex-1">
+                                <p class="text-sm text-gray-700">
+                                    These notes are for internal use only and will not be shared with the applicant.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        {{ form.internal_notes }}
+                        {% if form.internal_notes.errors %}
+                        <div class="mt-3 flex items-center space-x-2 text-sm text-red-600">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <span>{{ form.internal_notes.errors.0 }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Notification Settings -->
+                <div class="bg-gray-50 border border-gray-200 rounded-xl p-6">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <h4 class="font-semibold text-gray-900">{{ form.notify_applicant.label }}</h4>
+                            <p class="text-sm text-gray-600 mt-1">{{ form.notify_applicant.help_text }}</p>
+                        </div>
+                        <div class="ml-4">
+                            {{ form.notify_applicant }}
+                        </div>
+                    </div>
+                    {% if form.notify_applicant.errors %}
+                    <div class="mt-3 flex items-center space-x-2 text-sm text-red-600">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span>{{ form.notify_applicant.errors.0 }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Form Actions -->
+                <div class="flex items-center justify-end space-x-4 pt-6 border-t border-gray-200">
+                    <a href="{% url 'applications:applicant_detail' pk=application.pk %}"
+                       class="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors">
+                        Cancel
+                    </a>
+                    <button type="submit"
+                            class="px-8 py-3 bg-red-600 text-white rounded-xl font-semibold hover:bg-red-700 transition-colors focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
+                        Reject Application
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Handle radio button styling
+document.querySelectorAll('input[name="rejection_reason"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        // Remove selected styling from all options
+        document.querySelectorAll('input[name="rejection_reason"]').forEach(r => {
+            r.closest('label').querySelector('div').classList.remove('border-red-500', 'bg-red-50');
+            r.closest('label').querySelector('div').classList.add('border-gray-200');
+        });
+
+        // Add selected styling to checked option
+        if (this.checked) {
+            this.closest('label').querySelector('div').classList.remove('border-gray-200');
+            this.closest('label').querySelector('div').classList.add('border-red-500', 'bg-red-50');
+        }
+    });
+});
+</script>
+{% endblock %}

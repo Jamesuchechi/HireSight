@@ -1,0 +1,565 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Upload Resumes - {{ session.title }} | HireSight{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-gradient-to-r from-primary via-secondary to-purple text-white py-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <a href="{% url 'screening:session_detail' session.pk %}" class="p-2 bg-white/10 backdrop-blur-sm rounded-lg hover:bg-white/20 transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                        </svg>
+                    </a>
+                    <div>
+                        <h1 class="text-3xl font-display font-bold">Upload Resumes</h1>
+                        <p class="text-white/90 mt-1">{{ session.title }}</p>
+                    </div>
+                </div>
+                <a href="{% url 'screening:session_list' %}" class="px-4 py-2 bg-white/15 border border-white/25 rounded-xl text-white font-semibold hover:bg-white/25 transition-colors">
+                    View All Sessions
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Progress Indicator -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <div class="w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center font-bold">✓</div>
+                <span class="text-sm font-medium text-green-600">Session Created</span>
+            </div>
+            <div class="flex-1 h-1 bg-green-500 mx-4"></div>
+            <div class="flex items-center space-x-2">
+                <div class="w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center font-bold">✓</div>
+                <span class="text-sm font-medium text-green-600">Criteria Defined</span>
+            </div>
+            <div class="flex-1 h-1 bg-primary mx-4"></div>
+            <div class="flex items-center space-x-2">
+                <div class="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center font-bold">3</div>
+                <span class="text-sm font-medium text-primary">Upload Resumes</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-10">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Main Upload Area -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Upload Section -->
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                    <div class="mb-6">
+                        <h2 class="text-xl font-semibold text-gray-900 mb-2">Upload Resumes</h2>
+                        <p class="text-sm text-gray-600">Drag and drop resume files or click to browse</p>
+                    </div>
+
+                    <!-- Dropzone Upload Area -->
+                    <form action="{% url 'screening:bulk_upload' pk=session.pk %}" class="dropzone" id="resumeDropzone">
+                        {% csrf_token %}
+                        <div class="dz-message">
+                            <div class="mb-6">
+                                <svg class="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                </svg>
+                                <h3 class="text-lg font-semibold text-gray-900 mb-2">Drop resumes here or click to browse</h3>
+                                <p class="text-sm text-gray-600">Supports PDF, DOC, DOCX files (max 10MB each)</p>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- Upload Progress Overview -->
+                    <div id="upload-overview" class="hidden mt-6 space-y-4">
+                        <!-- Progress Bar -->
+                        <div>
+                            <div class="flex justify-between items-center mb-2">
+                                <p class="text-sm font-semibold text-gray-700">Upload Progress</p>
+                                <p class="text-sm text-gray-600"><span id="files-uploaded">0</span>/<span id="total-files">0</span></p>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+                                <div id="upload-progress-bar" class="bg-gradient-to-r from-primary to-secondary h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+                            </div>
+                        </div>
+
+                        <!-- File List -->
+                        <div id="file-list" class="space-y-2 max-h-96 overflow-y-auto">
+                            <!-- Files appear here -->
+                        </div>
+
+                        <!-- Upload Stats -->
+                        <div class="grid grid-cols-3 gap-4 pt-4 border-t border-gray-200">
+                            <div class="text-center">
+                                <p class="text-2xl font-bold text-green-600" id="successful-count">0</p>
+                                <p class="text-xs text-gray-600">Successful</p>
+                            </div>
+                            <div class="text-center">
+                                <p class="text-2xl font-bold text-yellow-600" id="pending-count">0</p>
+                                <p class="text-xs text-gray-600">Processing</p>
+                            </div>
+                            <div class="text-center">
+                                <p class="text-2xl font-bold text-red-600" id="error-count">0</p>
+                                <p class="text-xs text-gray-600">Failed</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex justify-between items-center">
+                    <a href="{% url 'screening:criteria_setup' session.pk %}" class="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-colors inline-flex items-center space-x-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                        </svg>
+                        <span>Back to Criteria</span>
+                    </a>
+                    <button type="button" id="start-screening" disabled class="px-8 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-xl font-semibold hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center space-x-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                        <span>Start AI Screening</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="space-y-6">
+                <!-- Job Selection -->
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2">
+                        <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                        </svg>
+                        <span>Select Job</span>
+                    </h3>
+
+                    <div class="space-y-3">
+                        {% if session.job %}
+                        <!-- Pre-selected job from session -->
+                        <label class="flex items-start p-3 border-2 border-primary bg-primary/5 rounded-xl cursor-pointer">
+                            <input type="radio" name="job_id" value="{{ session.job.id }}" checked class="mt-1 text-primary focus:ring-primary">
+                            <div class="ml-3 flex-1">
+                                <h4 class="font-semibold text-gray-900 text-sm">{{ session.job.title }}</h4>
+                                <p class="text-xs text-gray-600 mt-1">{{ session.job.location }}</p>
+                                <span class="inline-block text-xs bg-primary text-white px-2 py-1 rounded mt-2">Session Job</span>
+                            </div>
+                        </label>
+                        {% endif %}
+
+                        {% for job in active_jobs %}
+                        {% if not session.job or job.id != session.job.id %}
+                        <label class="flex items-start p-3 border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors">
+                            <input type="radio" name="job_id" value="{{ job.id }}" {% if session.job and job.id == session.job.id %}checked{% endif %} class="mt-1 text-primary focus:ring-primary">
+                            <div class="ml-3 flex-1">
+                                <h4 class="font-semibold text-gray-900 text-sm">{{ job.title }}</h4>
+                                <p class="text-xs text-gray-600 mt-1">{{ job.location }}</p>
+                                <div class="flex items-center mt-2">
+                                    <span class="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">{{ job.applications_count|default:0 }} applications</span>
+                                </div>
+                            </div>
+                        </label>
+                        {% endif %}
+                        {% endfor %}
+
+                        {% if not active_jobs and not session.job %}
+                        <div class="text-center py-6">
+                            <svg class="w-10 h-10 text-gray-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                            </svg>
+                            <p class="text-gray-600 text-sm mb-3">No active jobs found</p>
+                            <a href="{% url 'jobs:job_create' %}" class="inline-flex items-center px-3 py-2 text-sm bg-primary text-white rounded-lg hover:bg-primary-dark transition-all">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                </svg>
+                                Post a Job
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Screening Options -->
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2">
+                        <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
+                        </svg>
+                        <span>Options</span>
+                    </h3>
+
+                    <div class="space-y-4">
+                        <!-- Matching Priority -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Matching Priority</label>
+                            <div class="space-y-2">
+                                <label class="flex items-center p-2 hover:bg-gray-50 rounded-lg cursor-pointer">
+                                    <input type="radio" name="priority" value="skills" checked class="text-primary focus:ring-primary">
+                                    <span class="ml-2 text-sm text-gray-700">Skills Match</span>
+                                </label>
+                                <label class="flex items-center p-2 hover:bg-gray-50 rounded-lg cursor-pointer">
+                                    <input type="radio" name="priority" value="overall" class="text-primary focus:ring-primary">
+                                    <span class="ml-2 text-sm text-gray-700">Overall Fit</span>
+                                </label>
+                                <label class="flex items-center p-2 hover:bg-gray-50 rounded-lg cursor-pointer">
+                                    <input type="radio" name="priority" value="keywords" class="text-primary focus:ring-primary">
+                                    <span class="ml-2 text-sm text-gray-700">Keywords</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Minimum Score -->
+                        <div>
+                            <label for="min_score" class="block text-sm font-medium text-gray-700 mb-2">
+                                Minimum Match Score
+                            </label>
+                            <select id="min_score" name="min_score" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary text-sm">
+                                <option value="50">50% - Basic Match</option>
+                                <option value="60" selected>60% - Good Match</option>
+                                <option value="70">70% - Strong Match</option>
+                                <option value="80">80% - Excellent Match</option>
+                                <option value="90">90% - Perfect Match</option>
+                            </select>
+                        </div>
+
+                        <!-- Additional Options -->
+                        <div class="pt-2 border-t border-gray-200 space-y-3">
+                            <label class="flex items-center cursor-pointer">
+                                <input type="checkbox" id="check_duplicates" name="check_duplicates" checked class="text-primary focus:ring-primary border-gray-300 rounded">
+                                <span class="ml-2 text-sm text-gray-700">Check for duplicates</span>
+                            </label>
+
+                            <label class="flex items-center cursor-pointer">
+                                <input type="checkbox" id="include_contact" name="include_contact" class="text-primary focus:ring-primary border-gray-300 rounded">
+                                <span class="ml-2 text-sm text-gray-700">Include contact info</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Criteria Summary -->
+                {% if criteria %}
+                <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl border border-blue-200 p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2">
+                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                        </svg>
+                        <span>Criteria Summary</span>
+                    </h3>
+                    <div class="space-y-3 text-sm">
+                        {% if criteria.required_skills %}
+                        <div>
+                            <p class="font-medium text-gray-700 mb-1">Required Skills:</p>
+                            <div class="flex flex-wrap gap-1">
+                                {% for skill in criteria.required_skills|slice:":3" %}
+                                <span class="px-2 py-1 bg-white text-blue-700 rounded text-xs">{{ skill }}</span>
+                                {% endfor %}
+                                {% if criteria.required_skills|length > 3 %}
+                                <span class="px-2 py-1 bg-white text-blue-700 rounded text-xs">+{{ criteria.required_skills|length|add:"-3" }} more</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
+                        <div>
+                            <p class="font-medium text-gray-700">Min Experience: <span class="text-blue-700">{{ criteria.min_experience_years }} years</span></p>
+                        </div>
+                        <a href="{% url 'screening:criteria_setup' session.pk %}" class="inline-flex items-center text-sm text-blue-600 hover:text-blue-700 font-medium">
+                            <span>Edit Criteria</span>
+                            <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Dropzone.js Library -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/dropzone@6.0.0-beta.1/dist/dropzone.min.css" />
+<script src="https://cdn.jsdelivr.net/npm/dropzone@6.0.0-beta.1/dist/dropzone-min.js"></script>
+
+<script>
+// Initialize Dropzone on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const sessionId = '{{ session.pk }}';
+    const startBtn = document.getElementById('start-screening');
+    
+    // Disable Dropzone auto-discover
+    Dropzone.autoDiscover = false;
+    
+    // Initialize dropzone
+    const dropzone = new Dropzone('#resumeDropzone', {
+        url: '{% url "screening:bulk_upload" session.pk %}',
+        autoProcessQueue: false,
+        uploadMultiple: false, // Upload one at a time
+        parallelUploads: 1,
+        maxFilesize: 10, // MB
+        acceptedFiles: '.pdf,.doc,.docx',
+        addRemoveLinks: true,
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        
+        previewsContainer: '#file-list',
+        previewTemplate: `
+            <div class="dz-preview dz-file-preview flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 mb-2">
+                <div class="flex items-center flex-1">
+                    <div class="dz-icon">
+                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-3 flex-1">
+                        <p class="dz-filename text-sm font-medium text-gray-900"><span data-dz-name></span></p>
+                        <p class="dz-size text-xs text-gray-500" data-dz-size></p>
+                        <div class="dz-progress mt-1 hidden">
+                            <div class="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
+                                <div class="dz-upload bg-primary h-1.5 rounded-full transition-all" data-dz-uploadprogress style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <p class="dz-error-message text-xs text-red-600 mt-1"></p>
+                    </div>
+                </div>
+                <div class="dz-status flex items-center ml-2">
+                    <button type="button" class="dz-remove" data-dz-remove>
+                        <svg class="w-5 h-5 text-gray-400 hover:text-red-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        `,
+        
+        init: function() {
+            const dz = this;
+            
+            this.on('addedfile', function(file) {
+                document.getElementById('upload-overview').classList.remove('hidden');
+                updateTotalFiles();
+                enableStartButton();
+            });
+            
+            this.on('removedfile', function(file) {
+                updateTotalFiles();
+                enableStartButton();
+            });
+            
+            this.on('sending', function(file, xhr, formData) {
+                // Add form data
+                const jobId = document.querySelector('input[name="job_id"]:checked')?.value || '';
+                const priority = document.querySelector('input[name="priority"]:checked')?.value || 'skills';
+                const minScore = document.querySelector('#min_score')?.value || '60';
+                
+                formData.append('job_id', jobId);
+                formData.append('priority', priority);
+                formData.append('min_score', minScore);
+                
+                // Show progress bar for this file
+                file.previewElement.querySelector('.dz-progress').classList.remove('hidden');
+            });
+            
+            this.on('uploadprogress', function(file, progress, bytesSent) {
+                const progressBar = file.previewElement.querySelector('.dz-upload');
+                if (progressBar) {
+                    progressBar.style.width = progress + '%';
+                }
+                
+                // Update overall progress
+                updateOverallProgress();
+            });
+            
+            this.on('success', function(file, response) {
+                console.log('Upload successful:', response);
+                file.previewElement.querySelector('.dz-progress').classList.add('hidden');
+                
+                // Add success icon
+                const icon = file.previewElement.querySelector('.dz-icon svg');
+                icon.classList.remove('text-gray-400');
+                icon.classList.add('text-green-600');
+                
+                incrementStat('successful-count');
+                updateOverallProgress();
+            });
+            
+            this.on('error', function(file, errorMessage) {
+                console.error('Upload failed:', errorMessage);
+                file.previewElement.querySelector('.dz-progress').classList.add('hidden');
+                
+                // Show error message
+                const errorElement = file.previewElement.querySelector('.dz-error-message');
+                if (errorElement) {
+                    errorElement.textContent = typeof errorMessage === 'string' ? errorMessage : 'Upload failed';
+                }
+                
+                // Add error icon
+                const icon = file.previewElement.querySelector('.dz-icon svg');
+                icon.classList.remove('text-gray-400');
+                icon.classList.add('text-red-600');
+                
+                incrementStat('error-count');
+                updateOverallProgress();
+            });
+            
+            this.on('complete', function(file) {
+                decrementStat('pending-count');
+            });
+            
+            this.on('queuecomplete', function() {
+                console.log('All files processed');
+                showSuccessMessage();
+                
+                // Redirect to session detail after 2 seconds
+                setTimeout(() => {
+                    window.location.href = '{% url "screening:session_detail" session.pk %}';
+                }, 2000);
+            });
+        }
+    });
+    
+    // Helper functions
+    function updateTotalFiles() {
+        const total = dropzone.files.length;
+        document.getElementById('total-files').textContent = total;
+        document.getElementById('pending-count').textContent = total;
+    }
+    
+    function updateOverallProgress() {
+        const totalFiles = dropzone.files.length;
+        if (totalFiles === 0) return;
+        
+        const uploadedFiles = dropzone.getUploadedFiles().length;
+        const failedFiles = dropzone.getRejectedFiles().length;
+        const processedFiles = uploadedFiles + failedFiles;
+        
+        const progress = (processedFiles / totalFiles) * 100;
+        document.getElementById('upload-progress-bar').style.width = progress + '%';
+        document.getElementById('files-uploaded').textContent = processedFiles;
+    }
+    
+    function incrementStat(statId) {
+        const element = document.getElementById(statId);
+        const current = parseInt(element.textContent);
+        element.textContent = current + 1;
+    }
+    
+    function decrementStat(statId) {
+        const element = document.getElementById(statId);
+        const current = parseInt(element.textContent);
+        element.textContent = Math.max(0, current - 1);
+    }
+    
+    function enableStartButton() {
+        const hasFiles = dropzone.files.length > 0;
+        const hasJob = document.querySelector('input[name="job_id"]:checked') !== null;
+        startBtn.disabled = !(hasFiles && hasJob);
+    }
+    
+    // Job selection change
+    document.querySelectorAll('input[name="job_id"]').forEach(radio => {
+        radio.addEventListener('change', enableStartButton);
+    });
+    
+    // Start screening button
+    startBtn.addEventListener('click', function() {
+        if (dropzone.files.length === 0) {
+            showNotification('Please add at least one resume', 'warning');
+            return;
+        }
+        
+        if (!document.querySelector('input[name="job_id"]:checked')) {
+            showNotification('Please select a job', 'warning');
+            return;
+        }
+        
+        // Disable button
+        this.disabled = true;
+        this.innerHTML = `
+            <svg class="animate-spin w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+            </svg>
+            <span>Processing...</span>
+        `;
+        
+        // Process the upload queue
+        dropzone.processQueue();
+    });
+});
+
+// Show success message
+function showSuccessMessage() {
+    showNotification('Resumes uploaded successfully! Redirecting to results...', 'success');
+}
+
+// Notification helper
+function showNotification(message, type = 'info') {
+    const bgColor = {
+        'success': 'bg-green-500',
+        'error': 'bg-red-500',
+        'warning': 'bg-yellow-500',
+        'info': 'bg-blue-500'
+    }[type] || 'bg-blue-500';
+    
+    const notification = document.createElement('div');
+    notification.className = `fixed bottom-4 right-4 px-6 py-3 ${bgColor} text-white rounded-lg shadow-lg z-50 animate-fade-in`;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+}
+</script>
+
+<style>
+@keyframes fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fade-in {
+    animation: fade-in 0.3s ease-out;
+}
+
+/* Dropzone custom styles */
+.dropzone {
+    border: 2px dashed #e5e7eb;
+    border-radius: 1rem;
+    padding: 2rem;
+    background-color: #f9fafb;
+    transition: all 0.3s ease;
+}
+
+.dropzone.dz-drag-hover {
+    border-color: #3b82f6;
+    background-color: #eff6ff;
+}
+
+.dz-preview {
+    margin-bottom: 0 !important;
+}
+
+.dz-preview.dz-processing .dz-progress {
+    display: block !important;
+}
+
+.dz-preview.dz-success .dz-status {
+    display: none;
+}
+
+.dz-preview.dz-error .dz-status {
+    display: none;
+}
+</style>
+
+{% endblock %}

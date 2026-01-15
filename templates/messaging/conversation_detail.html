@@ -1,0 +1,483 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+    Conversation{% if other_participant %} with 
+        {% if other_participant.account_type == 'personal' %}
+            {{ other_participant.personalprofile.full_name|default:other_participant.email }}
+        {% else %}
+            {{ other_participant.companyprofile.company_name|default:other_participant.email }}
+        {% endif %}
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+    <div class="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white px-6 py-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-widest text-gray-500">Conversation</p>
+                <h1 class="text-3xl font-semibold text-gray-900">
+                    {% if other_participant %}
+                        {% if other_participant.account_type == 'personal' %}
+                            {{ other_participant.personalprofile.full_name|default:other_participant.email }}
+                        {% else %}
+                            {{ other_participant.companyprofile.company_name|default:other_participant.email }}
+                        {% endif %}
+                    {% else %}
+                        Group Chat
+                    {% endif %}
+                </h1>
+                {% if other_participant %}
+                    <p id="participant-presence-status" class="flex items-center gap-2 text-sm text-gray-500 mt-1">
+                        <span id="participant-presence-dot" class="h-2 w-2 rounded-full bg-gray-400 inline-block"></span>
+                        <span id="participant-presence-label">Offline</span>
+                    </p>
+                {% endif %}
+                {% if last_message %}
+                    <p class="text-sm text-gray-500">Last message {{ last_message.timestamp|timesince }} ago</p>
+                {% endif %}
+            </div>
+        <div class="flex flex-wrap items-center gap-2">
+            <a href="{% url 'messaging:inbox' %}" class="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Back to inbox</a>
+            <a href="{% url 'messaging:compose' %}" data-open-compose-modal class="rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700">New message</a>
+        </div>
+    </div>
+
+    <div class="grid gap-6 lg:grid-cols-[3fr,1fr]">
+        <div class="space-y-5">
+            {% if other_participant %}
+            <section id="participant-presence-card" class="rounded-2xl border border-dashed border-gray-200 bg-white p-6 shadow-sm" data-participant-id="{{ other_participant.id }}">
+                <div class="flex items-center gap-3">
+                    <span id="participant-presence-card-dot" class="h-3 w-3 rounded-full bg-gray-400 inline-flex"></span>
+                    <div>
+                        <p id="participant-presence-card-name" class="text-lg font-semibold text-gray-900">
+                            {% if other_participant.account_type == 'personal' %}
+                                {{ other_participant.personalprofile.full_name|default:other_participant.email }}
+                            {% else %}
+                                {{ other_participant.companyprofile.company_name|default:other_participant.email }}
+                            {% endif %}
+                        </p>
+                        <p id="participant-presence-card-status" class="text-sm text-gray-500">Offline</p>
+                    </div>
+                </div>
+                <p id="participant-last-seen" class="mt-4 text-xs text-gray-400">
+                    {% if other_participant.last_login %}
+                        Last seen {{ other_participant.last_login|timesince }} ago
+                    {% else %}
+                        Last seen unknown
+                    {% endif %}
+                </p>
+            </section>
+            {% endif %}
+            <div class="rounded-2xl border border-gray-200 bg-white shadow-sm">
+                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-5 py-4">
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-widest text-gray-400">Subject</p>
+                        <p class="text-lg font-semibold text-gray-900">{{ conversation.subject|default:"General conversation" }}</p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                        <span>{% if is_archived %}Archived{% else %}Active{% endif %}</span>
+                        <span>•</span>
+                        <span>{{ conversation.participants.count }} participants</span>
+                    </div>
+                </div>
+                <div class="px-5 py-4">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <form action="{% url 'messaging:mark_as_read' conversation.pk %}" method="post">
+                            {% csrf_token %}
+                            <button type="submit" class="rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold uppercase tracking-widest text-gray-600 hover:border-gray-300">Mark all as read</button>
+                        </form>
+                        {% if is_archived %}
+                            <form action="{% url 'messaging:unarchive_conversation' conversation.pk %}" method="post">
+                                {% csrf_token %}
+                                <button type="submit" class="rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold uppercase tracking-widest text-gray-600 hover:border-gray-300">Unarchive</button>
+                            </form>
+                        {% else %}
+                            <form action="{% url 'messaging:archive_conversation' conversation.pk %}" method="post">
+                                {% csrf_token %}
+                                <button type="submit" class="rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold uppercase tracking-widest text-gray-600 hover:border-gray-300">Archive</button>
+                            </form>
+                        {% endif %}
+                        <form action="{% url 'messaging:delete_conversation' conversation.pk %}" method="post" data-confirm="This removes you from the conversation. Continue?">
+                            {% csrf_token %}
+                            <button type="submit" class="rounded-lg border border-red-200 px-3 py-2 text-xs font-semibold uppercase tracking-widest text-red-600 hover:border-red-300">Delete</button>
+                        </form>
+                        {% if other_participant %}
+                            {% if is_blocked %}
+                                <form action="{% url 'messaging:unblock_user' other_participant.pk %}" method="post" data-confirm="Unblocking will allow this user to message you again. Proceed?">
+                                    {% csrf_token %}
+                                    <button type="submit" class="rounded-lg border border-green-200 px-3 py-2 text-xs font-semibold uppercase tracking-widest text-green-600 hover:border-green-300">Unblock</button>
+                                </form>
+                            {% else %}
+                                <form action="{% url 'messaging:block_user' other_participant.pk %}" method="post" data-confirm="Blocking will stop this user from messaging you. Continue?">
+                                    {% csrf_token %}
+                                    <button type="submit" class="rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold uppercase tracking-widest text-gray-600 hover:border-gray-300">Block</button>
+                                </form>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="rounded-2xl border border-gray-200 bg-white shadow-sm">
+                <div class="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+                    <div class="text-sm font-semibold uppercase tracking-widest text-gray-500">Conversation thread</div>
+                    <div class="text-xs font-semibold text-gray-500">
+                        {% if messages_page.paginator.count %}
+                            Page {{ messages_page.number }} of {{ messages_page.paginator.num_pages }}
+                        {% endif %}
+                    </div>
+                </div>
+                <div id="typing-indicator" class="hidden px-5 py-2 text-sm text-blue-600">
+                    <span id="typing-indicator-text">Typing...</span>
+                </div>
+                <div id="message-thread" data-last-message-id="{{ last_page_message_id }}" class="max-h-[60vh] overflow-y-auto px-5 py-6 space-y-6">
+                    {% if messages_page.object_list %}
+                        {% for message in messages_page %}
+                            {% include 'messaging/_message_bubble.html' with message=message other_participant=other_participant %}
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center text-sm text-gray-500">
+                            No messages yet. Use the reply box to start the conversation.
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="flex items-center justify-between border-t border-gray-100 px-5 py-3">
+                    {% if messages_page.has_previous %}
+                        <a href="?page={{ messages_page.previous_page_number }}" class="text-sm font-semibold text-blue-600 hover:text-blue-800">Load older messages</a>
+                    {% endif %}
+                    {% if messages_page.paginator.num_pages and messages_page.number != messages_page.paginator.num_pages %}
+                        <a href="?page={{ messages_page.paginator.num_pages }}" class="text-sm font-semibold text-blue-600 hover:text-blue-800">Jump to latest</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="space-y-5">
+            <section class="rounded-2xl border border-dashed border-gray-200 bg-white p-6 shadow-sm">
+                <div class="flex items-center justify-between gap-3">
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-widest text-gray-500">Reply</p>
+                        <p class="text-sm text-gray-500">Ctrl+Enter to send</p>
+                    </div>
+                    {% if request.user.account_type == 'company' and template_options %}
+                        <div class="w-full sm:w-auto">
+                            <select data-template-select class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 focus:border-blue-500 focus:outline-none">
+                                <option value="">Quick template</option>
+                                {% for template in template_options %}
+                                    <option value="{{ template.id }}">{{ template.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    {% endif %}
+                </div>
+                <form class="mt-5 space-y-5" method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div>
+                        <label for="{{ reply_form.content.id_for_label }}" class="text-sm font-medium text-gray-700">Message</label>
+                        {{ reply_form.content }}
+                    </div>
+                    <div>
+                        <label for="{{ reply_form.attachment.id_for_label }}" class="text-sm font-medium text-gray-700">Attachment (optional)</label>
+                        {{ reply_form.attachment }}
+                        {% if reply_form.attachment.help_text %}
+                            <p class="mt-1 text-xs text-gray-500">{{ reply_form.attachment.help_text }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <button type="submit" class="rounded-full bg-blue-600 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700">Send reply</button>
+                        <span class="text-xs text-gray-400">Supports images, PDFs, Word docs.</span>
+                    </div>
+                </form>
+            </section>
+            {% include 'messaging/compose_modal.html' %}
+        </div>
+    </div>
+
+</div>
+<div id="attachment-lightbox" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 p-4">
+    <div class="relative max-w-3xl w-full rounded-3xl bg-white p-6 shadow-2xl">
+        <button type="button" data-lightbox-close class="absolute right-4 top-4 rounded-full bg-gray-100 p-2 text-gray-600 hover:bg-gray-200">
+            <span class="sr-only">Close preview</span>
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 6l12 12m0-12L6 18"/>
+            </svg>
+        </button>
+        <div id="lightbox-content" class="rounded-2xl bg-gray-900/5 p-4 text-center text-sm text-gray-500"></div>
+        <p id="lightbox-label" class="mt-4 text-center text-xs font-semibold uppercase tracking-wide text-gray-500"></p>
+    </div>
+</div>
+<div id="confirm-modal-overlay" class="fixed inset-0 z-40 hidden items-center justify-center bg-black/40 p-3">
+    <div class="w-full max-w-md space-y-4 rounded-3xl bg-white p-6 shadow-2xl">
+        <h3 class="text-lg font-semibold text-gray-900">Confirm action</h3>
+        <p id="confirm-modal-message" class="text-sm text-gray-600"></p>
+        <div class="flex justify-end gap-3">
+            <button type="button" data-confirm-cancel class="rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:border-gray-300">Cancel</button>
+            <button type="button" data-confirm-ok class="rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">Confirm</button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    (function () {
+        const thread = document.getElementById('message-thread');
+        if (!thread) return;
+        const typingIndicator = document.getElementById('typing-indicator');
+        const typingIndicatorText = document.getElementById('typing-indicator-text');
+        const confirmOverlay = document.getElementById('confirm-modal-overlay');
+        const confirmMessage = document.getElementById('confirm-modal-message');
+        const lightbox = document.getElementById('attachment-lightbox');
+        const lightboxContent = document.getElementById('lightbox-content');
+        const lightboxLabel = document.getElementById('lightbox-label');
+        const typingUsers = new Set();
+        const otherName = "{{ other_participant.personalprofile.full_name|default:other_participant.email|default:'Someone'|escapejs }}";
+        const wsScheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
+        const socketUrl = `${wsScheme}://${window.location.host}/ws/messaging/conversation/{{ conversation.id }}/`;
+        let socket;
+        let typingTimer;
+        const currentUserId = {{ request.user.id }};
+        const otherParticipantId = {% if other_participant %}{{ other_participant.id }}{% else %}null{% endif %};
+        const presenceEnabled = otherParticipantId !== null;
+        const presenceStatusLabel = document.getElementById('participant-presence-label');
+        const presenceDot = document.getElementById('participant-presence-dot');
+        const presenceCardStatus = document.getElementById('participant-presence-card-status');
+        const presenceCardDot = document.getElementById('participant-presence-card-dot');
+        const presenceLastSeen = document.getElementById('participant-last-seen');
+        function updatePresenceDisplay(status, timestamp) {
+            if (!presenceEnabled) return;
+            const online = status === 'online';
+            const labelText = online ? 'Online' : 'Offline';
+            if (presenceStatusLabel) {
+                presenceStatusLabel.textContent = labelText;
+                presenceStatusLabel.classList.toggle('text-green-600', online);
+                presenceStatusLabel.classList.toggle('text-gray-500', !online);
+            }
+            if (presenceDot) {
+                presenceDot.classList.toggle('bg-green-400', online);
+                presenceDot.classList.toggle('bg-gray-400', !online);
+            }
+            if (presenceCardDot) {
+                presenceCardDot.classList.toggle('bg-green-400', online);
+                presenceCardDot.classList.toggle('bg-gray-400', !online);
+            }
+            if (presenceCardStatus) {
+                presenceCardStatus.textContent = labelText;
+                presenceCardStatus.classList.toggle('text-green-600', online);
+                presenceCardStatus.classList.toggle('text-gray-500', !online);
+            }
+            if (presenceLastSeen) {
+                if (online) {
+                    presenceLastSeen.textContent = 'Active now';
+                } else if (timestamp) {
+                    const date = new Date(timestamp);
+                    presenceLastSeen.textContent = `Last active ${date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
+                } else {
+                    presenceLastSeen.textContent = 'Last seen Offline';
+                }
+            }
+        }
+
+        function handlePresenceEvent(participantId, status, timestamp) {
+            if (!presenceEnabled || participantId !== otherParticipantId) {
+                return;
+            }
+            updatePresenceDisplay(status, timestamp);
+        }
+
+        function sendMessageNotification(payload) {
+            if (!payload || payload.sender_id === currentUserId) return;
+            if (!window.__hireSightPush) return;
+            const title = payload.sender_name || otherName;
+            const body = payload.preview || 'You received a new HireSight message';
+            window.__hireSightPush({
+                type: 'new_message',
+                title: `New message from ${title}`,
+                body,
+                url: window.location.href
+            });
+        }
+
+        function updateReadIndicator(messageId, readerId) {
+            if (!messageId || readerId === currentUserId) return;
+            const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+            if (!messageElement) return;
+            const senderId = Number(messageElement.dataset.messageSenderId);
+            if (senderId !== currentUserId) return;
+            const indicator = messageElement.querySelector('[data-read-indicator]');
+            const label = messageElement.querySelector('[data-read-label]');
+            const icon = messageElement.querySelector('[data-read-icon]');
+            if (indicator) {
+                indicator.dataset.readState = 'read';
+            }
+            if (label) {
+                label.textContent = 'Read';
+            }
+            if (icon) {
+                icon.classList.remove('text-gray-400');
+                icon.classList.add('text-blue-200');
+            }
+        }
+
+        function updateTypingDisplay() {
+            if (!typingIndicator) return;
+            if (typingUsers.size > 0) {
+                typingIndicatorText.textContent = `${otherName} is typing...`;
+                typingIndicator.classList.remove('hidden');
+            } else {
+                typingIndicator.classList.add('hidden');
+            }
+        }
+
+        function appendMessage(html, messageId) {
+            const container = document.createElement('div');
+            container.innerHTML = html.trim();
+            while (container.firstChild) {
+                thread.appendChild(container.firstChild);
+            }
+            thread.dataset.lastMessageId = messageId;
+            thread.scrollTop = thread.scrollHeight;
+        }
+
+        function connectSocket() {
+            socket = new WebSocket(socketUrl);
+            socket.addEventListener('open', () => {
+                socket.send(JSON.stringify({ type: 'read' }));
+            });
+            socket.addEventListener('message', (event) => {
+                const data = JSON.parse(event.data);
+                if (data.type === 'new_message') {
+                    appendMessage(data.html, data.message_id);
+                    typingUsers.clear();
+                    updateTypingDisplay();
+                    sendMessageNotification(data);
+                } else if (data.type === 'participant_status') {
+                    handlePresenceEvent(data.participant_id, data.status, data.timestamp);
+                } else if (data.type === 'message_read') {
+                    (data.message_ids || []).forEach(id => updateReadIndicator(id, data.reader_id));
+                } else if (data.type === 'typing' && data.sender_id !== currentUserId) {
+                    if (data.status === 'typing') {
+                        typingUsers.add(data.sender_id);
+                    } else {
+                        typingUsers.delete(data.sender_id);
+                    }
+                    updateTypingDisplay();
+                }
+            });
+            socket.addEventListener('close', () => {
+                setTimeout(connectSocket, 3000);
+            });
+        }
+
+        connectSocket();
+
+        const replyField = document.querySelector('textarea[name="content"]');
+        const sendTypingEvent = (status) => {
+            if (!socket || socket.readyState !== WebSocket.OPEN) return;
+            socket.send(JSON.stringify({ type: status }));
+        };
+
+        if (replyField) {
+            replyField.addEventListener('input', () => {
+                sendTypingEvent('typing');
+                if (typingTimer) {
+                    clearTimeout(typingTimer);
+                }
+                typingTimer = setTimeout(() => sendTypingEvent('stop_typing'), 2000);
+            });
+        }
+
+        function openLightbox(target) {
+            const src = target.dataset.lightboxSrc;
+            const type = target.dataset.lightboxType;
+            const label = target.dataset.lightboxLabel || 'Attachment';
+            if (!src || !lightbox) return;
+            lightboxContent.innerHTML = '';
+            lightboxLabel.textContent = label;
+            if (type === 'image') {
+                const img = document.createElement('img');
+                img.src = src;
+                img.className = 'mx-auto max-h-[60vh] w-auto rounded-2xl object-contain';
+                lightboxContent.appendChild(img);
+            } else {
+                const fallback = document.createElement('div');
+                fallback.className = 'space-y-2';
+                fallback.innerHTML = `
+                    <p class="text-sm font-semibold text-gray-700">Preview not available</p>
+                    <p class="text-xs text-gray-500">Click the link below to open in a new tab.</p>
+                    <a href="${src}" target="_blank" class="text-blue-600 hover:underline">Open attachment</a>
+                `;
+                lightboxContent.appendChild(fallback);
+            }
+            lightbox.classList.remove('hidden');
+        }
+
+        document.querySelectorAll('[data-lightbox]').forEach(element => {
+            element.addEventListener('click', (event) => {
+                event.preventDefault();
+                openLightbox(element);
+            });
+        });
+
+        if (lightbox) {
+            lightbox.querySelector('[data-lightbox-close]').addEventListener('click', () => {
+                lightbox.classList.add('hidden');
+            });
+            lightbox.addEventListener('click', (event) => {
+                if (event.target === lightbox) {
+                    lightbox.classList.add('hidden');
+                }
+            });
+        }
+
+        let pendingAction = null;
+
+        function showConfirm(message, action) {
+            if (!confirmOverlay) return;
+            confirmMessage.textContent = message || 'Are you sure?';
+            pendingAction = action;
+            confirmOverlay.classList.remove('hidden');
+        }
+
+        function hideConfirm() {
+            if (!confirmOverlay) return;
+            confirmOverlay.classList.add('hidden');
+            pendingAction = null;
+        }
+
+        document.querySelectorAll('form[data-confirm]').forEach(form => {
+            form.addEventListener('submit', event => {
+                event.preventDefault();
+                showConfirm(form.dataset.confirm, { type: 'form', form });
+            });
+        });
+
+        document.querySelectorAll('[data-confirm-report]').forEach(link => {
+            link.addEventListener('click', event => {
+                event.preventDefault();
+                showConfirm(link.dataset.confirmReport, { type: 'link', href: link.href });
+            });
+        });
+
+        if (confirmOverlay) {
+            confirmOverlay.querySelector('[data-confirm-cancel]').addEventListener('click', hideConfirm);
+            confirmOverlay.addEventListener('click', (event) => {
+                if (event.target === confirmOverlay) {
+                    hideConfirm();
+                }
+            });
+            confirmOverlay.querySelector('[data-confirm-ok]').addEventListener('click', () => {
+                if (!pendingAction) return;
+                if (pendingAction.type === 'form') {
+                    pendingAction.form.submit();
+                } else if (pendingAction.type === 'link') {
+                    window.location.href = pendingAction.href;
+                }
+                hideConfirm();
+            });
+        }
+    })();
+</script>
+{% endblock %}

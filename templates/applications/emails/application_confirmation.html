@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Application Confirmation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .email-container {
+            background-color: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .content {
+            padding: 30px;
+        }
+        .button {
+            display: inline-block;
+            padding: 14px 28px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white !important;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+        .button:hover {
+            transform: translateY(-2px);
+        }
+        .details {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #667eea;
+        }
+        .details h3 {
+            margin-top: 0;
+            color: #667eea;
+        }
+        .details ul {
+            list-style: none;
+            padding: 0;
+            margin: 10px 0;
+        }
+        .details li {
+            padding: 8px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .details li:last-child {
+            border-bottom: none;
+        }
+        .details strong {
+            color: #495057;
+            display: inline-block;
+            min-width: 150px;
+        }
+        .footer {
+            background-color: #f8f9fa;
+            text-align: center;
+            padding: 20px;
+            font-size: 12px;
+            color: #6c757d;
+        }
+        .footer p {
+            margin: 5px 0;
+        }
+        .checkmark {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 15px;
+            background-color: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+        }
+        .info-box {
+            background-color: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .info-box p {
+            margin: 0;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            <div class="checkmark">✓</div>
+            <h1>Application Received!</h1>
+        </div>
+        
+        <div class="content">
+            <p>Dear {{ application.applicant.first_name|default:"Applicant" }},</p>
+            
+            <p>Thank you for applying for the <strong>{{ application.job.title }}</strong> position at <strong>{{ application.job.company.name }}</strong>. We're excited to review your application!</p>
+            
+            <div class="details">
+                <h3>📋 Application Details</h3>
+                <ul>
+                    <li><strong>Position:</strong> {{ application.job.title }}</li>
+                    <li><strong>Company:</strong> {{ application.job.company.name }}</li>
+                    <li><strong>Location:</strong> {{ application.job.location }}</li>
+                    <li><strong>Application Date:</strong> {{ application.applied_at|date:"F d, Y at h:i A" }}</li>
+                    <li><strong>Application ID:</strong> <code>{{ application.id }}</code></li>
+                    <li><strong>Status:</strong> <span style="color: #28a745;">{{ application.get_status_display }}</span></li>
+                </ul>
+            </div>
+            
+            <div class="info-box">
+                <p><strong>📬 What happens next?</strong></p>
+                <p style="margin-top: 10px;">Our hiring team will carefully review your application. You'll receive email notifications when there are updates on your application status. This typically takes 3-5 business days.</p>
+            </div>
+            
+            <p>You can track your application status anytime by clicking the button below:</p>
+            
+            <center>
+                <a href="{{ site_url }}/applications/{{ application.id }}/" class="button">View Application Status</a>
+            </center>
+            
+            <p style="margin-top: 30px;">If you have any questions about this position or your application, please feel free to reach out to us.</p>
+            
+            <p style="margin-top: 20px;">Best of luck with your application!</p>
+            
+            <p style="margin-top: 30px;">
+                Best regards,<br>
+                <strong>{{ application.job.company.name }} Recruitment Team</strong><br>
+                <span style="color: #6c757d; font-size: 14px;">Powered by HireSight</span>
+            </p>
+        </div>
+        
+        <div class="footer">
+            <p><strong>Important:</strong> This is an automated message. Please do not reply directly to this email.</p>
+            <p>If you need assistance, please contact us through our support channels.</p>
+            <p style="margin-top: 15px;">&copy; 2026 HireSight. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

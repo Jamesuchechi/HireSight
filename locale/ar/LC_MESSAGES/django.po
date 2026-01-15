@@ -1,0 +1,108 @@
+# Arabic translations for HireSight
+# Copyright (C) 2024
+# This file is distributed under the same license as the HireSight package.
+#
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: ar\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+# Navigation and Common
+msgid "Home"
+msgstr "الصفحة الرئيسية"
+
+msgid "Dashboard"
+msgstr "لوحة التحكم"
+
+msgid "Jobs"
+msgstr "الوظائف"
+
+msgid "Applications"
+msgstr "التطبيقات"
+
+msgid "Messages"
+msgstr "الرسائل"
+
+msgid "Settings"
+msgstr "الإعدادات"
+
+msgid "Logout"
+msgstr "تسجيل الخروج"
+
+# Screening
+msgid "Screening"
+msgstr "الفحص"
+
+msgid "Screening Questions"
+msgstr "أسئلة الفحص"
+
+msgid "Create Screening"
+msgstr "إنشاء فحص"
+
+msgid "Start Screening"
+msgstr "بدء الفحص"
+
+# Language
+msgid "Language"
+msgstr "اللغة"
+
+msgid "Select Language"
+msgstr "اختر اللغة"
+
+msgid "Switch Language"
+msgstr "تبديل اللغة"
+
+# Buttons
+msgid "Submit"
+msgstr "إرسال"
+
+msgid "Cancel"
+msgstr "إلغاء"
+
+msgid "Save"
+msgstr "حفظ"
+
+msgid "Delete"
+msgstr "حذف"
+
+msgid "Edit"
+msgstr "تحرير"
+
+msgid "View"
+msgstr "عرض"
+
+# Messages
+msgid "Loading..."
+msgstr "جاري التحميل..."
+
+msgid "Success"
+msgstr "نجح"
+
+msgid "Error"
+msgstr "خطأ"
+
+msgid "Please fill in all required fields"
+msgstr "يرجى ملء جميع الحقول المطلوبة"
+
+msgid "Your settings have been saved"
+msgstr "تم حفظ إعداداتك"
+
+# Account
+msgid "Account"
+msgstr "الحساب"
+
+msgid "Profile"
+msgstr "الملف الشخصي"
+
+msgid "My Profile"
+msgstr "ملفي الشخصي"
+
+msgid "Email"
+msgstr "البريد الإلكتروني"
+
+msgid "Password"
+msgstr "كلمة المرور"
+
+msgid "Change Password"
+msgstr "تغيير كلمة المرور"

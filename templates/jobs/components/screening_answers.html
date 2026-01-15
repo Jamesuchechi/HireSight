@@ -1,0 +1,439 @@
+<!-- Screening Questions Answering Component -->
+<!-- Used in job application forms -->
+
+<style>
+.screening-answers-section {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.75rem;
+    padding: 2rem;
+    margin-bottom: 2rem;
+}
+
+.screening-section-title {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 0.5rem;
+}
+
+.screening-section-description {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin-bottom: 1.5rem;
+}
+
+.screening-question-block {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 2rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.screening-question-block:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.question-label {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+}
+
+.question-number-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    height: 28px;
+    background: #dbeafe;
+    color: #1e40af;
+    border-radius: 50%;
+    font-weight: 700;
+    font-size: 0.875rem;
+    flex-shrink: 0;
+}
+
+.question-text {
+    font-weight: 600;
+    color: #374151;
+    flex: 1;
+}
+
+.question-required-badge {
+    display: inline-block;
+    background: #fecaca;
+    color: #991b1b;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.question-type-hint {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    font-style: italic;
+    margin-top: 0.25rem;
+}
+
+.question-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    font-family: inherit;
+    font-size: 0.9375rem;
+    transition: all 0.2s ease;
+}
+
+.question-input:focus {
+    outline: none;
+    border-color: #0066ff;
+    box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.1);
+}
+
+.question-input.short-text {
+    max-width: 100%;
+}
+
+.question-input.long-text {
+    min-height: 120px;
+    resize: vertical;
+}
+
+.question-input.yes-no {
+    display: flex;
+    gap: 1rem;
+    padding: 0;
+    border: none;
+}
+
+.yes-no-option {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    padding: 0.75rem 1rem;
+    background: white;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    transition: all 0.2s ease;
+    flex: 1;
+}
+
+.yes-no-option:hover {
+    border-color: #0066ff;
+    background: #f0f9ff;
+}
+
+.yes-no-option input {
+    cursor: pointer;
+}
+
+.yes-no-option.selected {
+    background: #e0e7ff;
+    border-color: #4f46e5;
+}
+
+.multiple-choice-options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.multiple-choice-option {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: white;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.multiple-choice-option:hover {
+    border-color: #0066ff;
+    background: #f0f9ff;
+}
+
+.multiple-choice-option input {
+    cursor: pointer;
+    margin: 0;
+}
+
+.multiple-choice-option.selected {
+    background: #e0e7ff;
+    border-color: #4f46e5;
+}
+
+.multiple-choice-option label {
+    cursor: pointer;
+    flex: 1;
+    margin: 0;
+}
+
+.no-questions {
+    padding: 2rem;
+    text-align: center;
+    color: #6b7280;
+}
+
+.no-questions-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.validation-error {
+    color: #dc2626;
+    font-size: 0.875rem;
+    margin-top: 0.5rem;
+}
+
+.validation-success {
+    color: #16a34a;
+    font-size: 0.875rem;
+    margin-top: 0.5rem;
+}
+
+@media (max-width: 640px) {
+    .yes-no-option {
+        flex: 1;
+    }
+    
+    .screening-answers-section {
+        padding: 1.5rem 1rem;
+    }
+}
+</style>
+
+<div class="screening-answers-section" id="screening-answers-section">
+    <div class="screening-section-title">Screening Questions</div>
+    <div class="screening-section-description">
+        Please answer the following questions to complete your application.
+    </div>
+    
+    <!-- Hidden JSON field to store answers -->
+    <textarea id="screening-answers-json" name="screening_answers" style="display: none;"></textarea>
+    
+    <!-- Questions will be rendered here -->
+    <div id="screening-questions-form"></div>
+    
+    <!-- No questions message -->
+    <div id="screening-questions-empty" class="no-questions" style="display: none;">
+        <div class="no-questions-icon">✓</div>
+        <p>No additional screening questions for this job.</p>
+    </div>
+</div>
+
+<script>
+/**
+ * Screening Questions Answer Manager
+ * Handles displaying and answering screening questions in application form
+ */
+class ScreeningQuestionsAnswerer {
+    constructor(questionsData = [], formContainerId = 'screening-questions-form', emptyContainerId = 'screening-questions-empty') {
+        this.questions = questionsData;
+        this.formContainer = document.getElementById(formContainerId);
+        this.emptyContainer = document.getElementById(emptyContainerId);
+        this.jsonField = document.getElementById('screening-answers-json');
+        this.answers = {};
+        
+        this.init();
+    }
+    
+    init() {
+        if (this.questions.length === 0) {
+            this.emptyContainer.style.display = 'block';
+            this.formContainer.innerHTML = '';
+            return;
+        }
+        
+        this.emptyContainer.style.display = 'none';
+        this.renderQuestions();
+    }
+    
+    renderQuestions() {
+        this.formContainer.innerHTML = this.questions.map((q, index) => {
+            return this.renderQuestion(q, index);
+        }).join('');
+        
+        // Add event listeners
+        this.setupEventListeners();
+    }
+    
+    renderQuestion(question, index) {
+        const questionId = `question-${question.id}`;
+        const required = question.required ? '<span class="question-required-badge">Required</span>' : '';
+        
+        let inputHTML = '';
+        
+        switch (question.type) {
+            case 'short-text':
+                inputHTML = `
+                    <input type="text" 
+                           id="${questionId}"
+                           name="screening_${question.id}"
+                           class="question-input short-text"
+                           placeholder="Your answer here..."
+                           data-question-id="${question.id}"
+                           ${question.required ? 'required' : ''}>
+                    <div class="question-type-hint">Short text answer</div>
+                `;
+                break;
+            
+            case 'long-text':
+                inputHTML = `
+                    <textarea id="${questionId}"
+                              name="screening_${question.id}"
+                              class="question-input long-text"
+                              placeholder="Your detailed answer here..."
+                              data-question-id="${question.id}"
+                              ${question.required ? 'required' : ''}></textarea>
+                    <div class="question-type-hint">Long text answer (min. 20 characters)</div>
+                `;
+                break;
+            
+            case 'yes-no':
+                inputHTML = `
+                    <div class="question-input yes-no">
+                        <label class="yes-no-option">
+                            <input type="radio" name="screening_${question.id}" value="yes" 
+                                   data-question-id="${question.id}"
+                                   ${question.required ? 'required' : ''}>
+                            <span>Yes</span>
+                        </label>
+                        <label class="yes-no-option">
+                            <input type="radio" name="screening_${question.id}" value="no"
+                                   data-question-id="${question.id}"
+                                   ${question.required ? 'required' : ''}>
+                            <span>No</span>
+                        </label>
+                    </div>
+                `;
+                break;
+            
+            case 'multiple-choice':
+                const optionsHTML = question.options.map(option => `
+                    <label class="multiple-choice-option">
+                        <input type="radio" name="screening_${question.id}" value="${this.escapeHtml(option)}"
+                               data-question-id="${question.id}"
+                               ${question.required ? 'required' : ''}>
+                        <span>${this.escapeHtml(option)}</span>
+                    </label>
+                `).join('');
+                inputHTML = `
+                    <div class="multiple-choice-options">
+                        ${optionsHTML}
+                    </div>
+                `;
+                break;
+        }
+        
+        return `
+            <div class="screening-question-block">
+                <div class="question-label">
+                    <span class="question-number-badge">${index + 1}</span>
+                    <span class="question-text">${this.escapeHtml(question.text)}</span>
+                    ${required}
+                </div>
+                ${inputHTML}
+            </div>
+        `;
+    }
+    
+    setupEventListeners() {
+        // Text inputs
+        this.formContainer.querySelectorAll('input[type="text"], textarea').forEach(input => {
+            input.addEventListener('input', (e) => this.handleInput(e));
+        });
+        
+        // Radio buttons
+        this.formContainer.querySelectorAll('input[type="radio"]').forEach(radio => {
+            radio.addEventListener('change', (e) => this.handleRadio(e));
+        });
+    }
+    
+    handleInput(event) {
+        const questionId = event.target.dataset.questionId;
+        const value = event.target.value;
+        this.answers[questionId] = value;
+        this.saveAnswers();
+    }
+    
+    handleRadio(event) {
+        const questionId = event.target.dataset.questionId;
+        const value = event.target.value;
+        
+        // Update selected styling for yes-no
+        const yesNoOptions = document.querySelectorAll(`[name="screening_${questionId}"]`).forEach(radio => {
+            const option = radio.closest('.yes-no-option');
+            if (option) {
+                if (radio.checked) {
+                    option.classList.add('selected');
+                } else {
+                    option.classList.remove('selected');
+                }
+            }
+        });
+        
+        // Update selected styling for multiple choice
+        const mcOptions = document.querySelectorAll(`[name="screening_${questionId}"]`).forEach(radio => {
+            const option = radio.closest('.multiple-choice-option');
+            if (option) {
+                if (radio.checked) {
+                    option.classList.add('selected');
+                } else {
+                    option.classList.remove('selected');
+                }
+            }
+        });
+        
+        this.answers[questionId] = value;
+        this.saveAnswers();
+    }
+    
+    saveAnswers() {
+        this.jsonField.value = JSON.stringify(this.answers);
+    }
+    
+    getAnswers() {
+        return this.answers;
+    }
+    
+    validateAnswers() {
+        const errors = [];
+        
+        this.questions.forEach((question, index) => {
+            if (question.required) {
+                const answer = this.answers[question.id];
+                
+                if (!answer || answer.trim() === '') {
+                    errors.push(`Question ${index + 1} is required`);
+                } else if (question.type === 'long-text' && answer.length < 20) {
+                    errors.push(`Question ${index + 1} requires at least 20 characters`);
+                }
+            }
+        });
+        
+        return errors;
+    }
+    
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+}
+
+// This will be initialized by the parent template with actual question data
+// Example initialization:
+// window.screeningAnswerer = new ScreeningQuestionsAnswerer(questionsData);
+</script>

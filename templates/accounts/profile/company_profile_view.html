@@ -1,0 +1,426 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ profile.company_name }} - HireSight{% endblock %}
+{% block meta_description %}{{ profile.description|truncatechars:150|default:"Company Profile" }}{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Company Profile Header -->
+    <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden mb-8">
+        <!-- Hero Cover with Base Template Gradient -->
+        <div class="h-40 bg-gradient-to-r from-primary to-secondary relative overflow-hidden">
+            <!-- Pattern Overlay -->
+            <div class="absolute inset-0 opacity-10">
+                <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <pattern id="company-grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                            <circle cx="20" cy="20" r="1.5" fill="white"/>
+                        </pattern>
+                    </defs>
+                    <rect width="100%" height="100%" fill="url(#company-grid)"/>
+                </svg>
+            </div>
+        </div>
+
+        <!-- Company Info Card -->
+        <div class="px-8 pb-8">
+            <!-- Company Logo -->
+            <div class="w-36 h-36 bg-white rounded-2xl shadow-xl p-1.5 mb-6 mt-8 mx-auto ring-4 ring-white">
+                {% if profile.logo %}
+                    <img src="{{ profile.logo.url }}" alt="{{ profile.company_name }}" class="w-full h-full rounded-xl object-contain">
+                {% else %}
+                    <div class="w-full h-full bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center text-white text-4xl font-bold">
+                        {{ profile.company_name|slice:":2"|upper }}
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Company Name & Industry -->
+            <div class="text-center mb-6">
+                <h1 class="text-4xl font-display font-extrabold text-gray-900 mb-2">{{ profile.company_name }}</h1>
+                {% if profile.industry %}
+                    <p class="text-xl text-gray-600 font-medium">{{ profile.industry }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Company Meta Information -->
+            <div class="flex flex-wrap items-center justify-center gap-4 py-4 border-t-2 border-b-2 border-gray-200 mb-6">
+                {% if profile.company_size %}
+                    <div class="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-lg">
+                        <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        </svg>
+                        <span class="font-semibold text-gray-700">{{ profile.company_size }}</span>
+                    </div>
+                {% endif %}
+                
+                {% if profile.founded_year %}
+                    <div class="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-lg">
+                        <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        <span class="font-semibold text-gray-700">Founded {{ profile.founded_year }}</span>
+                    </div>
+                {% endif %}
+                
+                {% if profile.website %}
+                    <div class="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-lg">
+                        <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path>
+                        </svg>
+                        <a href="{{ profile.website }}" target="_blank" class="font-semibold text-primary hover:text-primary-dark transition-colors">Website</a>
+                    </div>
+                {% endif %}
+                
+                <div class="flex items-center gap-2 px-3 py-1.5 bg-primary-light text-primary rounded-lg">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                    </svg>
+                    <span class="font-bold">{{ active_jobs_count }} Active Position{{ active_jobs_count|pluralize }}</span>
+                </div>
+            </div>
+
+            <!-- Verification Badge -->
+            {% if profile.verification_status == 'verified' %}
+                <div class="text-center mb-6">
+                    <div class="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-success to-green-600 text-white rounded-full shadow-lg font-semibold">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        Verified Company
+                    </div>
+                    <p class="mt-3 text-sm text-gray-600">This company has been verified by HireSight for authenticity</p>
+                </div>
+            {% elif profile.verification_status == 'pending' %}
+                <div class="text-center mb-6">
+                    <div class="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-warning to-yellow-500 text-white rounded-full shadow-lg font-semibold">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        Verification Pending
+                    </div>
+                    <p class="mt-3 text-sm text-gray-600">Your verification request is under review (1-3 business days)</p>
+                </div>
+            {% elif profile.verification_status == 'unverified' and is_own_profile %}
+                <div class="text-center mb-6">
+                    <a href="{% url 'accounts:edit_company_profile' %}" class="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-full shadow-lg font-semibold hover:shadow-xl transition-all">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        Get Verified
+                    </a>
+                    <p class="mt-3 text-sm text-gray-600">
+                        Increase trust and credibility • 
+                        <a href="{% url 'accounts:edit_company_profile' %}" class="text-primary font-semibold hover:text-primary-dark">Upload documents →</a>
+                    </p>
+                </div>
+            {% endif %}
+
+            <!-- Action Buttons -->
+            <div class="flex flex-col sm:flex-row justify-center gap-3">
+                {% if is_own_profile %}
+                    <a href="{% url 'accounts:edit_company_profile' %}" class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                        </svg>
+                        Edit Profile
+                    </a>
+                    <a href="{% url 'jobs:create' %}" class="inline-flex items-center justify-center px-6 py-3 bg-white border-2 border-primary text-primary rounded-xl font-semibold hover:bg-primary-light transition-all">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                        </svg>
+                        Post New Job
+                    </a>
+                {% else %}
+                    <button class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                        </svg>
+                        Contact Company
+                    </button>
+                    <button class="inline-flex items-center justify-center px-6 py-3 bg-white border-2 border-primary text-primary rounded-xl font-semibold hover:bg-primary-light transition-all">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                        </svg>
+                        Follow
+                    </button>
+                {% endif %}
+            </div>
+
+            <!-- Company Stats -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8">
+                <div class="bg-gradient-to-br from-primary-light to-white rounded-xl p-4 border border-primary/20 text-center hover:shadow-lg transition-all">
+                    <div class="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">{{ active_jobs_count }}</div>
+                    <div class="text-xs text-gray-600 font-semibold mt-1">Active Jobs</div>
+                </div>
+                <div class="bg-gradient-to-br from-secondary-light to-white rounded-xl p-4 border border-secondary/20 text-center hover:shadow-lg transition-all">
+                    <div class="text-2xl font-bold bg-gradient-to-r from-secondary to-accent bg-clip-text text-transparent">{{ followers_count }}</div>
+                    <div class="text-xs text-gray-600 font-semibold mt-1">Followers</div>
+                </div>
+                <div class="bg-gradient-to-br from-success/10 to-white rounded-xl p-4 border border-success/20 text-center hover:shadow-lg transition-all">
+                    <div class="text-2xl font-bold bg-gradient-to-r from-success to-secondary bg-clip-text text-transparent">{{ profile.benefits|length }}</div>
+                    <div class="text-xs text-gray-600 font-semibold mt-1">Benefits</div>
+                </div>
+                <div class="bg-gradient-to-br from-purple-50 to-white rounded-xl p-4 border border-purple/20 text-center hover:shadow-lg transition-all">
+                    <div class="text-2xl font-bold bg-gradient-to-r from-purple to-primary bg-clip-text text-transparent">{{ profile.locations|length }}</div>
+                    <div class="text-xs text-gray-600 font-semibold mt-1">Locations</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Left Column - Main Content -->
+        <div class="lg:col-span-2 space-y-8">
+            <!-- About Section -->
+            {% if profile.description %}
+                <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-5 flex items-center">
+                        <div class="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center mr-3">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                            </svg>
+                        </div>
+                        About {{ profile.company_name }}
+                    </h2>
+                    <p class="text-gray-700 leading-relaxed text-lg">{{ profile.description }}</p>
+                </div>
+            {% endif %}
+
+            <!-- Mission -->
+            {% if profile.mission %}
+                <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-5 flex items-center">
+                        <div class="w-10 h-10 bg-gradient-to-br from-secondary to-accent rounded-lg flex items-center justify-center mr-3">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                            </svg>
+                        </div>
+                        Our Mission
+                    </h2>
+                    <p class="text-gray-700 leading-relaxed text-lg">{{ profile.mission }}</p>
+                </div>
+            {% endif %}
+
+            <!-- Culture -->
+            {% if profile.culture %}
+                <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-5 flex items-center">
+                        <div class="w-10 h-10 bg-gradient-to-br from-success to-secondary rounded-lg flex items-center justify-center mr-3">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"></path>
+                            </svg>
+                        </div>
+                        Company Culture
+                    </h2>
+                    <p class="text-gray-700 leading-relaxed text-lg">{{ profile.culture }}</p>
+                </div>
+            {% endif %}
+
+            <!-- Team Photos -->
+            {% if profile.team_photos %}
+                <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-5 flex items-center">
+                        <div class="w-10 h-10 bg-gradient-to-br from-purple to-primary rounded-lg flex items-center justify-center mr-3">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                        </div>
+                        Our Team
+                    </h2>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                        {% for photo in profile.team_photos %}
+                            <div class="aspect-square rounded-xl overflow-hidden border-2 border-gray-200 hover:border-primary hover:shadow-lg transition-all group relative">
+                                <img src="{{ photo.url }}" alt="{{ photo.caption|default:'Team photo' }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                                {% if photo.caption %}
+                                    <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
+                                        <p class="text-white text-sm font-medium">{{ photo.caption }}</p>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Open Positions -->
+            {% if recent_jobs %}
+                <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+                        <div class="w-10 h-10 bg-gradient-to-br from-accent to-warning rounded-lg flex items-center justify-center mr-3">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                            </svg>
+                        </div>
+                        Open Positions
+                    </h2>
+                    <div class="space-y-4">
+                        {% for job in recent_jobs %}
+                            <div class="bg-gradient-to-br from-gray-50 to-white rounded-xl p-6 border border-gray-200 hover:border-primary hover:shadow-lg transition-all group">
+                                <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-3">
+                                    <div class="flex-1">
+                                        <h3 class="text-xl font-bold text-gray-900 mb-2 group-hover:text-primary transition-colors">{{ job.title }}</h3>
+                                        <p class="text-primary font-semibold">{{ job.location }}</p>
+                                    </div>
+                                </div>
+                                <p class="text-gray-700 mb-4 leading-relaxed">{{ job.description|truncatechars:150 }}</p>
+                                <a href="{% url 'jobs:detail' job.id %}" class="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-accent to-warning text-white rounded-lg font-semibold hover:shadow-lg transition-all">
+                                    View Position
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                    </svg>
+                                </a>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Right Column - Sidebar -->
+        <div class="space-y-8">
+            <!-- Benefits & Perks -->
+            {% if profile.benefits %}
+                <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+                    <h2 class="text-xl font-bold text-gray-900 mb-5 flex items-center">
+                        <div class="w-8 h-8 bg-gradient-to-br from-success to-secondary rounded-lg flex items-center justify-center mr-2">
+                            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                            </svg>
+                        </div>
+                        Benefits & Perks
+                    </h2>
+                    <div class="space-y-3">
+                        {% for benefit in profile.benefits %}
+                            <div class="flex items-center gap-3 p-3 bg-gradient-to-r from-success/10 to-white rounded-lg border border-success/20 hover:shadow-md transition-all group">
+                                <div class="w-6 h-6 bg-gradient-to-br from-success to-green-600 rounded-md flex items-center justify-center flex-shrink-0">
+                                    <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                </div>
+                                <span class="text-gray-900 font-medium group-hover:text-success transition-colors">{{ benefit }}</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Locations -->
+            {% if profile.locations %}
+                <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+                    <h2 class="text-xl font-bold text-gray-900 mb-5 flex items-center">
+                        <div class="w-8 h-8 bg-gradient-to-br from-accent to-warning rounded-lg flex items-center justify-center mr-2">
+                            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            </svg>
+                        </div>
+                        Our Locations
+                    </h2>
+                    
+                    <!-- Map Display -->
+                    <input type="hidden" id="company-locations-data" value='{{ profile.locations|json_script }}'>
+                    <div id="company-locations-map" class="h-64 w-full rounded-xl overflow-hidden mb-4 border-2 border-gray-200"></div>
+                    
+                    <!-- Locations List -->
+                    <div class="space-y-3">
+                        {% for location in profile.locations %}
+                            <div class="flex items-start gap-3 p-3 bg-gradient-to-br from-gray-50 to-white rounded-lg border border-gray-200 hover:shadow-md hover:border-accent/50 transition-all">
+                                <div class="w-8 h-8 bg-gradient-to-br from-accent to-warning rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    </svg>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="font-semibold text-gray-900">
+                                            {{ location.address }}{% if location.city %}, {{ location.city }}{% endif %}
+                                        </span>
+                                        {% if location.is_hq %}
+                                            <span class="px-2 py-0.5 bg-gradient-to-r from-primary to-secondary text-white text-xs font-bold rounded-full">HQ</span>
+                                        {% endif %}
+                                    </div>
+                                    {% if location.country %}
+                                        <p class="text-sm text-gray-600">{{ location.country }}</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Get Verified CTA -->
+            {% if is_own_profile and profile.verification_status != 'verified' %}
+                <div class="bg-gradient-to-br from-primary-light to-secondary-light rounded-2xl shadow-lg border-2 border-primary/20 p-6">
+                    <h2 class="text-xl font-bold text-gray-900 mb-3 flex items-center">
+                        <div class="w-8 h-8 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center mr-2">
+                            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                        Get Verified
+                    </h2>
+                    <p class="text-gray-700 mb-4 text-sm leading-relaxed">
+                        Verified companies get priority placement, trusted badge, and higher response rates.
+                    </p>
+                    <ul class="space-y-2 mb-5">
+                        <li class="flex items-center gap-2 text-sm text-gray-700">
+                            <svg class="w-4 h-4 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            Priority in search results
+                        </li>
+                        <li class="flex items-center gap-2 text-sm text-gray-700">
+                            <svg class="w-4 h-4 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            Verified badge on profile
+                        </li>
+                        <li class="flex items-center gap-2 text-sm text-gray-700">
+                            <svg class="w-4 h-4 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            Higher candidate trust
+                        </li>
+                    </ul>
+                    <a href="{% url 'accounts:edit_company_profile' %}" class="inline-flex items-center justify-center w-full px-5 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                        </svg>
+                        Upload Documents
+                    </a>
+                </div>
+            {% endif %}
+
+            <!-- Contact Card (for non-owners) -->
+            {% if not is_own_profile %}
+                <div class="bg-gradient-to-br from-primary-light to-secondary-light rounded-2xl shadow-lg border-2 border-primary/20 p-6">
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">Get in Touch</h2>
+                    <div class="space-y-3">
+                        <button class="w-full inline-flex items-center justify-center px-5 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                            </svg>
+                            Send Message
+                        </button>
+                        <button class="w-full inline-flex items-center justify-center px-5 py-3 bg-white border-2 border-primary text-primary rounded-xl font-semibold hover:bg-primary-light transition-all">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                            </svg>
+                            Follow Company
+                        </button>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Load Company Profile View Map JavaScript -->
+<script src="{% static 'js/company_profile_view_map.js' %}"></script>
+
+{% endblock %}

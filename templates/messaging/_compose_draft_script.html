@@ -1,0 +1,66 @@
+<script>
+if (!window.__messagingComposeDraftInitialized) {
+    window.__messagingComposeDraftInitialized = true;
+    document.addEventListener('DOMContentLoaded', () => {
+        const draftForms = document.querySelectorAll('form[data-draft-form]');
+
+        function safeStorageKey(key) {
+            return `messages-draft-${key || 'default'}`;
+        }
+
+        draftForms.forEach(form => {
+            const draftKey = safeStorageKey(form.dataset.draftKey);
+            const fields = {
+                recipient: form.querySelector('[name="recipient"]'),
+                subject: form.querySelector('[name="subject"]'),
+                content: form.querySelector('[name="content"]'),
+            };
+
+            function restoreDraft() {
+                if (!(window && window.localStorage)) return;
+                const raw = window.localStorage.getItem(draftKey);
+                if (!raw) return;
+                try {
+                    const data = JSON.parse(raw);
+                    Object.keys(fields).forEach(name => {
+                        const field = fields[name];
+                        if (field && data[name]) {
+                            field.value = data[name];
+                        }
+                    });
+                } catch (error) {
+                    console.error('Failed to restore messaging draft', error);
+                }
+            }
+
+            function saveDraft() {
+                if (!(window && window.localStorage)) return;
+                const payload = {};
+                Object.keys(fields).forEach(name => {
+                    const field = fields[name];
+                    if (field && field.value) {
+                        payload[name] = field.value;
+                    }
+                });
+                if (Object.keys(payload).length) {
+                    window.localStorage.setItem(draftKey, JSON.stringify(payload));
+                } else {
+                    window.localStorage.removeItem(draftKey);
+                }
+            }
+
+            restoreDraft();
+
+            ['input', 'change'].forEach(evt => {
+                form.addEventListener(evt, () => saveDraft());
+            });
+
+            form.addEventListener('submit', () => {
+                if (window && window.localStorage) {
+                    window.localStorage.removeItem(draftKey);
+                }
+            });
+        });
+    });
+}
+</script>

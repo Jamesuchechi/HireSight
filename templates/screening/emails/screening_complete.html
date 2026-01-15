@@ -1,0 +1,143 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Screening Complete</title>
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f5f7fb;
+            color: #1f2937;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 32px auto;
+            background-color: #ffffff;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 20px 45px rgba(15, 23, 42, 0.12);
+        }
+        .header {
+            background: linear-gradient(135deg, #2563eb, #3b82f6);
+            padding: 32px 24px;
+            color: #ffffff;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .content {
+            padding: 32px 28px;
+        }
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 16px;
+            margin: 24px 0;
+        }
+        .summary-card {
+            background-color: #f8fafc;
+            border-radius: 12px;
+            padding: 16px;
+            border: 1px solid #e5e7eb;
+        }
+        .summary-card span {
+            display: block;
+            font-size: 14px;
+            color: #6b7280;
+        }
+        .summary-card strong {
+            font-size: 20px;
+            color: #0f172a;
+        }
+        .cta {
+            text-align: center;
+            margin: 28px 0;
+        }
+        .cta a {
+            display: inline-block;
+            background: linear-gradient(135deg, #2563eb, #3b82f6);
+            color: #ffffff;
+            padding: 14px 28px;
+            border-radius: 10px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .cta a:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(37, 99, 235, 0.35);
+        }
+        .footer {
+            padding: 24px 28px 32px;
+            color: #6b7280;
+            font-size: 14px;
+        }
+        .footer a {
+            color: #2563eb;
+            text-decoration: none;
+        }
+        @media (max-width: 600px) {
+            .container {
+                margin: 16px;
+                border-radius: 12px;
+            }
+            .content {
+                padding: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Screening Complete</h1>
+            <p style="margin-top: 8px; font-size: 16px;">{{ company_name }} · {{ job_title }}</p>
+        </div>
+        <div class="content">
+            <p style="margin: 0; font-size: 16px;">
+                The screening session titled <strong>{{ session_title }}</strong> has finished processing.
+                Here is a snapshot of the results.
+            </p>
+
+            <div class="summary">
+                <div class="summary-card">
+                    <span>Total Resumes</span>
+                    <strong>{{ total_resumes }}</strong>
+                </div>
+                <div class="summary-card">
+                    <span>Processed</span>
+                    <strong>{{ processed }}</strong>
+                </div>
+                <div class="summary-card">
+                    <span>Avg. Match Score</span>
+                    <strong>{{ average_score|floatformat:1 }}%</strong>
+                </div>
+                <div class="summary-card">
+                    <span>High Matches (≥ 80)</span>
+                    <strong>{{ high_matches }}</strong>
+                </div>
+            </div>
+
+            <div class="cta">
+                <a href="{{ session_url }}">View Screening Results</a>
+            </div>
+
+            <p style="margin-top: 0; font-size: 14px; color: #475569;">
+                Need to revisit the session criteria or share results with your team? You can always revisit the screening dashboard.
+            </p>
+        </div>
+        <div class="footer">
+            <p>Thanks for using HireSight.</p>
+            <p>
+                <a href="https://www.hiresight.co">Visit HireSight</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

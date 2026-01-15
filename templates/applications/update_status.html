@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+
+{% block title %}Update Status - HireSight{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-gradient-to-r from-primary via-secondary to-purple text-white shadow-sm">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-display font-bold">Update Application Status</h1>
+                    <p class="text-white/90 mt-1">Change the status of this application</p>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <button onclick="window.history.back()" class="px-4 py-2 bg-white/15 border border-white/25 rounded-xl text-white font-semibold hover:bg-white/25 transition-colors inline-flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                        </svg>
+                        Back
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+            <!-- Application Info -->
+            <div class="mb-8">
+                <div class="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
+                    {% if application.applicant.personalprofile.avatar %}
+                    <img src="{{ application.applicant.personalprofile.avatar.url }}" alt="{{ application.applicant.get_full_name }}" class="w-12 h-12 rounded-full">
+                    {% else %}
+                    <div class="w-12 h-12 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center text-white text-lg font-bold">
+                        {{ application.applicant.personalprofile.full_name|slice:":1" }}
+                    </div>
+                    {% endif %}
+                    <div>
+                        <div class="text-lg font-semibold text-gray-900">{{ application.applicant.personalprofile.full_name }}</div>
+                        <div class="text-sm text-gray-500">{{ application.job.title }} at {{ application.job.company.name }}</div>
+                        <div class="text-sm text-gray-400">Applied {{ application.created_at|date:"M j, Y" }}</div>
+                    </div>
+                    <div class="ml-auto">
+                        <span class="px-3 py-1 text-xs font-semibold rounded-full
+                            {% if application.status == 'pending' %}bg-yellow-100 text-yellow-800
+                            {% elif application.status == 'screening' %}bg-blue-100 text-blue-800
+                            {% elif application.status == 'interview' %}bg-purple-100 text-purple-800
+                            {% elif application.status == 'offer' %}bg-green-100 text-green-800
+                            {% elif application.status == 'hired' %}bg-green-100 text-green-800
+                            {% elif application.status == 'rejected' %}bg-red-100 text-red-800
+                            {% else %}bg-gray-100 text-gray-800{% endif %}">
+                            Current: {{ application.get_status_display }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <form method="post" action="{% url 'applications:update_status' application.id %}">
+                {% csrf_token %}
+
+                <!-- Status Selection -->
+                <div class="mb-8">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">New Status</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="flex items-center">
+                                <input type="radio" name="status" value="pending" {% if application.status == 'pending' %}checked{% endif %} class="text-primary focus:ring-primary">
+                                <span class="ml-3 text-sm font-medium text-gray-700">Pending Review</span>
+                            </label>
+                            <p class="ml-6 text-sm text-gray-500">Application received, awaiting initial review</p>
+                        </div>
+
+                        <div>
+                            <label class="flex items-center">
+                                <input type="radio" name="status" value="screening" {% if application.status == 'screening' %}checked{% endif %} class="text-primary focus:ring-primary">
+                                <span class="ml-3 text-sm font-medium text-gray-700">Under Screening</span>
+                            </label>
+                            <p class="ml-6 text-sm text-gray-500">Application is being reviewed by the screening team</p>
+                        </div>
+
+                        <div>
+                            <label class="flex items-center">
+                                <input type="radio" name="status" value="interview" {% if application.status == 'interview' %}checked{% endif %} class="text-primary focus:ring-primary">
+                                <span class="ml-3 text-sm font-medium text-gray-700">Interview Scheduled</span>
+                            </label>
+                            <p class="ml-6 text-sm text-gray-500">Interview has been scheduled or completed</p>
+                        </div>
+
+                        <div>
+                            <label class="flex items-center">
+                                <input type="radio" name="status" value="offer" {% if application.status == 'offer' %}checked{% endif %} class="text-primary focus:ring-primary">
+                                <span class="ml-3 text-sm font-medium text-gray-700">Offer Extended</span>
+                            </label>
+                            <p class="ml-6 text-sm text-gray-500">Job offer has been extended to the candidate</p>
+                        </div>
+
+                        <div>
+                            <label class="flex items-center">
+                                <input type="radio" name="status" value="hired" {% if application.status == 'hired' %}checked{% endif %} class="text-primary focus:ring-primary">
+                                <span class="ml-3 text-sm font-medium text-gray-700">Hired</span>
+                            </label>
+                            <p class="ml-6 text-sm text-gray-500">Candidate has accepted the offer and been hired</p>
+                        </div>
+
+                        <div>
+                            <label class="flex items-center">
+                                <input type="radio" name="status" value="rejected" {% if application.status == 'rejected' %}checked{% endif %} class="text-red-600 focus:ring-red-600">
+                                <span class="ml-3 text-sm font-medium text-red-700">Rejected</span>
+                            </label>
+                            <p class="ml-6 text-sm text-red-600">Application has been rejected</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Optional Note -->
+                <div class="mb-8">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Status Change Note (Optional)</h3>
+                    <div>
+                        <textarea name="note" rows="4" placeholder="Add a note about this status change..." class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent resize-none"></textarea>
+                        <p class="mt-2 text-sm text-gray-500">This note will be added to the application timeline</p>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex items-center justify-end space-x-4">
+                    <button type="button" onclick="window.history.back()" class="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all">
+                        Update Status
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

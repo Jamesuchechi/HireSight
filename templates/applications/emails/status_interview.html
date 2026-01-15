@@ -1,0 +1,51 @@
+{% extends 'emails/base.html' %}
+
+{% block subject %}Interview Scheduled - {{ job_title }}{% endblock %}
+
+{% block content %}
+<div style="max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif;">
+    <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 40px 30px; text-align: center; border-radius: 10px 10px 0 0;">
+        <h1 style="color: white; margin: 0; font-size: 28px; font-weight: bold;">🎉 Interview Scheduled!</h1>
+        <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 16px;">{{ company_name }}</p>
+    </div>
+
+    <div style="background: white; padding: 40px 30px; border-radius: 0 0 10px 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <h2 style="color: #1f2937; margin: 0 0 20px 0; font-size: 24px;">Congratulations, {{ applicant_name }}!</h2>
+
+        <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 20px 0;">
+            We're excited to invite you to interview for the <strong>{{ job_title }}</strong> position at {{ company_name }}.
+        </p>
+
+        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #166534; margin: 0 0 15px 0; font-size: 18px;">📅 Interview Details</h3>
+            <p style="margin: 0; font-size: 16px; color: #374151;">
+                <strong>Position:</strong> {{ job_title }}<br>
+                <strong>Status:</strong> <span style="color: #059669; font-weight: bold;">{{ status }}</span>
+            </p>
+        </div>
+
+        <p style="color: #6b7280; line-height: 1.6; margin: 20px 0;">
+            Our team will be in touch soon with specific scheduling details. Please keep an eye on your email and application dashboard for updates.
+        </p>
+
+        <div style="text-align: center; margin: 30px 0;">
+            <a href="{% url 'applications:detail' application.pk %}"
+               style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+                View Application Details
+            </a>
+        </div>
+
+        <div style="background: #fef3c7; border: 1px solid #fcd34d; padding: 15px; border-radius: 6px; margin: 20px 0;">
+            <p style="margin: 0; color: #92400e; font-size: 14px;">
+                <strong>💡 Tip:</strong> Prepare for your interview by reviewing the job description and preparing questions about the role and company.
+            </p>
+        </div>
+
+        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+
+        <p style="color: #9ca3af; font-size: 14px; margin: 20px 0 0 0; text-align: center;">
+            This is an automated message. Please do not reply to this email.
+        </p>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,46 @@
+[
+    {
+        "model": "accounts.CompanyProfile",
+        "pk": "00000000-0000-0000-0000-000000000001",
+        "fields": {
+            "user": [
+                "00000000-0000-0000-0000-000000000002"
+            ],
+            "company_name": "Tech Solutions Inc",
+            "logo": "",
+            "industry": "Technology",
+            "company_size": "51-200",
+            "locations": [
+                {
+                    "address": "123 Tech Street",
+                    "city": "San Francisco",
+                    "state": "CA",
+                    "country": "USA",
+                    "postal_code": "94105",
+                    "lat": 37.7749,
+                    "lng": -122.4194,
+                    "is_hq": true
+                }
+            ],
+            "website": "https://techsolutions.com",
+            "linkedin": "https://linkedin.com/company/techsolutions",
+            "twitter": "https://twitter.com/techsolutions",
+            "facebook": "https://facebook.com/techsolutions",
+            "description": "Innovative technology solutions for modern businesses.",
+            "mission": "To empower businesses with cutting-edge technology.",
+            "culture": "Collaborative and innovative work environment.",
+            "benefits": [
+                "Health Insurance",
+                "Remote Work",
+                "401k",
+                "Flexible Hours"
+            ],
+            "team_photos": [],
+            "founded_year": 2010,
+            "verification_status": "verified",
+            "verification_docs": "",
+            "created_at": "2023-01-01T00:00:00Z",
+            "updated_at": "2023-01-01T00:00:00Z"
+        }
+    }
+]

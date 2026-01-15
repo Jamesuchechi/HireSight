@@ -1,0 +1,198 @@
+<!-- templates/messages/inbox.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Messages - Inbox{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900">Messages</h1>
+            <p class="text-gray-600 mt-1">
+                {% if total_unread > 0 %}
+                    <span class="text-blue-600 font-semibold">{{ total_unread }} unread message{{ total_unread|pluralize }}</span>
+                {% else %}
+                    All caught up!
+                {% endif %}
+            </p>
+        </div>
+        <a href="{% url 'messaging:compose' %}" data-open-compose-modal
+           class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium inline-flex items-center transition-colors">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            New Message
+        </a>
+    </div>
+
+    <!-- Search and Filters -->
+    <div class="bg-white rounded-lg shadow-sm p-4 mb-6">
+        <form method="get" class="flex flex-wrap gap-4 items-center">
+            <div class="flex-1 min-w-[300px]">
+                <div class="relative">
+                    <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" 
+                         fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    {{ search_form.query }}
+                </div>
+            </div>
+            <div>
+                {{ search_form.filter_type }}
+            </div>
+            <button type="submit" 
+                    class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-2 rounded-lg font-medium transition-colors">
+                Search
+            </button>
+        </form>
+    </div>
+
+    <!-- Filter Tabs -->
+    <div class="flex gap-2 mb-6 border-b border-gray-200">
+        <a href="?filter_type=all" 
+           class="px-4 py-2 {% if active_filter == 'all' %}border-b-2 border-blue-600 text-blue-600 font-semibold{% else %}text-gray-600 hover:text-gray-900{% endif %}">
+            All
+        </a>
+        <a href="?filter_type=unread" 
+           class="px-4 py-2 {% if active_filter == 'unread' %}border-b-2 border-blue-600 text-blue-600 font-semibold{% else %}text-gray-600 hover:text-gray-900{% endif %}">
+            Unread
+            {% if total_unread > 0 %}
+                <span class="ml-1 bg-blue-100 text-blue-600 text-xs px-2 py-1 rounded-full">{{ total_unread }}</span>
+            {% endif %}
+        </a>
+        <a href="?filter_type=archived" 
+           class="px-4 py-2 {% if active_filter == 'archived' %}border-b-2 border-blue-600 text-blue-600 font-semibold{% else %}text-gray-600 hover:text-gray-900{% endif %}">
+            Archived
+        </a>
+    </div>
+
+    <!-- Conversations List -->
+    <div class="bg-white rounded-lg shadow-sm divide-y divide-gray-200">
+        {% if conversations %}
+            {% for conversation in conversations %}
+                {% with other_user=conversation.get_other_participant|default:None last_message=conversation.get_last_message %}
+                <a href="{% url 'messaging:conversation_detail' conversation.pk %}" 
+                   class="block hover:bg-gray-50 transition-colors">
+                    <div class="p-6">
+                        <div class="flex items-start justify-between">
+                            <!-- User Avatar and Info -->
+                            <div class="flex items-start space-x-4 flex-1">
+                                <!-- Avatar -->
+                                <div class="flex-shrink-0">
+                                    <div class="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                                        {% if other_user %}
+                                            {{ other_user.email|slice:":1"|upper }}
+                                        {% else %}
+                                            ?
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                                <!-- Content -->
+                                <div class="flex-1 min-w-0">
+                                    <!-- Name and timestamp -->
+                                    <div class="flex items-baseline justify-between mb-1">
+                                        <h3 class="text-lg font-semibold text-gray-900 truncate">
+                                            {% if other_user %}
+                                                {% if other_user.account_type == 'personal' %}
+                                                    {{ other_user.personalprofile.full_name|default:other_user.email }}
+                                                {% else %}
+                                                    {{ other_user.companyprofile.company_name|default:other_user.email }}
+                                                {% endif %}
+                                            {% else %}
+                                                Group Chat
+                                            {% endif %}
+                                        </h3>
+                                        <span class="text-sm text-gray-500 ml-2">
+                                            {{ last_message.timestamp|timesince }} ago
+                                        </span>
+                                    </div>
+
+                                    <!-- Subject (if exists) -->
+                                    {% if conversation.subject %}
+                                        <p class="text-sm font-medium text-gray-600 mb-1">
+                                            {{ conversation.subject }}
+                                        </p>
+                                    {% endif %}
+
+                                    <!-- Last message preview -->
+                                    {% if last_message %}
+                                        <p class="text-sm text-gray-600 truncate">
+                                            <span class="font-medium">
+                                                {% if last_message.sender == request.user %}You:{% endif %}
+                                            </span>
+                                            {{ last_message.content|truncatewords:15 }}
+                                        </p>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- Unread badge -->
+                            {% if conversation.unread_count > 0 %}
+                                <div class="ml-4 flex-shrink-0">
+                                    <span class="bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded-full">
+                                        {{ conversation.unread_count }}
+                                    </span>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </a>
+                {% endwith %}
+            {% endfor %}
+
+            <!-- Pagination -->
+            {% if is_paginated %}
+                <div class="p-6 border-t border-gray-200">
+                    <div class="flex justify-center gap-2">
+                        {% if page_obj.has_previous %}
+                            <a href="?page=1{% if request.GET.query %}&query={{ request.GET.query }}{% endif %}{% if request.GET.filter_type %}&filter_type={{ request.GET.filter_type }}{% endif %}" 
+                               class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700">
+                                First
+                            </a>
+                            <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.query %}&query={{ request.GET.query }}{% endif %}{% if request.GET.filter_type %}&filter_type={{ request.GET.filter_type }}{% endif %}" 
+                               class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700">
+                                Previous
+                            </a>
+                        {% endif %}
+
+                        <span class="px-4 py-2 bg-blue-600 text-white rounded-lg">
+                            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                        </span>
+
+                        {% if page_obj.has_next %}
+                            <a href="?page={{ page_obj.next_page_number }}{% if request.GET.query %}&query={{ request.GET.query }}{% endif %}{% if request.GET.filter_type %}&filter_type={{ request.GET.filter_type }}{% endif %}" 
+                               class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700">
+                                Next
+                            </a>
+                            <a href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.query %}&query={{ request.GET.query }}{% endif %}{% if request.GET.filter_type %}&filter_type={{ request.GET.filter_type }}{% endif %}" 
+                               class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700">
+                                Last
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+
+        {% else %}
+            <!-- Empty state -->
+            <div class="p-12 text-center">
+                <svg class="mx-auto h-16 w-16 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+                </svg>
+                <h3 class="text-xl font-semibold text-gray-900 mb-2">No messages yet</h3>
+                <p class="text-gray-600 mb-6">Start a conversation by composing a new message</p>
+                <a href="{% url 'messaging:compose' %}" data-open-compose-modal
+                   class="inline-block bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+                    Send Your First Message
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% include 'messaging/compose_modal.html' %}
+{% endblock %}

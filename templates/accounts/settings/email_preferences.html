@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Email Preferences - HireSight{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white border-b border-gray-200">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <h1 class="text-3xl font-bold text-gray-900">Email Preferences</h1>
+            <p class="mt-2 text-gray-600">Manage your notification settings and email frequency.</p>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {% if messages %}
+        <div class="mb-6">
+            {% for message in messages %}
+            <div class="p-4 rounded-lg {% if message.tags %}bg-{{ message.tags }}-50 text-{{ message.tags }}-800 border border-{{ message.tags }}-200{% endif %}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <form method="post" action="{% url 'accounts:update_email_preferences' %}" class="bg-white rounded-lg shadow">
+            {% csrf_token %}
+
+            <!-- Global Email Frequency -->
+            <div class="px-6 py-6 border-b border-gray-200">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">Email Frequency</h2>
+                <p class="text-sm text-gray-600 mb-4">How often would you like to receive email notifications?</p>
+                
+                <div class="space-y-3">
+                    {% for value, label in form.email_frequency.field.choices %}
+                    <label class="flex items-center p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition">
+                        <input type="radio" name="email_frequency" value="{{ value }}" 
+                            {% if form.email_frequency.value == value %}checked{% endif %}
+                            class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                        <span class="ml-3">
+                            <span class="block text-sm font-medium text-gray-900">{{ label }}</span>
+                        </span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Notification Preferences -->
+            <div class="px-6 py-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">Notification Types</h2>
+                <p class="text-sm text-gray-600 mb-6">Select which notifications you'd like to receive.</p>
+
+                {% if user.account_type == 'personal' %}
+                <!-- Personal Account Notifications -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {% for field in form %}
+                        {% if field.name != 'email_frequency' and not field.field.widget.input_type == 'hidden' %}
+                        <label class="flex items-start p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition cursor-pointer">
+                            <input type="checkbox" name="{{ field.name }}" 
+                                {% if field.value %}checked{% endif %}
+                                class="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 mt-0.5">
+                            <span class="ml-3">
+                                <span class="block text-sm font-medium text-gray-900">{{ field.label }}</span>
+                                <span class="block text-xs text-gray-500 mt-1">
+                                    {% if 'new_application' in field.name %}
+                                        Get notified when new jobs match your profile
+                                    {% elif 'application_status_changed' in field.name %}
+                                        Receive updates on your application statuses
+                                    {% elif 'new_message' in field.name %}
+                                        Know when companies or users message you
+                                    {% elif 'profile_viewed' in field.name %}
+                                        See who's viewing your profile
+                                    {% elif 'new_follower' in field.name %}
+                                        Get notified when someone follows you
+                                    {% elif 'followed_company_job' in field.name %}
+                                        Updates when companies you follow post new jobs
+                                    {% elif 'interview_scheduled' in field.name %}
+                                        Reminders for scheduled interviews
+                                    {% elif 'job_recommendations' in field.name %}
+                                        Weekly or daily job recommendations based on your profile
+                                    {% endif %}
+                                </span>
+                            </span>
+                        </label>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+
+                {% elif user.account_type == 'company' %}
+                <!-- Company Account Notifications -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {% for field in form %}
+                        {% if field.name != 'email_frequency' and not field.field.widget.input_type == 'hidden' %}
+                        <label class="flex items-start p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition cursor-pointer">
+                            <input type="checkbox" name="{{ field.name }}" 
+                                {% if field.value %}checked{% endif %}
+                                class="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 mt-0.5">
+                            <span class="ml-3">
+                                <span class="block text-sm font-medium text-gray-900">{{ field.label }}</span>
+                                <span class="block text-xs text-gray-500 mt-1">
+                                    {% if 'new_applicant' in field.name %}
+                                        Get notified when new candidates apply to your jobs
+                                    {% elif 'screening_complete' in field.name %}
+                                        Know when resume screening is finished
+                                    {% elif 'job_expiring_soon' in field.name %}
+                                        Reminders for jobs about to expire
+                                    {% elif 'applicant_response' in field.name %}
+                                        Updates when applicants respond to your messages
+                                    {% elif 'new_company_follower' in field.name %}
+                                        See when people follow your company
+                                    {% endif %}
+                                </span>
+                            </span>
+                        </label>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- Form Errors -->
+                {% if form.non_field_errors %}
+                <div class="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                    {% for error in form.non_field_errors %}
+                    <p class="text-sm text-red-800">{{ error }}</p>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Submit Button -->
+            <div class="px-6 py-6 bg-gray-50 border-t border-gray-200 flex justify-end gap-4">
+                <a href="{% url 'accounts:settings' %}" class="px-6 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">
+                    Cancel
+                </a>
+                <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium">
+                    Save Preferences
+                </button>
+            </div>
+        </form>
+
+        <!-- Additional Info -->
+        <div class="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <h3 class="text-sm font-semibold text-blue-900 mb-2">💡 Tip</h3>
+            <p class="text-sm text-blue-800">
+                You can also unsubscribe from emails using the unsubscribe link included in every email we send you. 
+                However, we'll still send critical account notifications regardless of your preferences.
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

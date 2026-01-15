@@ -1,0 +1,140 @@
+<!-- templates/accounts/settings/sessions.html -->
+<!-- ============================================================================ -->
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Active Sessions - HireSight{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white border-b border-gray-200">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="flex items-center space-x-4">
+                <a href="{% url 'accounts:settings' %}" 
+                   class="p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                    </svg>
+                </a>
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900">Active Sessions</h1>
+                    <p class="mt-2 text-gray-600">Manage devices where you're currently logged in.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <!-- Stats -->
+        <div class="mb-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white rounded-xl shadow p-6">
+                <div class="flex items-center">
+                    <div class="p-3 bg-primary-light rounded-lg">
+                        <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-500">Active Sessions</p>
+                        <p class="text-2xl font-bold text-gray-900">{{ total_sessions }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow p-6">
+                <form method="post" action="{% url 'accounts:logout_all_sessions' %}" onsubmit="return confirm('Are you sure you want to log out from all other devices?');">
+                    {% csrf_token %}
+                    <button type="submit" class="w-full flex items-center justify-center px-4 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                        </svg>
+                        Log Out All Other Sessions
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Sessions List -->
+        <div class="bg-white rounded-xl shadow divide-y divide-gray-200">
+            {% for session in sessions %}
+            <div class="p-6 {% if session.is_current_session %}bg-primary-light{% endif %}">
+                <div class="flex items-start justify-between">
+                    <div class="flex items-start flex-1">
+                        <!-- Device Icon -->
+                        <div class="p-3 bg-gray-100 rounded-lg">
+                            {% if session.device_type == 'mobile' %}
+                            <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                            </svg>
+                            {% elif session.device_type == 'tablet' %}
+                            <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                            </svg>
+                            {% else %}
+                            <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                            </svg>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Session Info -->
+                        <div class="ml-4">
+                            <div class="flex items-center space-x-2">
+                                <h3 class="text-lg font-semibold text-gray-900">
+                                    {{ session.get_device_display }}
+                                </h3>
+                                {% if session.is_current_session %}
+                                <span class="px-2 py-1 bg-primary text-white text-xs font-semibold rounded">
+                                    Current Session
+                                </span>
+                                {% endif %}
+                            </div>
+                            <div class="mt-1 space-y-1">
+                                <p class="text-sm text-gray-600">
+                                    <span class="font-medium">Location:</span> 
+                                    {{ session.get_location_display }}
+                                </p>
+                                <p class="text-sm text-gray-600">
+                                    <span class="font-medium">IP Address:</span> 
+                                    {{ session.ip_address }}
+                                </p>
+                                <p class="text-sm text-gray-600">
+                                    <span class="font-medium">Last Activity:</span> 
+                                    {{ session.last_activity|timesince }} ago
+                                </p>
+                                <p class="text-sm text-gray-600">
+                                    <span class="font-medium">Created:</span> 
+                                    {{ session.created_at|date:"M d, Y g:i A" }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Actions -->
+                    {% if not session.is_current_session %}
+                    <form method="post" action="{% url 'accounts:logout_session' session.id %}" onsubmit="return confirm('Log out from this session?');">
+                        {% csrf_token %}
+                        <button type="submit" 
+                                class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                            </svg>
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+            {% empty %}
+            <div class="p-12 text-center">
+                <svg class="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                </svg>
+                <p class="text-gray-600">No active sessions found.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,333 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Job Posting - HireSight{% endblock %}
+
+{% block extra_css %}
+<!-- Quill CSS -->
+<link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+<style>
+.quill-editor-container {
+    border: 1px solid #d1d5db;
+    border-radius: 0.75rem;
+    overflow: hidden;
+}
+.quill-editor-container .ql-toolbar {
+    border: none;
+    border-bottom: 1px solid #d1d5db;
+    background-color: #f9fafb;
+}
+.quill-editor-container .ql-container {
+    border: none;
+    font-family: inherit;
+}
+.quill-editor-container .ql-editor {
+    min-height: 200px;
+    padding: 1rem;
+}
+.quill-editor-container:focus-within {
+    ring: 2px;
+    ring-color: #0066FF;
+    border-color: #0066FF;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Quill JS -->
+<script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+{% include 'jobs/components/quill_editor.html' %}
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-gradient-to-r from-secondary via-primary to-purple text-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-display font-bold mb-2">Edit Job Posting</h1>
+                    <p class="text-white/90">Update your job posting details</p>
+                </div>
+                <div class="flex space-x-3">
+                    <a href="{% url 'jobs:detail' job.id %}" class="px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 text-white rounded-xl hover:bg-white/20 transition-all">
+                        View Job
+                    </a>
+                    <a href="{% url 'dashboard:home' %}" class="px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 text-white rounded-xl hover:bg-white/20 transition-all">
+                        ← Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <form method="post" enctype="multipart/form-data" class="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+            {% csrf_token %}
+
+            <!-- Job Status Banner -->
+            {% if job.is_active %}
+                <div class="bg-green-50 border-b border-green-200 px-8 py-4">
+                    <div class="flex items-center">
+                        <div class="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center mr-3">
+                            <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-green-800">This job is currently active and visible to candidates</p>
+                            <p class="text-xs text-green-600 mt-1">Posted {{ job.created_at|date:"M j, Y" }}</p>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <div class="bg-yellow-50 border-b border-yellow-200 px-8 py-4">
+                    <div class="flex items-center">
+                        <div class="w-5 h-5 bg-yellow-500 rounded-full flex items-center justify-center mr-3">
+                            <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-yellow-800">This job is currently inactive (draft or paused)</p>
+                            <p class="text-xs text-yellow-600 mt-1">Last updated {{ job.updated_at|date:"M j, Y" }}</p>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+            <div class="p-8">
+                <!-- Basic Information -->
+                <div class="mb-8">
+                    <h2 class="text-2xl font-display font-bold text-gray-900 mb-6">Basic Information</h2>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Job Title -->
+                        <div class="md:col-span-2">
+                            <label for="id_title" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Job Title <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" name="title" id="id_title" value="{{ job.title }}" required
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
+                        </div>
+
+                        <!-- Job Type -->
+                        <div>
+                            <label for="id_job_type" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Job Type <span class="text-red-500">*</span>
+                            </label>
+                            <select name="job_type" id="id_job_type" required
+                                    class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
+                                <option value="full-time" {% if job.job_type == 'full-time' %}selected{% endif %}>Full-time</option>
+                                <option value="part-time" {% if job.job_type == 'part-time' %}selected{% endif %}>Part-time</option>
+                                <option value="contract" {% if job.job_type == 'contract' %}selected{% endif %}>Contract</option>
+                                <option value="freelance" {% if job.job_type == 'freelance' %}selected{% endif %}>Freelance</option>
+                                <option value="internship" {% if job.job_type == 'internship' %}selected{% endif %}>Internship</option>
+                            </select>
+                        </div>
+
+                        <!-- Experience Level -->
+                        <div>
+                            <label for="id_experience_level" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Experience Level <span class="text-red-500">*</span>
+                            </label>
+                            <select name="experience_level" id="id_experience_level" required
+                                    class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
+                                <option value="entry" {% if job.experience_level == 'entry' %}selected{% endif %}>Entry Level</option>
+                                <option value="mid" {% if job.experience_level == 'mid' %}selected{% endif %}>Mid Level</option>
+                                <option value="senior" {% if job.experience_level == 'senior' %}selected{% endif %}>Senior Level</option>
+                                <option value="lead" {% if job.experience_level == 'lead' %}selected{% endif %}>Lead/Principal</option>
+                                <option value="executive" {% if job.experience_level == 'executive' %}selected{% endif %}>Executive</option>
+                            </select>
+                        </div>
+
+                        <!-- Location -->
+                        <div>
+                            <label for="id_location" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Location <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" name="location" id="id_location" value="{{ job.location }}" required
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
+                        </div>
+
+                        <!-- Salary Range -->
+                        <div>
+                            <label for="id_salary_min" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Salary Range (USD)
+                            </label>
+                            <div class="grid grid-cols-2 gap-3">
+                                <input type="number" name="salary_min" id="id_salary_min" value="{{ job.salary_min }}"
+                                       class="px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                                       placeholder="Min">
+                                <input type="number" name="salary_max" id="id_salary_max" value="{{ job.salary_max }}"
+                                       class="px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                                       placeholder="Max">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Job Description -->
+                <div class="mb-8">
+                    <h3 class="text-xl font-semibold text-gray-900 mb-4">Job Description</h3>
+
+                    <div class="space-y-6">
+                        <!-- Company Description -->
+                        <div>
+                            <label for="id_company_description" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Company Description
+                            </label>
+                            <textarea name="company_description" id="id_company_description" rows="4"
+                                      class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all resize-vertical">{{ job.company_description }}</textarea>
+                        </div>
+
+                        <!-- Job Description -->
+                        <div>
+                            <label for="id_description" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Job Description <span class="text-red-500">*</span>
+                            </label>
+                            <div class="quill-editor-container">
+                                <div id="description-editor" class="quill-editor"></div>
+                                <textarea name="description" id="id_description" style="display: none;">{{ job.description|striptags }}</textarea>
+                            </div>
+                        </div>
+
+                        <!-- Requirements -->
+                        <div>
+                            <label for="id_requirements" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Requirements <span class="text-red-500">*</span>
+                            </label>
+                            <textarea name="requirements" id="id_requirements" rows="6" required
+                                      class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all resize-vertical">{{ job.requirements }}</textarea>
+                        </div>
+
+                        <!-- Benefits -->
+                        <div>
+                            <label for="id_benefits" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Benefits & Perks
+                            </label>
+                            <textarea name="benefits" id="id_benefits" rows="4"
+                                      class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all resize-vertical">{{ job.benefits }}</textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Application Settings -->
+                <div class="mb-8">
+                    <h3 class="text-xl font-semibold text-gray-900 mb-4">Application Settings</h3>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Application Deadline -->
+                        <div>
+                            <label for="id_application_deadline" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Application Deadline
+                            </label>
+                            <input type="date" name="application_deadline" id="id_application_deadline"
+                                   value="{% if job.application_deadline %}{{ job.application_deadline|date:'Y-m-d' }}{% endif %}"
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
+                        </div>
+
+                        <!-- Contact Email -->
+                        <div>
+                            <label for="id_contact_email" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Contact Email
+                            </label>
+                            <input type="email" name="contact_email" id="id_contact_email" value="{{ job.contact_email }}"
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
+                        </div>
+                    </div>
+
+                    <!-- Additional Settings -->
+                    <div class="mt-6 space-y-4">
+                        <div class="flex items-center">
+                            <input type="checkbox" name="is_remote" id="id_is_remote" {% if job.is_remote %}checked{% endif %}
+                                   class="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded">
+                            <label for="id_is_remote" class="ml-2 block text-sm text-gray-700">
+                                This is a remote position
+                            </label>
+                        </div>
+
+                        <div class="flex items-center">
+                            <input type="checkbox" name="is_active" id="id_is_active" {% if job.is_active %}checked{% endif %}
+                                   class="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded">
+                            <label for="id_is_active" class="ml-2 block text-sm text-gray-700">
+                                Job is active and visible to candidates
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Screening Questions -->
+                <div class="mb-8">
+                    {% include 'jobs/components/screening_questions.html' %}
+                </div>
+
+                <!-- Form Actions -->
+                <div class="flex items-center justify-between pt-6 border-t border-gray-200">
+                    <div class="flex space-x-3">
+                        <a href="{% url 'jobs:detail' job.id %}"
+                           class="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-all">
+                            Cancel
+                        </a>
+                        {% if job.is_active %}
+                            <button type="button" onclick="pauseJob()"
+                                    class="px-6 py-3 border border-yellow-500 text-yellow-700 rounded-xl hover:bg-yellow-50 transition-all">
+                                Pause Job
+                            </button>
+                        {% else %}
+                            <button type="button" onclick="activateJob()"
+                                    class="px-6 py-3 border border-green-500 text-green-700 rounded-xl hover:bg-green-50 transition-all">
+                                Activate Job
+                            </button>
+                        {% endif %}
+                    </div>
+
+                    <div class="flex space-x-3">
+                        <button type="submit" name="save_draft" value="1"
+                                class="px-6 py-3 border border-primary text-primary rounded-xl hover:bg-primary hover:text-white transition-all">
+                            Save Changes
+                        </button>
+
+                        <button type="submit"
+                                class="px-6 py-3 bg-primary text-white rounded-xl font-semibold hover:bg-primary/90 transition-all shadow-lg hover:shadow-xl">
+                            Update Job
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function pauseJob() {
+    if (confirm('Are you sure you want to pause this job? It will no longer be visible to candidates.')) {
+        document.getElementById('id_is_active').checked = false;
+        document.forms[0].submit();
+    }
+}
+
+function activateJob() {
+    if (confirm('Are you sure you want to activate this job? It will become visible to candidates.')) {
+        document.getElementById('id_is_active').checked = true;
+        document.forms[0].submit();
+    }
+}
+
+// Auto-save functionality
+let autoSaveTimeout;
+function autoSave() {
+    clearTimeout(autoSaveTimeout);
+    autoSaveTimeout = setTimeout(() => {
+        // In a real implementation, this would auto-save changes
+        console.log('Auto-saving changes...');
+    }, 30000);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const inputs = document.querySelectorAll('input, textarea, select');
+    inputs.forEach(input => {
+        input.addEventListener('input', autoSave);
+    });
+});
+</script>
+{% endblock %}

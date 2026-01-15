@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Company Verification Approved</title>
+    <style>
+        :root {
+            --primary: #2C5F8D;
+            --primary-dark: #1a4063;
+            --success: #047857;
+            --text-dark: #1a1a1a;
+            --text-light: #525252;
+            --bg-light: #f9fafb;
+        }
+
+        body {
+            font-family: 'Outfit', -apple-system, 'Segoe UI', sans-serif;
+            background-color: #f5f7fa;
+            margin: 0;
+            padding: 0;
+            color: var(--text-dark);
+            line-height: 1.6;
+        }
+
+        .email-container {
+            max-width: 600px;
+            margin: 2rem auto;
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            padding: 2rem;
+            text-align: center;
+            color: white;
+        }
+
+        .logo {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            font-weight: 900;
+            margin: 0;
+            letter-spacing: -0.02em;
+        }
+
+        .content {
+            padding: 2rem;
+        }
+
+        .title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin: 0 0 1rem 0;
+        }
+
+        .subtitle {
+            font-size: 1.125rem;
+            color: var(--text-light);
+            margin: 0 0 2rem 0;
+        }
+
+        .highlight-box {
+            background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin: 2rem 0;
+            text-align: center;
+        }
+
+        .highlight-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .highlight-text {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .section {
+            margin: 2rem 0;
+        }
+
+        .section-title {
+            font-weight: 700;
+            color: var(--text-dark);
+            margin: 0 0 1rem 0;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--bg-light);
+        }
+
+        .section-content {
+            color: var(--text-light);
+            line-height: 1.7;
+        }
+
+        .benefits-list {
+            list-style: none;
+            padding: 0;
+            margin: 1rem 0 0 0;
+        }
+
+        .benefit-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem 0;
+        }
+
+        .benefit-icon {
+            width: 20px;
+            height: 20px;
+            background: var(--success);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .footer {
+            background: var(--bg-light);
+            padding: 1.5rem;
+            text-align: center;
+            font-size: 0.875rem;
+            color: var(--text-light);
+            border-top: 1px solid var(--bg-light);
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 1rem 2rem;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 1rem;
+            margin-top: 1rem;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(44, 95, 141, 0.3);
+        }
+
+        @media (max-width: 600px) {
+            .email-container {
+                margin: 0;
+                border-radius: 0;
+            }
+
+            .header {
+                padding: 1.5rem;
+            }
+
+            .content {
+                padding: 1.5rem;
+            }
+
+            .title {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">HireSight</div>
+        </div>
+
+        <!-- Content -->
+        <div class="content">
+            <h1 class="title">🎉 Your Company Has Been Verified!</h1>
+            <p class="subtitle">Congratulations! {{ company.company_name }} is now a verified company on HireSight.</p>
+
+            <!-- Highlight Box -->
+            <div class="highlight-box">
+                <div class="highlight-icon">✓</div>
+                <p class="highlight-text">Verification Complete</p>
+            </div>
+
+            <!-- Benefits Section -->
+            <div class="section">
+                <h3 class="section-title">Benefits of Being Verified</h3>
+                <div class="section-content">
+                    <p>Your verified status comes with several advantages:</p>
+                    <ul class="benefits-list">
+                        <li class="benefit-item">
+                            <span class="benefit-icon">✓</span>
+                            <span>Increased trust and credibility with job seekers</span>
+                        </li>
+                        <li class="benefit-item">
+                            <span class="benefit-icon">✓</span>
+                            <span>Priority placement in search results</span>
+                        </li>
+                        <li class="benefit-item">
+                            <span class="benefit-icon">✓</span>
+                            <span>Verified badge on your company profile</span>
+                        </li>
+                        <li class="benefit-item">
+                            <span class="benefit-icon">✓</span>
+                            <span>Higher response rates from qualified candidates</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Next Steps -->
+            <div class="section">
+                <h3 class="section-title">Next Steps</h3>
+                <div class="section-content">
+                    <p>Now that you're verified, you can:</p>
+                    <ul class="benefits-list">
+                        <li class="benefit-item">
+                            <span class="benefit-icon">•</span>
+                            <span>Post jobs and attract top talent</span>
+                        </li>
+                        <li class="benefit-item">
+                            <span class="benefit-icon">•</span>
+                            <span>Update your company profile with more details</span>
+                        </li>
+                        <li class="benefit-item">
+                            <span class="benefit-icon">•</span>
+                            <span>Engage with candidates through our platform</span>
+                        </li>
+                    </ul>
+                    <p style="margin-top: 1rem;">Thank you for completing the verification process. We're excited to have {{ company.company_name }} as a trusted partner on HireSight!</p>
+                </div>
+            </div>
+
+            <!-- CTA Button -->
+            <div style="text-align: center; margin-top: 2rem;">
+                <a href="{{ request.scheme }}://{{ request.get_host }}{% url 'accounts:profile' %}" class="btn">
+                    View Your Profile
+                </a>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>© {{ now|date:"Y" }} HireSight. All rights reserved.</p>
+            <p style="margin-top: 0.5rem; font-size: 0.8125rem;">
+                This is an automated message. Please do not reply to this email.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

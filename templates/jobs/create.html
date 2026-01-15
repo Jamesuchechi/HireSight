@@ -1,0 +1,387 @@
+{% extends 'base.html' %}
+
+{% block title %}Create Job Posting - HireSight{% endblock %}
+
+{% block extra_css %}
+<!-- Quill CSS -->
+<link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+<style>
+.quill-editor-container {
+    border: 1px solid #d1d5db;
+    border-radius: 0.75rem;
+    overflow: hidden;
+}
+.quill-editor-container .ql-toolbar {
+    border: none;
+    border-bottom: 1px solid #d1d5db;
+    background-color: #f9fafb;
+}
+.quill-editor-container .ql-container {
+    border: none;
+    font-family: inherit;
+}
+.quill-editor-container .ql-editor {
+    min-height: 200px;
+    padding: 1rem;
+}
+.quill-editor-container:focus-within {
+    ring: 2px;
+    ring-color: #0066FF;
+    border-color: #0066FF;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Quill JS -->
+<script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+{% include 'jobs/components/quill_editor.html' %}
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-gradient-to-r from-secondary via-primary to-purple text-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-display font-bold mb-2">Create Job Posting</h1>
+                    <p class="text-white/90">Post a new job and find the perfect candidate</p>
+                </div>
+                <a href="{% url 'jobs:manage' %}" class="px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 text-white rounded-xl hover:bg-white/20 transition-all">
+                    ← Back to Manage Jobs
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <form method="post" enctype="multipart/form-data" class="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+            {% csrf_token %}
+
+            <!-- Display Form Errors -->
+            {% if form.errors %}
+                <div class="bg-red-50 border-l-4 border-red-500 p-4 m-6">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-red-800">There were errors with your submission:</h3>
+                            <div class="mt-2 text-sm text-red-700">
+                                <ul class="list-disc list-inside space-y-1">
+                                    {% for field, errors in form.errors.items %}
+                                        {% for error in errors %}
+                                            <li>{{ field }}: {{ error }}</li>
+                                        {% endfor %}
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+            <div class="p-8">
+                <!-- Basic Information -->
+                <div class="mb-8">
+                    <h2 class="text-2xl font-display font-bold text-gray-900 mb-6">Basic Information</h2>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Job Title -->
+                        <div class="md:col-span-2">
+                            <label for="{{ form.title.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Job Title <span class="text-red-500">*</span>
+                            </label>
+                            {{ form.title }}
+                            {% if form.title.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.title.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Employment Type -->
+                        <div>
+                            <label for="{{ form.employment_type.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Employment Type <span class="text-red-500">*</span>
+                            </label>
+                            {{ form.employment_type }}
+                            {% if form.employment_type.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.employment_type.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Experience Level -->
+                        <div>
+                            <label for="{{ form.experience_level.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Experience Level <span class="text-red-500">*</span>
+                            </label>
+                            {{ form.experience_level }}
+                            {% if form.experience_level.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.experience_level.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Location -->
+                        <div>
+                            <label for="{{ form.location.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Location <span class="text-red-500">*</span>
+                            </label>
+                            {{ form.location }}
+                            {% if form.location.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.location.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Remote Type -->
+                        <div>
+                            <label for="{{ form.remote_type.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Remote Type
+                            </label>
+                            {{ form.remote_type }}
+                            {% if form.remote_type.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.remote_type.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Department -->
+                        <div class="md:col-span-2">
+                            <label for="{{ form.department.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Department
+                            </label>
+                            <input type="text" name="department" id="{{ form.department.id_for_label }}"
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                                   placeholder="e.g. Engineering, Marketing">
+                            {% if form.department.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.department.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Salary Range -->
+                        <div>
+                            <label for="{{ form.salary_min.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Minimum Salary
+                            </label>
+                            {{ form.salary_min }}
+                            {% if form.salary_min.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.salary_min.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <div>
+                            <label for="{{ form.salary_max.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Maximum Salary
+                            </label>
+                            {{ form.salary_max }}
+                            {% if form.salary_max.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.salary_max.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Salary Period -->
+                        <div>
+                            <label for="{{ form.salary_period.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Salary Period
+                            </label>
+                            {{ form.salary_period }}
+                            {% if form.salary_period.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.salary_period.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Positions Available -->
+                        <div>
+                            <label for="{{ form.positions_available.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Positions Available
+                            </label>
+                            {{ form.positions_available }}
+                            {% if form.positions_available.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.positions_available.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Job Description -->
+                <div class="mb-8">
+                    <h3 class="text-xl font-semibold text-gray-900 mb-4">Job Description</h3>
+
+                    <div class="space-y-6">
+                        <!-- Description -->
+                        <div>
+                            <label for="{{ form.description.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Job Description <span class="text-red-500">*</span>
+                            </label>
+                            <div class="quill-editor-container">
+                                <div id="description-editor" class="quill-editor"></div>
+                                {{ form.description }}
+                            </div>
+                            {% if form.description.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.description.errors.0 }}</p>
+                            {% endif %}
+                            <p class="mt-1 text-xs text-gray-500">Minimum 100 characters required</p>
+                        </div>
+
+                        <!-- Responsibilities -->
+                        <div>
+                            <label for="{{ form.responsibilities.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Responsibilities
+                            </label>
+                            {{ form.responsibilities }}
+                            {% if form.responsibilities.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.responsibilities.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Requirements -->
+                        <div>
+                            <label for="{{ form.requirements_text.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Requirements
+                            </label>
+                            {{ form.requirements_text }}
+                            {% if form.requirements_text.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.requirements_text.errors.0 }}</p>
+                            {% endif %}
+                            <p class="mt-1 text-xs text-gray-500">{{ form.requirements_text.help_text }}</p>
+                        </div>
+
+                        <!-- Nice to Have -->
+                        <div>
+                            <label for="{{ form.nice_to_have.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Nice-to-Have Qualifications
+                            </label>
+                            {{ form.nice_to_have }}
+                            {% if form.nice_to_have.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.nice_to_have.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Benefits -->
+                        <div>
+                            <label for="{{ form.benefits.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Benefits & Perks
+                            </label>
+                            {{ form.benefits }}
+                            {% if form.benefits.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.benefits.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Tags -->
+                        <div>
+                            <label for="{{ form.tags_text.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Skills & Tags
+                            </label>
+                            {{ form.tags_text }}
+                            {% if form.tags_text.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.tags_text.errors.0 }}</p>
+                            {% endif %}
+                            <p class="mt-1 text-xs text-gray-500">{{ form.tags_text.help_text }}</p>
+                        </div>
+
+                        <!-- Education Required -->
+                        <div>
+                            <label for="{{ form.education_required.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Education Required
+                            </label>
+                            <input type="text" name="education_required" id="{{ form.education_required.id_for_label }}"
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                                   placeholder="e.g. Bachelor's degree in Computer Science">
+                            {% if form.education_required.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.education_required.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Application Settings -->
+                <div class="mb-8">
+                    <h3 class="text-xl font-semibold text-gray-900 mb-4">Application Settings</h3>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Application Deadline -->
+                        <div>
+                            <label for="{{ form.application_deadline.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Application Deadline
+                            </label>
+                            {{ form.application_deadline }}
+                            {% if form.application_deadline.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.application_deadline.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Application Email -->
+                        <div>
+                            <label for="{{ form.application_email.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Application Email
+                            </label>
+                            {{ form.application_email }}
+                            {% if form.application_email.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.application_email.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Checkboxes -->
+                    <div class="mt-6 space-y-4">
+                        <div class="flex items-center">
+                            {{ form.is_remote }}
+                            <label for="{{ form.is_remote.id_for_label }}" class="ml-2 block text-sm text-gray-700">
+                                This is a remote position
+                            </label>
+                        </div>
+
+                        <div class="flex items-center">
+                            {{ form.requires_cover_letter }}
+                            <label for="{{ form.requires_cover_letter.id_for_label }}" class="ml-2 block text-sm text-gray-700">
+                                Require cover letter
+                            </label>
+                        </div>
+
+                        <div class="flex items-center">
+                            {{ form.requires_portfolio }}
+                            <label for="{{ form.requires_portfolio.id_for_label }}" class="ml-2 block text-sm text-gray-700">
+                                Require portfolio
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Screening Questions -->
+                <div class="mb-8">
+                    {% include 'jobs/components/screening_questions.html' %}
+                </div>
+
+                <!-- Status -->
+                <div class="mb-8">
+                    <h3 class="text-xl font-semibold text-gray-900 mb-4">Publication Status</h3>
+                    <div>
+                        <label for="{{ form.status.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+                            Job Status
+                        </label>
+                        {{ form.status }}
+                        {% if form.status.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.status.errors.0 }}</p>
+                        {% endif %}
+                        <p class="mt-1 text-xs text-gray-500">Choose "Active" to publish immediately or "Draft" to save for later</p>
+                    </div>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="flex items-center justify-between pt-6 border-t border-gray-200">
+                    <a href="{% url 'jobs:manage' %}"
+                       class="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-all">
+                        Cancel
+                    </a>
+
+                    <button type="submit"
+                            class="px-8 py-3 bg-primary text-white rounded-xl font-semibold hover:bg-primary/90 transition-all shadow-lg hover:shadow-xl">
+                        Create Job Posting
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,208 @@
+{% extends 'base.html' %}
+
+{% block title %}Bulk Actions - HireSight{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-gradient-to-r from-primary via-secondary to-purple text-white shadow-sm">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-display font-bold">Bulk Actions</h1>
+                    <p class="text-white/90 mt-1">Perform actions on multiple applications at once</p>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <a href="{% url 'applications:manage' %}" class="px-4 py-2 bg-white/15 border border-white/25 rounded-xl text-white font-semibold hover:bg-white/25 transition-colors inline-flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                        </svg>
+                        Back to Applications
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+            <form method="post" action="{% url 'applications:bulk_action' %}">
+                {% csrf_token %}
+
+                <!-- Selected Applications -->
+                <div class="mb-8">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Selected Applications</h3>
+                    <div class="space-y-3">
+                        {% for app_id in application_ids %}
+                        <input type="hidden" name="application_ids" value="{{ app_id }}">
+                        {% with application=applications|get_item:app_id %}
+                        <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                            <div class="flex items-center space-x-4">
+                                {% if application.applicant.personalprofile.avatar %}
+                                <img src="{{ application.applicant.personalprofile.avatar.url }}" alt="{{ application.applicant.get_full_name }}" class="w-10 h-10 rounded-full">
+                                {% else %}
+                                <div class="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center text-white text-sm font-bold">
+                                    {{ application.applicant.personalprofile.full_name|slice:":1" }}
+                                </div>
+                                {% endif %}
+                                <div>
+                                    <div class="text-sm font-semibold text-gray-900">{{ application.applicant.personalprofile.full_name }}</div>
+                                    <div class="text-sm text-gray-500">{{ application.job.title }}</div>
+                                </div>
+                            </div>
+                            <span class="px-3 py-1 text-xs font-semibold rounded-full
+                                {% if application.status == 'pending' %}bg-yellow-100 text-yellow-800
+                                {% elif application.status == 'screening' %}bg-blue-100 text-blue-800
+                                {% elif application.status == 'interview' %}bg-purple-100 text-purple-800
+                                {% elif application.status == 'offer' %}bg-green-100 text-green-800
+                                {% elif application.status == 'hired' %}bg-green-100 text-green-800
+                                {% elif application.status == 'rejected' %}bg-red-100 text-red-800
+                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {{ application.get_status_display }}
+                            </span>
+                        </div>
+                        {% endwith %}
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Action Selection -->
+                <div class="mb-8">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Choose Action</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="flex items-center">
+                                <input type="radio" name="action" value="shortlist" class="text-primary focus:ring-primary" checked>
+                                <span class="ml-3 text-sm font-medium text-gray-700">Add to Shortlist</span>
+                            </label>
+                            <p class="ml-6 text-sm text-gray-500">Mark selected applications as shortlisted</p>
+                        </div>
+
+                        <div>
+                            <label class="flex items-center">
+                                <input type="radio" name="action" value="unshortlist" class="text-primary focus:ring-primary">
+                                <span class="ml-3 text-sm font-medium text-gray-700">Remove from Shortlist</span>
+                            </label>
+                            <p class="ml-6 text-sm text-gray-500">Remove shortlist status from selected applications</p>
+                        </div>
+
+                        <div>
+                            <label class="flex items-center">
+                                <input type="radio" name="action" value="status" class="text-primary focus:ring-primary" id="status_radio">
+                                <span class="ml-3 text-sm font-medium text-gray-700">Update Status</span>
+                            </label>
+                            <p class="ml-6 text-sm text-gray-500">Change status for all selected applications</p>
+                            <div class="ml-6 mt-2 hidden" id="status_select">
+                                <select name="new_status" class="form-select rounded-md border-gray-300 focus:border-primary focus:ring-primary">
+                                    <option value="pending">Pending Review</option>
+                                    <option value="screening">Under Screening</option>
+                                    <option value="interview">Interview Scheduled</option>
+                                    <option value="offer">Offer Extended</option>
+                                    <option value="rejected">Rejected</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="flex items-center">
+                                <input type="radio" name="action" value="rating" class="text-primary focus:ring-primary" id="rating_radio">
+                                <span class="ml-3 text-sm font-medium text-gray-700">Set Rating</span>
+                            </label>
+                            <p class="ml-6 text-sm text-gray-500">Assign a rating to selected applications</p>
+                            <div class="ml-6 mt-2 hidden" id="rating_select">
+                                <select name="rating" class="form-select rounded-md border-gray-300 focus:border-primary focus:ring-primary">
+                                    <option value="1">1 Star</option>
+                                    <option value="2">2 Stars</option>
+                                    <option value="3">3 Stars</option>
+                                    <option value="4">4 Stars</option>
+                                    <option value="5">5 Stars</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="flex items-center">
+                                <input type="radio" name="action" value="tag" class="text-primary focus:ring-primary" id="tag_radio">
+                                <span class="ml-3 text-sm font-medium text-gray-700">Add Tag</span>
+                            </label>
+                            <p class="ml-6 text-sm text-gray-500">Add a custom tag to selected applications</p>
+                            <div class="ml-6 mt-2 hidden" id="tag_input">
+                                <input type="text" name="tag" placeholder="Enter tag name" class="form-input rounded-md border-gray-300 focus:border-primary focus:ring-primary">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="flex items-center">
+                                <input type="radio" name="action" value="remove_tag" class="text-primary focus:ring-primary" id="remove_tag_radio">
+                                <span class="ml-3 text-sm font-medium text-gray-700">Remove Tag</span>
+                            </label>
+                            <p class="ml-6 text-sm text-gray-500">Remove a tag from selected applications</p>
+                            <div class="ml-6 mt-2 hidden" id="remove_tag_input">
+                                <input type="text" name="tag" placeholder="Enter tag name to remove" class="form-input rounded-md border-gray-300 focus:border-primary focus:ring-primary">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="flex items-center">
+                                <input type="radio" name="action" value="delete" class="text-red-600 focus:ring-red-600">
+                                <span class="ml-3 text-sm font-medium text-red-700">Delete Applications</span>
+                            </label>
+                            <p class="ml-6 text-sm text-red-600">Permanently delete selected applications (cannot be undone)</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex items-center justify-end space-x-4">
+                    <a href="{% url 'applications:manage' %}" class="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-colors">
+                        Cancel
+                    </a>
+                    <button type="submit" class="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all">
+                        Apply Action
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Show/hide conditional fields based on selected action
+    const statusRadio = document.getElementById('status_radio');
+    const ratingRadio = document.getElementById('rating_radio');
+    const tagRadio = document.getElementById('tag_radio');
+    const removeTagRadio = document.getElementById('remove_tag_radio');
+
+    const statusSelect = document.getElementById('status_select');
+    const ratingSelect = document.getElementById('rating_select');
+    const tagInput = document.getElementById('tag_input');
+    const removeTagInput = document.getElementById('remove_tag_input');
+
+    function toggleFields() {
+        statusSelect.classList.add('hidden');
+        ratingSelect.classList.add('hidden');
+        tagInput.classList.add('hidden');
+        removeTagInput.classList.add('hidden');
+
+        if (statusRadio.checked) {
+            statusSelect.classList.remove('hidden');
+        } else if (ratingRadio.checked) {
+            ratingSelect.classList.remove('hidden');
+        } else if (tagRadio.checked) {
+            tagInput.classList.remove('hidden');
+        } else if (removeTagRadio.checked) {
+            removeTagInput.classList.remove('hidden');
+        }
+    }
+
+    statusRadio.addEventListener('change', toggleFields);
+    ratingRadio.addEventListener('change', toggleFields);
+    tagRadio.addEventListener('change', toggleFields);
+    removeTagRadio.addEventListener('change', toggleFields);
+
+    // Initialize
+    toggleFields();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,99 @@
+{% load static %}
+<div id="compose-modal" class="fixed inset-0 z-50 hidden overflow-auto px-4 py-10" aria-hidden="true">
+    <div class="relative mx-auto max-w-3xl rounded-2xl bg-white shadow-2xl ring-1 ring-black/10">
+        <div class="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+            <div>
+                <p class="text-lg font-semibold text-gray-900">New Message</p>
+                <p class="text-sm text-gray-500">Send a quick message without leaving this page.</p>
+            </div>
+            <button type="button" data-close-compose class="rounded-full bg-gray-100 p-2 text-gray-600 hover:text-gray-900">
+                <span class="sr-only">Close</span>
+                <svg class="h-5 w-5" viewBox="0 0 20 20" fill="none" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 6l8 8m0-8L6 14"/>
+                </svg>
+            </button>
+        </div>
+
+        <form action="{% url 'messaging:compose' %}" method="post" class="space-y-5 px-6 py-6" novalidate data-draft-form data-draft-key="messaging-compose-draft">
+            {% csrf_token %}
+            <div>
+                <label class="text-sm font-medium text-gray-700" for="{{ compose_form.recipient.id_for_label }}">Recipient</label>
+                {{ compose_form.recipient }}
+            </div>
+
+            <div>
+                <label class="text-sm font-medium text-gray-700" for="{{ compose_form.subject.id_for_label }}">Subject (optional)</label>
+                {{ compose_form.subject }}
+            </div>
+
+            <div>
+                <label class="text-sm font-medium text-gray-700" for="{{ compose_form.content.id_for_label }}">Message</label>
+                {{ compose_form.content }}
+            </div>
+
+            {% if request.user.account_type == 'company' and template_options %}
+                <div>
+                    <label class="text-sm font-medium text-gray-700" for="compose-template-select">Quick template</label>
+                    <select id="compose-template-select" data-template-select class="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 focus:border-blue-500 focus:outline-none">
+                        <option value="">Select a template</option>
+                        {% for template in template_options %}
+                            <option value="{{ template.id }}">{{ template.name }} — {{ template.get_category_display }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            {% endif %}
+
+            <div class="flex items-center justify-between border-t border-gray-100 pt-4">
+                <a href="{% url 'messaging:compose' %}" class="text-sm text-gray-500 hover:text-gray-900">Open full composer</a>
+                <div class="flex items-center gap-3">
+                    <button type="button" data-close-compose class="rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Cancel</button>
+                    <button type="submit" class="rounded-full bg-blue-600 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700">Send message</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+<div id="compose-modal-backdrop" class="fixed inset-0 z-40 hidden bg-black/40 backdrop-blur-sm" aria-hidden="true"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const modal = document.getElementById('compose-modal');
+    const backdrop = document.getElementById('compose-modal-backdrop');
+    const openTriggers = document.querySelectorAll('[data-open-compose-modal]');
+    const closeTriggers = document.querySelectorAll('[data-close-compose]');
+
+    function showModal() {
+        modal.classList.remove('hidden');
+        backdrop.classList.remove('hidden');
+        modal.setAttribute('aria-hidden', 'false');
+    }
+
+    function hideModal() {
+        modal.classList.add('hidden');
+        backdrop.classList.add('hidden');
+        modal.setAttribute('aria-hidden', 'true');
+    }
+
+    openTriggers.forEach(btn => {
+        btn.addEventListener('click', function (event) {
+            event.preventDefault();
+            showModal();
+        });
+    });
+
+    closeTriggers.forEach(btn => btn.addEventListener('click', function (event) {
+        event.preventDefault();
+        hideModal();
+    }));
+
+    backdrop.addEventListener('click', hideModal);
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            hideModal();
+        }
+    });
+});
+</script>
+
+{% include 'messaging/_template_loader_script.html' %}
+{% include 'messaging/_compose_draft_script.html' %}

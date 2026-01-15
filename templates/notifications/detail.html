@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ notification.title }} · Notifications{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">{{ notification.title }}</h1>
+                <p class="text-sm text-gray-500 mt-1">{{ notification.created_at|date:"F j, Y \\a\\t g:i A" }}</p>
+            </div>
+            <a href="{% url 'notifications:list' %}"
+               class="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-white">
+                ← Back to notifications
+            </a>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden">
+            <div class="flex flex-col gap-6 px-6 py-8">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-xl flex items-center justify-center text-white
+                                {% if notification.notification_type == 'application' %}
+                                    bg-blue-600
+                                {% elif notification.notification_type == 'message' %}
+                                    bg-emerald-600
+                                {% elif notification.notification_type == 'job' %}
+                                    bg-purple-600
+                                {% else %}
+                                    bg-gray-600
+                                {% endif %}">
+                        {% if notification.notification_type == 'application' %}
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                        {% elif notification.notification_type == 'message' %}
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                            </svg>
+                        {% elif notification.notification_type == 'job' %}
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                            </svg>
+                        {% else %}
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <p class="text-sm uppercase tracking-wide text-gray-500">Type: {{ notification.notification_type|capfirst }}</p>
+                        <p class="text-sm text-gray-500">
+                            Status:
+                            {% if notification.is_read %}
+                                <span class="px-2 py-1 rounded-full bg-gray-100 text-gray-600 text-xs uppercase tracking-wide">Read</span>
+                            {% else %}
+                                <span class="px-2 py-1 rounded-full bg-primary/15 text-primary text-xs uppercase tracking-wide">Unread</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="ml-auto flex items-center gap-2">
+                        <form method="post" action="{% url 'notifications:toggle_read' notification.pk %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="next" value="{% url 'notifications:detail' notification.pk %}">
+                            <button type="submit" class="text-sm font-semibold text-primary hover:underline">
+                                {% if notification.is_read %}Mark as unread{% else %}Mark as read{% endif %}
+                            </button>
+                        </form>
+                        <form method="post" action="{% url 'notifications:delete_notification' notification.pk %}"
+                              onsubmit="return confirm('Delete this notification?');">
+                            {% csrf_token %}
+                            <input type="hidden" name="next" value="{% url 'notifications:list' %}">
+                            <button type="submit" class="text-sm font-semibold text-danger hover:underline">
+                                Delete
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="text-gray-700 leading-relaxed">
+                    <p class="text-base">{{ notification.message }}</p>
+                </div>
+
+                {% if notification.action_url %}
+                    <div class="flex flex-wrap items-center gap-3">
+                        <a href="{{ notification.action_url }}"
+                           class="px-5 py-3 bg-primary text-white rounded-full font-semibold text-sm shadow-lg hover:bg-primary/90 transition">
+                            {{ notification.action_text|default:"Go to link" }}
+                        </a>
+                        {% if notification.related_object_id %}
+                            <span class="text-xs text-gray-500 uppercase tracking-wide">Ref: {{ notification.related_object_id }}</span>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

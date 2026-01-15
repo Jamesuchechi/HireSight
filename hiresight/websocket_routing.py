@@ -1,0 +1,57 @@
+"""
+WebSocket URL routing configuration for Django Channels.
+Maps WebSocket endpoints to consumer classes.
+"""
+
+from django.urls import re_path
+from apps.messaging import consumers as messaging_consumers
+from apps.screening import websocket_consumers
+
+# WebSocket URL patterns
+websocket_urlpatterns = [
+    # Screening progress updates
+    re_path(
+        r'ws/screening/(?P<screening_id>\w+)/$',
+        websocket_consumers.ScreeningProgressConsumer.as_asgi(),
+        name='ws_screening_progress'
+    ),
+    
+    # AI insights real-time updates
+    re_path(
+        r'ws/ai-insights/(?P<application_id>\w+)/$',
+        websocket_consumers.AIInsightConsumer.as_asgi(),
+        name='ws_ai_insights'
+    ),
+    
+    # Notifications for authenticated users
+    re_path(
+        r'ws/notifications/$',
+        websocket_consumers.NotificationConsumer.as_asgi(),
+        name='ws_notifications'
+    ),
+    
+    # Application status updates
+    re_path(
+        r'ws/application/(?P<application_id>\w+)/$',
+        websocket_consumers.ApplicationStatusConsumer.as_asgi(),
+        name='ws_application_status'
+    ),
+    
+    # Bulk operations progress
+    re_path(
+        r'ws/bulk-operation/(?P<operation_id>\w+)/$',
+        websocket_consumers.BulkOperationConsumer.as_asgi(),
+        name='ws_bulk_operation'
+    ),
+
+    re_path(
+        r'ws/messaging/conversation/(?P<conversation_id>\w+)/$',
+        messaging_consumers.ConversationConsumer.as_asgi(),
+        name='ws_conversation'
+    ),
+    re_path(
+        r'ws/messaging/unread/$',
+        messaging_consumers.UnreadConsumer.as_asgi(),
+        name='ws_unread'
+    ),
+]

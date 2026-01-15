@@ -1,0 +1,200 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Import Resume - HireSight{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900">Import Resume</h1>
+                    <p class="mt-2 text-gray-600">Upload your resume to automatically populate your profile with extracted information.</p>
+                </div>
+                <a href="{% url 'accounts:profile' %}" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                    </svg>
+                    Back to Profile
+                </a>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="bg-white shadow rounded-lg">
+            <div class="px-6 py-8">
+                <form method="post" enctype="multipart/form-data" class="space-y-6">
+                    {% csrf_token %}
+
+                    <!-- File Upload -->
+                    <div>
+                        <label for="{{ form.resume_file.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Resume File
+                        </label>
+                        <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-gray-400 transition-colors">
+                            <div class="space-y-1 text-center">
+                                <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                                </svg>
+                                <div class="flex text-sm text-gray-600">
+                                    <label for="{{ form.resume_file.id_for_label }}" class="relative cursor-pointer bg-white rounded-md font-medium text-blue hover:text-blue-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue">
+                                        <span>Upload a file</span>
+                                        {{ form.resume_file }}
+                                    </label>
+                                    <p class="pl-1">or drag and drop</p>
+                                </div>
+                                <p class="text-xs text-gray-500">
+                                    PDF, DOCX, or TXT up to 10MB
+                                </p>
+                            </div>
+                        </div>
+                        {% if form.resume_file.errors %}
+                            <p class="mt-2 text-sm text-red-600">{{ form.resume_file.errors.0 }}</p>
+                        {% endif %}
+                        {% if form.resume_file.help_text %}
+                            <p class="mt-2 text-sm text-gray-500">{{ form.resume_file.help_text }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Import Options -->
+                    <div>
+                        <fieldset>
+                            <legend class="text-sm font-medium text-gray-700 mb-3">What to Import</legend>
+                            <div class="space-y-3">
+                                {{ form.import_options }}
+                            </div>
+                            {% if form.import_options.errors %}
+                                <p class="mt-2 text-sm text-red-600">{{ form.import_options.errors.0 }}</p>
+                            {% endif %}
+                            {% if form.import_options.help_text %}
+                                <p class="mt-2 text-sm text-gray-500">{{ form.import_options.help_text }}</p>
+                            {% endif %}
+                        </fieldset>
+                    </div>
+
+                    <!-- Merge Strategy -->
+                    <div>
+                        <fieldset>
+                            <legend class="text-sm font-medium text-gray-700 mb-3">Import Strategy</legend>
+                            <div class="space-y-3">
+                                {{ form.merge_strategy }}
+                            </div>
+                            {% if form.merge_strategy.errors %}
+                                <p class="mt-2 text-sm text-red-600">{{ form.merge_strategy.errors.0 }}</p>
+                            {% endif %}
+                            {% if form.merge_strategy.help_text %}
+                                <p class="mt-2 text-sm text-gray-500">{{ form.merge_strategy.help_text }}</p>
+                            {% endif %}
+                        </fieldset>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="flex justify-end">
+                        <button type="submit" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue transition-colors">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                            </svg>
+                            Import Resume
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Preview Section (shown when preview mode is selected) -->
+                {% if preview_data %}
+                <div class="mt-8 border-t border-gray-200 pt-8">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Preview Changes</h3>
+
+                    <div class="bg-gray-50 rounded-lg p-6">
+                        <div class="space-y-6">
+                            {% for field, changes in preview_data.items %}
+                                {% if changes %}
+                                    <div>
+                                        <h4 class="text-sm font-medium text-gray-700 capitalize mb-2">{{ field }}</h4>
+                                        <div class="bg-white rounded border p-4">
+                                            {% if changes.added %}
+                                                <div class="mb-3">
+                                                    <span class="text-green-600 font-medium">Added:</span>
+                                                    <ul class="mt-1 list-disc list-inside text-sm text-gray-600">
+                                                        {% for item in changes.added %}
+                                                            <li>{{ item }}</li>
+                                                        {% endfor %}
+                                                    </ul>
+                                                </div>
+                                            {% endif %}
+
+                                            {% if changes.modified %}
+                                                <div class="mb-3">
+                                                    <span class="text-blue-600 font-medium">Modified:</span>
+                                                    <ul class="mt-1 list-disc list-inside text-sm text-gray-600">
+                                                        {% for item in changes.modified %}
+                                                            <li>{{ item }}</li>
+                                                        {% endfor %}
+                                                    </ul>
+                                                </div>
+                                            {% endif %}
+
+                                            {% if changes.removed %}
+                                                <div class="mb-3">
+                                                    <span class="text-red-600 font-medium">Removed:</span>
+                                                    <ul class="mt-1 list-disc list-inside text-sm text-gray-600">
+                                                        {% for item in changes.removed %}
+                                                            <li>{{ item }}</li>
+                                                        {% endfor %}
+                                                    </ul>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+
+                        <div class="mt-6 flex justify-end space-x-3">
+                            <a href="{% url 'accounts:import_resume' %}" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue">
+                                Cancel
+                            </a>
+                            <button type="submit" form="confirm-import" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue">
+                                Confirm Import
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Help Section -->
+        <div class="mt-8 bg-blue-50 rounded-lg p-6">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-blue-800">Resume Import Tips</h3>
+                    <div class="mt-2 text-sm text-blue-700">
+                        <ul class="list-disc list-inside space-y-1">
+                            <li>Upload PDF, DOCX, or plain text files for best results</li>
+                            <li>Ensure your resume has clear sections (Experience, Education, Skills, etc.)</li>
+                            <li>Review the preview before confirming changes</li>
+                            <li>You can always edit your profile manually after import</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden form for confirming preview import -->
+{% if preview_data %}
+<form id="confirm-import" method="post" enctype="multipart/form-data" style="display: none;">
+    {% csrf_token %}
+    <input type="hidden" name="confirm_preview" value="true">
+</form>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,48 @@
+{% url 'messaging:use_template' 0 as messaging_template_base_url %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const templateSelectors = document.querySelectorAll('[data-template-select]');
+
+    async function applyTemplate(select) {
+        const templateId = select.value;
+        if (!templateId) {
+            return;
+        }
+
+        const form = select.closest('form');
+        if (!form) {
+            return;
+        }
+
+        const subjectInput = form.querySelector('input[name="subject"]');
+        const contentInput = form.querySelector('textarea[name="content"]');
+        const url = "{{ messaging_template_base_url }}".replace('0', templateId);
+
+        try {
+            const response = await fetch(url, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+            if (!response.ok) {
+                throw new Error('Unable to load template');
+            }
+            const data = await response.json();
+            if (subjectInput && data.subject) {
+                subjectInput.value = data.subject;
+            }
+            if (contentInput && data.content) {
+                contentInput.value = data.content;
+            }
+        } catch (error) {
+            console.error('Template load failed', error);
+        }
+    }
+
+    templateSelectors.forEach(select => {
+        select.addEventListener('change', function () {
+            applyTemplate(this);
+        });
+    });
+});
+</script>

@@ -1,0 +1,134 @@
+{% load static %}
+
+<!-- Screening Progress Monitor Component -->
+<div class="screening-progress" id="screening-progress-{{ screening_id }}">
+    <div class="screening-progress-content">
+        <h3>
+            <span class="status-indicator connected"></span>
+            Screening in Progress
+        </h3>
+        
+        <!-- Progress Bar -->
+        <div class="progress">
+            <div class="progress-bar" 
+                 role="progressbar" 
+                 style="width: 0%" 
+                 aria-valuenow="0" 
+                 aria-valuemin="0" 
+                 aria-valuemax="100">
+                <span id="progress-text-{{ screening_id }}">0%</span>
+            </div>
+        </div>
+        
+        <!-- Event Log -->
+        <div class="event-log" id="event-log-{{ screening_id }}">
+            <div class="event-item">
+                <span class="event-time">{{ now|time:"H:i:s" }}</span>
+                <span class="event-description">Waiting for screening to start...</span>
+            </div>
+        </div>
+        
+        <!-- Action Buttons -->
+        <div class="button-group" style="margin-top: 1rem;">
+            <button type="button" 
+                    class="btn btn-sm btn-secondary" 
+                    id="refresh-btn-{{ screening_id }}"
+                    onclick="screeningMonitor_{{ screening_id }}.requestRefresh()">
+                <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+            <button type="button" 
+                    class="btn btn-sm btn-danger" 
+                    id="cancel-btn-{{ screening_id }}"
+                    style="display: none;">
+                <i class="fas fa-stop"></i> Cancel
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Notifications Container -->
+<div id="notification-container" class="notifications notifications-top-right"></div>
+
+<!-- Connection Status -->
+<div class="connection-status" id="connection-status">
+    <span class="status-indicator connected"></span>
+    <span id="connection-text">Connected</span>
+</div>
+
+<script src="{% static 'js/websocket-manager.js' %}"></script>
+<link rel="stylesheet" href="{% static 'css/websocket-ui.css' %}">
+
+<script>
+// Initialize WebSocket Manager
+const wsManager = new WebSocketManager({
+    onConnect: function(id) {
+        console.log('WebSocket connected:', id);
+        updateConnectionStatus('Connected', true);
+    },
+    onDisconnect: function(id) {
+        console.log('WebSocket disconnected:', id);
+        updateConnectionStatus('Disconnected', false);
+    },
+    onError: function(id, error) {
+        console.error('WebSocket error:', id, error);
+        updateConnectionStatus('Connection Error', false);
+    }
+});
+
+// Update connection status indicator
+function updateConnectionStatus(text, connected) {
+    const statusEl = document.getElementById('connection-status');
+    const textEl = document.getElementById('connection-text');
+    const indicator = statusEl.querySelector('.status-indicator');
+    
+    textEl.textContent = text;
+    indicator.className = 'status-indicator ' + (connected ? 'connected' : 'disconnected');
+    statusEl.className = 'connection-status ' + (connected ? 'connected' : 'disconnected');
+}
+
+// Initialize Screening Progress Monitor
+{% if screening_id %}
+const screeningMonitor_{{ screening_id }} = new ScreeningProgressMonitor(
+    '{{ screening_id }}',
+    {
+        wsManager: wsManager,
+        containerId: 'screening-progress-{{ screening_id }}',
+        autoUpdate: true
+    }
+);
+
+// Start monitoring on page load
+document.addEventListener('DOMContentLoaded', function() {
+    screeningMonitor_{{ screening_id }}.start();
+});
+
+// Clean up on page unload
+window.addEventListener('beforeunload', function() {
+    screeningMonitor_{{ screening_id }}.stop();
+});
+
+// Listen for screening completion
+window.addEventListener('screening_complete', function(e) {
+    console.log('Screening completed:', e.detail);
+    // Optionally redirect or refresh page
+    // setTimeout(() => location.reload(), 2000);
+});
+
+// Listen for screening errors
+window.addEventListener('screening_error', function(e) {
+    console.error('Screening error:', e.detail);
+});
+{% endif %}
+
+<!-- Initialize Notification Manager -->
+<script>
+const notificationManager = new NotificationManager({
+    wsManager: wsManager,
+    position: 'top-right',
+    duration: 5000
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    notificationManager.start();
+});
+</script>

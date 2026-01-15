@@ -1,0 +1,364 @@
+<!-- Screening Questions Response Viewer Component -->
+<!-- Shows recruiter the applicant's answers to screening questions -->
+
+<style>
+.screening-responses-section {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.75rem;
+    overflow: hidden;
+    margin-bottom: 2rem;
+}
+
+.screening-responses-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.screening-responses-header-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.screening-responses-icon {
+    width: 2.5rem;
+    height: 2.5rem;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+}
+
+.screening-responses-title {
+    font-size: 1.125rem;
+    font-weight: 700;
+}
+
+.screening-responses-description {
+    font-size: 0.875rem;
+    opacity: 0.9;
+}
+
+.screening-responses-badge {
+    display: inline-block;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    padding: 0.375rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.screening-responses-content {
+    padding: 1.5rem;
+}
+
+.screening-response-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 2rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.screening-response-item:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.response-question {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+}
+
+.response-question-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    height: 28px;
+    background: #dbeafe;
+    color: #1e40af;
+    border-radius: 50%;
+    font-weight: 700;
+    font-size: 0.875rem;
+    flex-shrink: 0;
+}
+
+.response-question-text {
+    font-weight: 600;
+    color: #374151;
+    flex: 1;
+    line-height: 1.5;
+}
+
+.response-question-type {
+    display: inline-block;
+    background: #f3e8ff;
+    color: #7e22ce;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-left: 0.5rem;
+}
+
+.response-answer {
+    margin-top: 0.75rem;
+    margin-left: 2.5rem;
+}
+
+.response-answer-label {
+    font-size: 0.875rem;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.response-answer-content {
+    background: #f9fafb;
+    padding: 1rem;
+    border-radius: 0.375rem;
+    border-left: 4px solid #667eea;
+    color: #374151;
+    line-height: 1.6;
+    word-break: break-word;
+}
+
+.response-answer-empty {
+    color: #9ca3af;
+    font-style: italic;
+}
+
+.response-answer-yes {
+    background: #d1fae5;
+    border-left-color: #059669;
+    color: #065f46;
+    font-weight: 600;
+}
+
+.response-answer-no {
+    background: #fee2e2;
+    border-left-color: #dc2626;
+    color: #7f1d1d;
+    font-weight: 600;
+}
+
+.response-answer-option {
+    background: #ede9fe;
+    border-left-color: #7c3aed;
+    color: #5b21b6;
+}
+
+.no-responses {
+    padding: 2rem;
+    text-align: center;
+    color: #6b7280;
+}
+
+.no-responses-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.response-meta {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e5e7eb;
+}
+
+.response-meta-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.response-meta-icon {
+    width: 1.125rem;
+    height: 1.125rem;
+    color: #9ca3af;
+}
+
+@media (max-width: 640px) {
+    .screening-responses-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
+    .screening-responses-icon {
+        width: 2rem;
+        height: 2rem;
+    }
+    
+    .response-question {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
+}
+</style>
+
+<div class="screening-responses-section" id="screening-responses-section">
+    <div class="screening-responses-header">
+        <div class="screening-responses-header-content">
+            <div class="screening-responses-icon">📋</div>
+            <div>
+                <div class="screening-responses-title">Screening Question Responses</div>
+                <div class="screening-responses-description">Applicant's answers to employer screening questions</div>
+            </div>
+        </div>
+        <span class="screening-responses-badge" id="total-responses-badge">0 Answered</span>
+    </div>
+    
+    <div class="screening-responses-content" id="screening-responses-content">
+        <!-- Responses will be rendered here -->
+    </div>
+</div>
+
+<script>
+/**
+ * Screening Questions Response Viewer
+ * Displays applicant answers to screening questions for recruiter review
+ */
+class ScreeningQuestionsViewer {
+    constructor(questionsData = [], answersData = {}, contentContainerId = 'screening-responses-content', badgeContainerId = 'total-responses-badge') {
+        this.questions = questionsData;
+        this.answers = answersData;
+        this.contentContainer = document.getElementById(contentContainerId);
+        this.badgeContainer = document.getElementById(badgeContainerId);
+        
+        this.init();
+    }
+    
+    init() {
+        if (this.questions.length === 0) {
+            this.showEmptyState();
+            return;
+        }
+        
+        this.renderResponses();
+    }
+    
+    renderResponses() {
+        const content = this.questions.map((question, index) => {
+            const answer = this.answers[question.id];
+            return this.renderResponseItem(question, answer, index);
+        }).join('');
+        
+        this.contentContainer.innerHTML = content;
+        this.updateBadge();
+    }
+    
+    renderResponseItem(question, answer, index) {
+        const hasAnswer = answer && answer.trim() !== '';
+        const typeLabel = this.getTypeLabel(question.type);
+        
+        let answerHTML = '';
+        if (hasAnswer) {
+            answerHTML = this.renderAnswerContent(question, answer);
+        } else {
+            answerHTML = '<div class="response-answer-content response-answer-empty">No response provided</div>';
+        }
+        
+        return `
+            <div class="screening-response-item">
+                <div class="response-question">
+                    <span class="response-question-number">${index + 1}</span>
+                    <div>
+                        <span class="response-question-text">${this.escapeHtml(question.text)}</span>
+                        <span class="response-question-type">${typeLabel}</span>
+                        ${question.required ? '<span class="response-question-type" style="background: #fee2e2; color: #dc2626;">Required</span>' : ''}
+                    </div>
+                </div>
+                <div class="response-answer">
+                    <div class="response-answer-label">Applicant Response:</div>
+                    ${answerHTML}
+                </div>
+            </div>
+        `;
+    }
+    
+    renderAnswerContent(question, answer) {
+        switch (question.type) {
+            case 'short-text':
+            case 'long-text':
+                return `<div class="response-answer-content">${this.escapeHtml(answer)}</div>`;
+            
+            case 'yes-no':
+                const yesNoClass = answer === 'yes' ? 'response-answer-yes' : 'response-answer-no';
+                const yesNoText = answer === 'yes' ? '✓ Yes' : '✗ No';
+                return `<div class="response-answer-content ${yesNoClass}">${yesNoText}</div>`;
+            
+            case 'multiple-choice':
+                return `<div class="response-answer-content response-answer-option">${this.escapeHtml(answer)}</div>`;
+            
+            default:
+                return `<div class="response-answer-content">${this.escapeHtml(answer)}</div>`;
+        }
+    }
+    
+    updateBadge() {
+        const answeredCount = Object.values(this.answers).filter(a => a && a.trim() !== '').length;
+        const totalCount = this.questions.length;
+        this.badgeContainer.textContent = `${answeredCount}/${totalCount} Answered`;
+        
+        if (answeredCount === totalCount) {
+            this.badgeContainer.style.background = 'rgba(16, 185, 129, 0.2)';
+            this.badgeContainer.style.color = '#047857';
+        } else if (answeredCount === 0) {
+            this.badgeContainer.style.background = 'rgba(239, 68, 68, 0.2)';
+            this.badgeContainer.style.color = '#dc2626';
+        }
+    }
+    
+    showEmptyState() {
+        this.contentContainer.innerHTML = `
+            <div class="no-responses">
+                <div class="no-responses-icon">📋</div>
+                <p>This job has no screening questions.</p>
+            </div>
+        `;
+        this.badgeContainer.textContent = 'N/A';
+    }
+    
+    getTypeLabel(type) {
+        const labels = {
+            'short-text': 'Short Text',
+            'long-text': 'Long Text',
+            'yes-no': 'Yes/No',
+            'multiple-choice': 'Multiple Choice'
+        };
+        return labels[type] || 'Unknown';
+    }
+    
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+}
+
+// This will be initialized by the parent template with actual data
+// Example initialization:
+// window.screeningViewer = new ScreeningQuestionsViewer(questionsData, answersData);
+</script>

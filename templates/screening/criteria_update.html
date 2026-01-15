@@ -1,0 +1,299 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Update Screening Criteria - {{ session.title }} | HireSight{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-gradient-to-r from-primary via-secondary to-purple text-white py-8">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center space-x-4">
+                <a href="{% url 'screening:session_detail' pk=criteria.session.pk %}" class="p-2 bg-white/10 backdrop-blur-sm rounded-lg hover:bg-white/20 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                    </svg>
+                </a>
+                <div>
+                    <h1 class="text-3xl font-display font-bold">Update Screening Criteria</h1>
+                    <p class="text-white/90 mt-2">{{ session.title }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-10">
+        <form method="post" class="space-y-8">
+            {% csrf_token %}
+            
+            <!-- Form Errors -->
+            {% if form.errors or form.non_field_errors %}
+            <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <h3 class="text-sm font-medium text-red-800">Please correct the following errors:</h3>
+                        <div class="mt-2 text-sm text-red-700">
+                            <ul class="list-disc pl-5 space-y-1">
+                                {% for error in form.non_field_errors %}
+                                <li>{{ error }}</li>
+                                {% endfor %}
+                                {% for field, errors in form.errors.items %}
+                                {% if field != '__all__' %}
+                                {% for error in errors %}
+                                <li>{{ field }}: {{ error }}</li>
+                                {% endfor %}
+                                {% endif %}
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Skills Section -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center space-x-3 mb-6">
+                    <div class="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900">Required Skills</h3>
+                        <p class="text-sm text-gray-500">Define the skills you're looking for</p>
+                    </div>
+                </div>
+                 
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Required Skills *
+                        </label>
+                        {{ form.required_skills_input }}
+                        {% if form.required_skills_input.errors %}
+                        <div class="mt-1 text-sm text-red-600">
+                            {{ form.required_skills_input.errors|first }}
+                        </div>
+                        {% endif %}
+                        <p class="text-xs text-gray-500 mt-1">{{ form.required_skills_input.help_text }}</p>
+                    </div>
+                     
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Nice-to-Have Skills
+                        </label>
+                        {{ form.nice_to_have_skills_input }}
+                        {% if form.nice_to_have_skills_input.errors %}
+                        <div class="mt-1 text-sm text-red-600">
+                            {{ form.nice_to_have_skills_input.errors|first }}
+                        </div>
+                        {% endif %}
+                        <p class="text-xs text-gray-500 mt-1">{{ form.nice_to_have_skills_input.help_text }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Experience Section -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center space-x-3 mb-6">
+                    <div class="w-10 h-10 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900">Experience Requirements</h3>
+                        <p class="text-sm text-gray-500">Set minimum and maximum experience levels</p>
+                    </div>
+                </div>
+                 
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Minimum Years of Experience
+                        </label>
+                        {{ form.min_experience_years }}
+                        {% if form.min_experience_years.errors %}
+                        <div class="mt-1 text-sm text-red-600">
+                            {{ form.min_experience_years.errors|first }}
+                        </div>
+                        {% endif %}
+                    </div>
+                     
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Maximum Years of Experience (Optional)
+                        </label>
+                        {{ form.max_experience_years }}
+                        {% if form.max_experience_years.errors %}
+                        <div class="mt-1 text-sm text-red-600">
+                            {{ form.max_experience_years.errors|first }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scoring Weights Section -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center space-x-3 mb-6">
+                    <div class="w-10 h-10 rounded-xl bg-green-100 text-green-600 flex items-center justify-center">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900">Scoring Weights</h3>
+                        <p class="text-sm text-gray-500">Customize how each factor affects the match score (must sum to 100%)</p>
+                    </div>
+                </div>
+                 
+                <div class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center justify-between">
+                                <span>Skills Weight</span>
+                                <span class="text-xs text-gray-500" id="skills-weight-value">40%</span>
+                            </label>
+                            {{ form.weight_skills }}
+                            {% if form.weight_skills.errors %}
+                            <div class="mt-1 text-sm text-red-600">
+                                {{ form.weight_skills.errors|first }}
+                            </div>
+                            {% endif %}
+                        </div>
+                         
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center justify-between">
+                                <span>Experience Weight</span>
+                                <span class="text-xs text-gray-500" id="experience-weight-value">30%</span>
+                            </label>
+                            {{ form.weight_experience }}
+                            {% if form.weight_experience.errors %}
+                            <div class="mt-1 text-sm text-red-600">
+                                {{ form.weight_experience.errors|first }}
+                            </div>
+                            {% endif %}
+                        </div>
+                         
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center justify-between">
+                                <span>Education Weight</span>
+                                <span class="text-xs text-gray-500" id="education-weight-value">20%</span>
+                            </label>
+                            {{ form.weight_education }}
+                            {% if form.weight_education.errors %}
+                            <div class="mt-1 text-sm text-red-600">
+                                {{ form.weight_education.errors|first }}
+                            </div>
+                            {% endif %}
+                        </div>
+                         
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center justify-between">
+                                <span>Keywords Weight</span>
+                                <span class="text-xs text-gray-500" id="keywords-weight-value">10%</span>
+                            </label>
+                            {{ form.weight_keywords }}
+                            {% if form.weight_keywords.errors %}
+                            <div class="mt-1 text-sm text-red-600">
+                                {{ form.weight_keywords.errors|first }}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                     
+                    <!-- Total Weight Indicator -->
+                    <div class="mt-4 p-4 bg-gray-50 rounded-lg">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm font-medium text-gray-700">Total Weight:</span>
+                            <span class="text-lg font-bold" id="total-weight">1.0</span>
+                        </div>
+                        <div class="mt-2 w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-gradient-to-r from-green-400 to-green-600 h-2 rounded-full transition-all" id="weight-progress" style="width: 100%"></div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1" id="weight-message">Weights are balanced correctly</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex justify-between items-center pt-6">
+                <a href="{% url 'screening:session_detail' pk=criteria.session.pk %}"
+                   class="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-colors">
+                    Cancel
+                </a>
+                <button type="submit" 
+                        class="px-8 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-xl font-semibold shadow-md hover:shadow-lg transition-all">
+                    Update Criteria
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Update weight displays and total
+function updateWeights() {
+    const skillsWeight = parseFloat(document.querySelector('[name="weight_skills"]').value) || 0;
+    const experienceWeight = parseFloat(document.querySelector('[name="weight_experience"]').value) || 0;
+    const educationWeight = parseFloat(document.querySelector('[name="weight_education"]').value) || 0;
+    const keywordsWeight = parseFloat(document.querySelector('[name="weight_keywords"]').value) || 0;
+    
+    // Update individual displays (values are already percentages)
+    document.getElementById('skills-weight-value').textContent = `${skillsWeight.toFixed(1)}%`;
+    document.getElementById('experience-weight-value').textContent = `${experienceWeight.toFixed(1)}%`;
+    document.getElementById('education-weight-value').textContent = `${educationWeight.toFixed(1)}%`;
+    document.getElementById('keywords-weight-value').textContent = `${keywordsWeight.toFixed(1)}%`;
+    
+    // Calculate total (values are percentages, so should sum to 100)
+    const total = skillsWeight + experienceWeight + educationWeight + keywordsWeight;
+    document.getElementById('total-weight').textContent = total.toFixed(1);
+    
+    // Update progress bar
+    const progress = document.getElementById('weight-progress');
+    const message = document.getElementById('weight-message');
+    
+    if (total >= 99 && total <= 101) {
+        progress.style.width = '100%';
+        progress.className = 'bg-gradient-to-r from-green-400 to-green-600 h-2 rounded-full transition-all';
+        message.textContent = '✓ Weights are balanced correctly';
+        message.className = 'text-xs text-green-600 mt-1 font-medium';
+    } else {
+        progress.style.width = `${Math.min(total, 100)}%`;
+        progress.className = 'bg-gradient-to-r from-red-400 to-red-600 h-2 rounded-full transition-all';
+        message.textContent = `⚠ Weights must sum to 100% (currently ${total.toFixed(1)}%)`;
+        message.className = 'text-xs text-red-600 mt-1 font-medium';
+    }
+}
+
+// Add event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    const weightInputs = [
+        'weight_skills',
+        'weight_experience',
+        'weight_education',
+        'weight_keywords'
+    ];
+    
+    weightInputs.forEach(name => {
+        const input = document.querySelector(`[name="${name}"]`);
+        if (input) {
+            input.addEventListener('input', updateWeights);
+        }
+    });
+    
+    // Initial update on page load
+    updateWeights();
+});
+    
+    // Initial update
+    updateWeights();
+</script>
+{% endblock %}

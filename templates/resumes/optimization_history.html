@@ -1,0 +1,226 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Optimization History - HireSight{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-6xl mx-auto">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">Optimization History</h1>
+            <p class="text-gray-600">Track your resume optimization progress and insights over time.</p>
+        </div>
+
+        <!-- Time Period Selection -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4">Select Time Period</h2>
+
+            <form method="get" class="flex flex-wrap gap-4">
+                {% for days, label in available_periods %}
+                <label class="flex items-center">
+                    <input type="radio"
+                           name="days"
+                           value="{{ days }}"
+                           {% if days == selected_days %}checked{% endif %}
+                           class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300">
+                    <span class="ml-2 text-gray-900">{{ label }}</span>
+                </label>
+                {% endfor %}
+
+                <button type="submit"
+                        class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ml-4">
+                    Update View
+                </button>
+            </form>
+        </div>
+
+        {% if history %}
+        <!-- History Overview -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <!-- Total Optimizations -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex items-center">
+                    <div class="p-3 bg-blue-100 rounded-full">
+                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Total Optimizations</p>
+                        <p class="text-2xl font-bold text-gray-900">{{ history.total_optimizations }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Average Score -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex items-center">
+                    <div class="p-3 bg-green-100 rounded-full">
+                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Average Score</p>
+                        <p class="text-2xl font-bold text-gray-900">{{ history.average_score|floatformat:1 }}%</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Improvement Trend -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex items-center">
+                    <div class="p-3 bg-purple-100 rounded-full">
+                        <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Improvement Trend</p>
+                        <p class="text-2xl font-bold text-gray-900">
+                            {% if history.improvement_trend > 0 %}
+                                <span class="text-green-600">+{{ history.improvement_trend|floatformat:1 }}%</span>
+                            {% elif history.improvement_trend < 0 %}
+                                <span class="text-red-600">{{ history.improvement_trend|floatformat:1 }}%</span>
+                            {% else %}
+                                <span class="text-gray-600">0%</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Optimization Timeline -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4">Optimization Timeline</h2>
+
+            <div class="space-y-4">
+                {% for entry in history.timeline %}
+                <div class="flex items-start space-x-4 p-4 border border-gray-200 rounded-lg">
+                    <div class="flex-shrink-0">
+                        <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                        </div>
+                    </div>
+
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-sm font-medium text-gray-900">{{ entry.resume_title }}</h3>
+                            <span class="text-sm text-gray-500">{{ entry.date|date:"M j, Y g:i A" }}</span>
+                        </div>
+
+                        <div class="mt-2 flex items-center space-x-4">
+                            <div class="flex items-center">
+                                <span class="text-sm text-gray-600 mr-2">Overall Score:</span>
+                                <span class="text-sm font-medium">{{ entry.overall_score|floatformat:1 }}%</span>
+                            </div>
+                            <div class="flex items-center">
+                                <span class="text-sm text-gray-600 mr-2">ATS Score:</span>
+                                <span class="text-sm font-medium">{{ entry.ats_score|floatformat:1 }}%</span>
+                            </div>
+                            <div class="flex items-center">
+                                <span class="text-sm text-gray-600 mr-2">Keywords:</span>
+                                <span class="text-sm font-medium">{{ entry.keyword_score|floatformat:1 }}%</span>
+                            </div>
+                        </div>
+
+                        {% if entry.improvement %}
+                        <div class="mt-2">
+                            <span class="text-sm text-green-600 font-medium">
+                                Improved by {{ entry.improvement|floatformat:1 }}% from previous optimization
+                            </span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center py-8">
+                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                    </svg>
+                    <h3 class="mt-2 text-sm font-medium text-gray-900">No optimization history</h3>
+                    <p class="mt-1 text-sm text-gray-500">Start optimizing your resumes to see your progress here.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        {% if insights %}
+        <!-- User Insights -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-semibold mb-4">Your Optimization Insights</h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Common Issues -->
+                {% if insights.common_issues %}
+                <div>
+                    <h3 class="text-lg font-medium text-gray-900 mb-3">Common Issues</h3>
+                    <div class="space-y-2">
+                        {% for issue in insights.common_issues %}
+                        <div class="flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg">
+                            <span class="text-sm text-red-800">{{ issue.issue }}</span>
+                            <span class="text-sm font-medium text-red-600">{{ issue.frequency }} times</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Strengths -->
+                {% if insights.strengths %}
+                <div>
+                    <h3 class="text-lg font-medium text-gray-900 mb-3">Your Strengths</h3>
+                    <div class="space-y-2">
+                        {% for strength in insights.strengths %}
+                        <div class="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+                            <span class="text-sm text-green-800">{{ strength.area }}</span>
+                            <span class="text-sm font-medium text-green-600">{{ strength.score|floatformat:1 }}%</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Recommendations -->
+            {% if insights.recommendations %}
+            <div class="mt-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-3">Personalized Recommendations</h3>
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <ul class="space-y-2">
+                        {% for rec in insights.recommendations %}
+                        <li class="flex items-start">
+                            <span class="text-blue-600 mr-2">•</span>
+                            <span class="text-gray-700">{{ rec }}</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% else %}
+        <!-- No History Message -->
+        <div class="bg-white rounded-lg shadow-md p-12 text-center">
+            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+            </svg>
+            <h3 class="mt-2 text-sm font-medium text-gray-900">No optimization history yet</h3>
+            <p class="mt-1 text-sm text-gray-500">Start optimizing your resumes to track your progress over time.</p>
+            <div class="mt-6">
+                <a href="{% url 'resumes:list' %}"
+                   class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    Go to Resumes
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

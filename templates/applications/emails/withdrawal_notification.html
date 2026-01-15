@@ -1,0 +1,64 @@
+{% extends 'emails/base.html' %}
+
+{% block subject %}Application Withdrawn - {{ job_title }}{% endblock %}
+
+{% block content %}
+<div style="max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif;">
+    <div style="background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); padding: 40px 30px; text-align: center; border-radius: 10px 10px 0 0;">
+        <h1 style="color: white; margin: 0; font-size: 28px; font-weight: bold;">Application Withdrawn</h1>
+        <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 16px;">{{ company_name }}</p>
+    </div>
+
+    <div style="background: white; padding: 40px 30px; border-radius: 0 0 10px 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <h2 style="color: #1f2937; margin: 0 0 20px 0; font-size: 24px;">Application Withdrawal Notice</h2>
+
+        <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 20px 0;">
+            Dear {{ company_name }} Team,
+        </p>
+
+        <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 20px 0;">
+            This is to inform you that {{ applicant_name }} has withdrawn their application for the <strong>{{ job_title }}</strong> position.
+        </p>
+
+        <div style="background: #f9fafb; border-left: 4px solid #6b7280; padding: 20px; margin: 20px 0;">
+            <p style="margin: 0; font-size: 16px; color: #374151;">
+                <strong>Application Details:</strong><br>
+                Position: {{ job_title }}<br>
+                Applicant: {{ applicant_name }}<br>
+                Withdrawn on: {{ withdrawn_at|date:"F j, Y \a\t g:i A" }}
+            </p>
+        </div>
+
+        {% if withdrawal_reason %}
+        <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 20px; margin: 20px 0;">
+            <p style="margin: 0; font-size: 16px; color: #92400e;">
+                <strong>Reason for Withdrawal:</strong><br>
+                {{ withdrawal_reason }}
+            </p>
+        </div>
+        {% endif %}
+
+        <p style="color: #6b7280; line-height: 1.6; margin: 20px 0;">
+            The application will no longer be considered for this position. If you have any questions or need additional information, please review the application details in your dashboard.
+        </p>
+
+        <div style="text-align: center; margin: 30px 0;">
+            <a href="{% url 'applications:manage' %}"
+               style="background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+                View Applications
+            </a>
+        </div>
+
+        <p style="color: #6b7280; line-height: 1.6; margin: 20px 0;">
+            Best regards,<br>
+            The HireSight Team
+        </p>
+
+        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+
+        <p style="color: #9ca3af; font-size: 14px; margin: 20px 0 0 0; text-align: center;">
+            This is an automated message. Please do not reply to this email.
+        </p>
+    </div>
+</div>
+{% endblock %}

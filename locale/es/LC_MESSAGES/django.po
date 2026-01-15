@@ -1,0 +1,108 @@
+# Spanish translations for HireSight
+# Copyright (C) 2024
+# This file is distributed under the same license as the HireSight package.
+#
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: es\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+# Navigation and Common
+msgid "Home"
+msgstr "Inicio"
+
+msgid "Dashboard"
+msgstr "Panel de Control"
+
+msgid "Jobs"
+msgstr "Empleos"
+
+msgid "Applications"
+msgstr "Solicitudes"
+
+msgid "Messages"
+msgstr "Mensajes"
+
+msgid "Settings"
+msgstr "Configuración"
+
+msgid "Logout"
+msgstr "Cerrar Sesión"
+
+# Screening
+msgid "Screening"
+msgstr "Evaluación"
+
+msgid "Screening Questions"
+msgstr "Preguntas de Evaluación"
+
+msgid "Create Screening"
+msgstr "Crear Evaluación"
+
+msgid "Start Screening"
+msgstr "Iniciar Evaluación"
+
+# Language
+msgid "Language"
+msgstr "Idioma"
+
+msgid "Select Language"
+msgstr "Seleccionar Idioma"
+
+msgid "Switch Language"
+msgstr "Cambiar Idioma"
+
+# Buttons
+msgid "Submit"
+msgstr "Enviar"
+
+msgid "Cancel"
+msgstr "Cancelar"
+
+msgid "Save"
+msgstr "Guardar"
+
+msgid "Delete"
+msgstr "Eliminar"
+
+msgid "Edit"
+msgstr "Editar"
+
+msgid "View"
+msgstr "Ver"
+
+# Messages
+msgid "Loading..."
+msgstr "Cargando..."
+
+msgid "Success"
+msgstr "Éxito"
+
+msgid "Error"
+msgstr "Error"
+
+msgid "Please fill in all required fields"
+msgstr "Por favor, rellena todos los campos requeridos"
+
+msgid "Your settings have been saved"
+msgstr "Tu configuración ha sido guardada"
+
+# Account
+msgid "Account"
+msgstr "Cuenta"
+
+msgid "Profile"
+msgstr "Perfil"
+
+msgid "My Profile"
+msgstr "Mi Perfil"
+
+msgid "Email"
+msgstr "Correo Electrónico"
+
+msgid "Password"
+msgstr "Contraseña"
+
+msgid "Change Password"
+msgstr "Cambiar Contraseña"

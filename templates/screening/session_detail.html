@@ -1,0 +1,348 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ session.title }} - Screening Session | HireSight{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-gradient-to-r from-primary via-secondary to-purple text-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <a href="{% url 'screening:session_list' %}" class="p-2 bg-white/10 backdrop-blur-sm rounded-xl hover:bg-white/20 transition-all hover:scale-105">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                        </svg>
+                    </a>
+                    <div class="flex items-center space-x-3">
+                        <div class="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h1 class="text-3xl font-display font-bold">{{ session.title }}</h1>
+                            <p class="text-white/90 mt-1">Screening Session Details</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-3">
+                    {% if session.status == 'completed' or session.status == 'processing' %}
+                    <a href="{% url 'screening:analytics' session.pk %}" class="px-4 py-2 bg-white/15 border border-white/25 rounded-xl text-white font-semibold hover:bg-white/25 transition-all inline-flex items-center space-x-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                        <span>Analytics</span>
+                    </a>
+                    {% endif %}
+                    {% if session.status == 'pending' %}
+                    <a href="{% url 'screening:criteria_setup' session.pk %}" class="px-4 py-2 bg-white/15 border border-white/25 rounded-xl text-white font-semibold hover:bg-white/25 transition-all">
+                        Setup Criteria
+                    </a>
+                    {% elif session.criteria %}
+                    <a href="{% url 'screening:bulk_upload' session.pk %}" class="px-6 py-2 bg-white text-primary rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all hover:scale-105 inline-flex items-center space-x-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                        </svg>
+                        <span>Upload Resumes</span>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+        <!-- Session Overview Card -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex-1">
+                            <div class="flex items-center space-x-3 mb-2">
+                                <h2 class="text-2xl font-display font-bold text-gray-900">{{ session.title }}</h2>
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold
+                                    {% if session.status == 'pending' %}bg-yellow-100 text-yellow-800
+                                    {% elif session.status == 'processing' %}bg-blue-100 text-blue-800
+                                    {% elif session.status == 'completed' %}bg-green-100 text-green-800
+                                    {% elif session.status == 'failed' %}bg-red-100 text-red-800
+                                    {% endif %}">
+                                    <span class="w-2 h-2 rounded-full mr-1.5
+                                        {% if session.status == 'pending' %}bg-yellow-500
+                                        {% elif session.status == 'processing' %}bg-blue-500 animate-pulse
+                                        {% elif session.status == 'completed' %}bg-green-500
+                                        {% elif session.status == 'failed' %}bg-red-500
+                                        {% endif %}">
+                                    </span>
+                                    {{ session.get_status_display }}
+                                </span>
+                            </div>
+                            {% if session.job %}
+                            <div class="flex items-center text-gray-600">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                                </svg>
+                                <span class="font-medium">{{ session.job.title }}</span>
+                            </div>
+                            {% else %}
+                            <p class="text-gray-600">General screening session</p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+                        <div class="text-center p-4 bg-gray-50 rounded-xl">
+                            <div class="text-3xl font-bold text-gray-900">{{ total_results }}</div>
+                            <div class="text-sm text-gray-500 mt-1">Total Results</div>
+                        </div>
+                        <div class="text-center p-4 bg-green-50 rounded-xl">
+                            <div class="text-3xl font-bold text-green-600">{{ stats.high_matches }}</div>
+                            <div class="text-sm text-gray-500 mt-1">High Matches</div>
+                        </div>
+                        <div class="text-center p-4 bg-blue-50 rounded-xl">
+                            <div class="text-3xl font-bold text-blue-600">{{ stats.shortlisted }}</div>
+                            <div class="text-sm text-gray-500 mt-1">Shortlisted</div>
+                        </div>
+                        <div class="text-center p-4 bg-purple-50 rounded-xl">
+                            <div class="text-3xl font-bold text-purple-600">{{ session.average_match_score|default:0|floatformat:0 }}%</div>
+                            <div class="text-sm text-gray-500 mt-1">Avg Score</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-6">
+                <!-- Progress Card -->
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                    <h3 class="text-lg font-semibold mb-4 flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                        Progress
+                    </h3>
+                    <div class="space-y-4">
+                        <div>
+                            <div class="flex justify-between text-sm mb-2">
+                                <span class="font-medium text-gray-700">Processing</span>
+                                <span class="font-bold text-gray-900">{{ session.progress_percentage|floatformat:0 }}%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                                <div class="h-3 rounded-full transition-all duration-500 
+                                    {% if session.progress_percentage >= 100 %}bg-green-500
+                                    {% elif session.progress_percentage >= 50 %}bg-blue-500
+                                    {% else %}bg-yellow-500{% endif %}" 
+                                    style="width: {{ session.progress_percentage }}%">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-3 gap-3 pt-2">
+                            <div class="text-center p-3 bg-green-50 rounded-lg">
+                                <div class="text-xl font-bold text-green-600">{{ session.processed_resumes }}</div>
+                                <div class="text-xs text-gray-600">Processed</div>
+                            </div>
+                            <div class="text-center p-3 bg-yellow-50 rounded-lg">
+                                <div class="text-xl font-bold text-yellow-600">{{ stats.pending }}</div>
+                                <div class="text-xs text-gray-600">Pending</div>
+                            </div>
+                            <div class="text-center p-3 bg-red-50 rounded-lg">
+                                <div class="text-xl font-bold text-red-600">{{ session.failed_resumes }}</div>
+                                <div class="text-xs text-gray-600">Failed</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions Card -->
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                    <h3 class="text-lg font-semibold mb-4 flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                        Quick Actions
+                    </h3>
+                    <div class="space-y-3">
+                        {% if session.status == 'completed' %}
+                        <a href="{% url 'screening:results' session.pk %}" class="w-full px-4 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-xl font-semibold hover:shadow-lg transition-all inline-flex items-center justify-center space-x-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                            </svg>
+                            <span>View Results</span>
+                        </a>
+                        <a href="{% url 'screening:export' session.pk %}" class="w-full px-4 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors inline-flex items-center justify-center space-x-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            <span>Export Results</span>
+                        </a>
+                        {% elif session.status == 'pending' %}
+                        <a href="{% url 'screening:criteria_setup' session.pk %}" class="w-full px-4 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-xl font-semibold hover:shadow-lg transition-all inline-flex items-center justify-center space-x-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
+                            </svg>
+                            <span>Setup Criteria</span>
+                        </a>
+                        {% elif session.criteria %}
+                        <a href="{% url 'screening:bulk_upload' session.pk %}" class="w-full px-4 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-xl font-semibold hover:shadow-lg transition-all inline-flex items-center justify-center space-x-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                            </svg>
+                            <span>Upload Resumes</span>
+                        </a>
+                        {% endif %}
+                        <a href="{% url 'screening:criteria_update' session.pk %}" class="w-full px-4 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors inline-flex items-center justify-center space-x-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                            </svg>
+                            <span>Update Criteria</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if session.criteria %}
+        <!-- Criteria Summary -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <h3 class="text-lg font-semibold mb-6 flex items-center">
+                <svg class="w-5 h-5 mr-2 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                </svg>
+                Screening Criteria
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 border border-green-200">
+                    <h4 class="font-semibold text-gray-900 mb-3 flex items-center">
+                        <svg class="w-4 h-4 mr-2 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                        </svg>
+                        Required Skills
+                    </h4>
+                    <div class="flex flex-wrap gap-2">
+                        {% for skill in session.criteria.required_skills %}
+                        <span class="px-2.5 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">{{ skill }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-200">
+                    <h4 class="font-semibold text-gray-900 mb-3 flex items-center">
+                        <svg class="w-4 h-4 mr-2 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                        </svg>
+                        Nice-to-Have Skills
+                    </h4>
+                    <div class="flex flex-wrap gap-2">
+                        {% for skill in session.criteria.nice_to_have_skills %}
+                        <span class="px-2.5 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">{{ skill }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-4 border border-purple-200">
+                    <h4 class="font-semibold text-gray-900 mb-3 flex items-center">
+                        <svg class="w-4 h-4 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        Experience
+                    </h4>
+                    <p class="text-sm text-gray-700 font-medium">
+                        {{ session.criteria.min_experience_years }} - {{ session.criteria.max_experience_years|default:"∞" }} years
+                    </p>
+                </div>
+                <div class="bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl p-4 border border-orange-200">
+                    <h4 class="font-semibold text-gray-900 mb-3 flex items-center">
+                        <svg class="w-4 h-4 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        Location
+                    </h4>
+                    <p class="text-sm text-gray-700 font-medium">
+                        {{ session.criteria.location_preference|default:"Any Location" }}
+                    </p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Top Results Preview -->
+        {% if results %}
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-lg font-semibold flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                    </svg>
+                    Top Matches
+                </h3>
+                <a href="{% url 'screening:results' session.pk %}" class="text-primary hover:text-primary-dark font-semibold inline-flex items-center space-x-1 group">
+                    <span>View All Results</span>
+                    <svg class="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                </a>
+            </div>
+
+            <div class="space-y-3">
+                {% for result in results %}
+                <div class="flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:bg-gray-50 hover:border-primary/30 transition-all group">
+                    <div class="flex items-center space-x-4 flex-1">
+                        {% if result.resume and result.resume.user.personalprofile.avatar %}
+                        <img src="{{ result.resume.user.personalprofile.avatar.url }}" alt="" class="w-12 h-12 rounded-xl object-cover border-2 border-gray-200 group-hover:border-primary/30">
+                        {% else %}
+                        <div class="w-12 h-12 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center text-white text-lg font-bold">
+                            {% if result.resume %}
+                            {{ result.resume.user.get_full_name|slice:":1" }}
+                            {% else %}
+                            ?
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                        <div class="flex-1">
+                            <div class="font-semibold text-gray-900">
+                                {% if result.resume %}
+                                {{ result.resume.user.get_full_name }}
+                                {% else %}
+                                Unknown Candidate
+                                {% endif %}
+                            </div>
+                            <div class="text-sm text-gray-500 mt-0.5">
+                                {% if result.resume %}
+                                {{ result.resume.user.email }}
+                                {% else %}
+                                No email
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <div class="text-right">
+                            <div class="text-2xl font-bold
+                            {% if result.match_score >= 80 %}
+                                text-green-600
+                            {% elif result.match_score >= 60 %}
+                                text-yellow-600
+                            {% else %}
+                                text-red-600
+                            {% endif %}">
+                                {{ result.match_score }}%
+                            </div>
+                            <div class="text-xs text-gray-500">Match Score</div>
+                        </div>
+                        {% if result.is_shortlisted %}
+                        <span class="px-3 py-1.5 bg-blue-100 text-blue-800 text-xs font-semibold rounded-full">Shortlisted</span>
+                        {% endif %}
+                        <a href="{% url 'screening:result_detail' result.pk %}" class="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

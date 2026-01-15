@@ -1,0 +1,61 @@
+{% load i18n %}
+
+<!-- Language Switcher Component -->
+<div class="language-switcher" data-language-switcher>
+    {% for code, name in LANGUAGES %}
+        <button 
+            class="language-switcher__button{% if code == LANGUAGE_CODE %} active{% endif %}"
+            data-language="{{ code }}"
+            aria-label="{% blocktrans with language=name %}Switch to {{ language }}{% endblocktrans %}"
+            aria-pressed="{% if code == LANGUAGE_CODE %}true{% else %}false{% endif %}"
+            title="{{ name }}"
+        >
+            {{ name }}
+        </button>
+    {% endfor %}
+</div>
+
+<!-- Alternative: Dropdown Select Version -->
+<div class="language-switcher-select">
+    <select class="language-switcher__select" id="language-select" aria-label="{% trans "Select Language" %}">
+        {% for code, name in LANGUAGES %}
+            <option value="{{ code }}" {% if code == LANGUAGE_CODE %}selected{% endif %}>
+                {{ name }}
+            </option>
+        {% endfor %}
+    </select>
+</div>
+
+<!-- Script initialization -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize button-based switcher if present
+    const buttonSwitcher = document.querySelector('[data-language-switcher]');
+    if (buttonSwitcher && typeof LanguageSwitcher !== 'undefined') {
+        const switcher = new LanguageSwitcher({
+            containerSelector: '[data-language-switcher]',
+            apiEndpoint: '/accounts/api/language/',
+            callbacks: {
+                beforeSwitch: function() {
+                    console.log('Switching language...');
+                },
+                afterSwitch: function(language) {
+                    console.log('Language switched to:', language);
+                }
+            }
+        });
+        switcher.init();
+    }
+
+    // Handle select dropdown if present
+    const selectElement = document.getElementById('language-select');
+    if (selectElement && typeof LanguageSwitcher !== 'undefined') {
+        selectElement.addEventListener('change', function(e) {
+            const switcher = new LanguageSwitcher({
+                apiEndpoint: '/accounts/api/language/'
+            });
+            switcher.setLanguage(e.target.value);
+        });
+    }
+});
+</script>

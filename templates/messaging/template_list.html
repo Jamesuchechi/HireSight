@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block title %}Message Templates{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold">Message Templates</h1>
+        <a href="{% url 'messaging:template_create' %}" 
+           class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg">
+            Create Template
+        </a>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-sm divide-y">
+        {% for template in templates %}
+            <div class="p-6">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h3 class="text-lg font-semibold">{{ template.name }}</h3>
+                        <p class="text-sm text-gray-600">{{ template.get_category_display }}</p>
+                        <p class="text-sm text-gray-500 mt-2">Used {{ template.usage_count }} times</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <a href="{% url 'messaging:template_edit' template.pk %}" 
+                           class="text-blue-600 hover:text-blue-800">Edit</a>
+                        <form action="{% url 'messaging:template_delete' template.pk %}" method="post" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="text-red-600 hover:text-red-800">Delete</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <div class="p-12 text-center">
+                <p class="text-gray-600 mb-4">No templates yet</p>
+                <a href="{% url 'messaging:template_create' %}" 
+                   class="text-blue-600 hover:text-blue-800">Create your first template</a>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

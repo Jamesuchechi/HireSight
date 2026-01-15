@@ -1,0 +1,450 @@
+<!-- Salary Range Slider Component -->
+
+<style>
+.salary-slider-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    padding: 1.25rem;
+    background: #f9fafb;
+    border-radius: 0.75rem;
+    border: 1px solid #e5e7eb;
+}
+
+.salary-inputs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.input-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.input-group label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+}
+
+.input-group input {
+    padding: 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    font-size: 0.9375rem;
+    transition: all 0.2s ease;
+}
+
+.input-group input:focus {
+    outline: none;
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.salary-display {
+    text-align: center;
+    padding: 1rem;
+    background: white;
+    border-radius: 0.5rem;
+    border: 1px solid #e5e7eb;
+}
+
+.salary-display-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #0066ff;
+}
+
+.salary-display-label {
+    font-size: 0.75rem;
+    color: #6b7280;
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-top: 0.25rem;
+}
+
+.salary-range-track {
+    height: 6px;
+    border-radius: 3px;
+    background: #e5e7eb;
+    position: relative;
+    margin: 1rem 0;
+}
+
+.salary-range-fill {
+    height: 100%;
+    background: linear-gradient(to right, #4f46e5, #00d4ff);
+    border-radius: 3px;
+    position: absolute;
+    pointer-events: none;
+}
+
+.salary-slider-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0;
+}
+
+.salary-range-slider {
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: transparent;
+    pointer-events: none;
+    -webkit-appearance: none;
+    appearance: none;
+    position: absolute;
+}
+
+.salary-range-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #4f46e5;
+    cursor: pointer;
+    pointer-events: auto;
+    box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
+    border: 3px solid white;
+    transition: all 0.2s ease;
+}
+
+.salary-range-slider::-webkit-slider-thumb:hover {
+    background: #3730a3;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
+}
+
+.salary-range-slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #4f46e5;
+    cursor: pointer;
+    pointer-events: auto;
+    box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
+    border: 3px solid white;
+    transition: all 0.2s ease;
+}
+
+.salary-range-slider::-moz-range-thumb:hover {
+    background: #3730a3;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
+}
+
+.salary-range-slider::-webkit-slider-runnable-track {
+    background: transparent;
+    height: 6px;
+}
+
+.salary-range-slider::-moz-range-track {
+    background: transparent;
+}
+
+.salary-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.75rem;
+    color: #9ca3af;
+    margin-top: 0.5rem;
+}
+
+.salary-reset {
+    background: #f3f4f6;
+    border: 1px solid #d1d5db;
+    color: #6b7280;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+}
+
+.salary-reset:hover {
+    background: #e5e7eb;
+    color: #374151;
+}
+
+.salary-period {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    justify-content: center;
+}
+
+.period-btn {
+    flex: 1;
+    padding: 0.5rem;
+    border: 1px solid #d1d5db;
+    background: white;
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: capitalize;
+}
+
+.period-btn.active {
+    background: #4f46e5;
+    color: white;
+    border-color: #4f46e5;
+}
+
+.period-btn:hover:not(.active) {
+    background: #f3f4f6;
+    border-color: #9ca3af;
+}
+</style>
+
+<div class="salary-slider-container" id="salary-slider-container">
+    <div class="flex justify-between items-center">
+        <h4 class="font-semibold text-gray-800 text-sm">Salary Range</h4>
+        <button type="button" class="salary-reset" id="salary-reset-btn">Reset</button>
+    </div>
+    
+    <!-- Display Value -->
+    <div class="salary-display" id="salary-display">
+        <div class="salary-display-value">
+            <span id="salary-display-min">$50K</span> - <span id="salary-display-max">$200K+</span>
+        </div>
+        <div class="salary-display-label">per year</div>
+    </div>
+    
+    <!-- Salary Period Toggle -->
+    <div class="salary-period">
+        <button type="button" class="period-btn active" data-period="yearly">Yearly</button>
+        <button type="button" class="period-btn" data-period="monthly">Monthly</button>
+        <button type="button" class="period-btn" data-period="hourly">Hourly</button>
+    </div>
+    
+    <!-- Range Sliders -->
+    <div class="salary-slider-wrapper">
+        <input 
+            type="range" 
+            id="salary-min-slider" 
+            class="salary-range-slider" 
+            min="0" 
+            max="500000" 
+            step="5000"
+            value="0">
+        <input 
+            type="range" 
+            id="salary-max-slider" 
+            class="salary-range-slider" 
+            min="0" 
+            max="500000" 
+            step="5000"
+            value="500000">
+        <div class="salary-range-track">
+            <div class="salary-range-fill" id="salary-range-fill"></div>
+        </div>
+    </div>
+    
+    <!-- Manual Input Fields -->
+    <div class="salary-inputs">
+        <div class="input-group">
+            <label for="salary-min-input">Minimum</label>
+            <input 
+                type="number" 
+                id="salary-min-input" 
+                name="salary_min" 
+                placeholder="0"
+                min="0"
+                value="">
+        </div>
+        <div class="input-group">
+            <label for="salary-max-input">Maximum</label>
+            <input 
+                type="number" 
+                id="salary-max-input" 
+                name="salary_max" 
+                placeholder="500000"
+                min="0"
+                value="">
+        </div>
+    </div>
+    
+    <div class="salary-info">
+        <span>Adjust slider or enter values</span>
+        <span id="salary-count-info"></span>
+    </div>
+</div>
+
+<script>
+/**
+ * Salary Range Slider Component
+ * Handles dual-range slider with formatted currency display
+ */
+class SalaryRangeSlider {
+    constructor(containerId = 'salary-slider-container') {
+        this.container = document.getElementById(containerId);
+        this.minSlider = document.getElementById('salary-min-slider');
+        this.maxSlider = document.getElementById('salary-max-slider');
+        this.minInput = document.getElementById('salary-min-input');
+        this.maxInput = document.getElementById('salary-max-input');
+        this.displayMin = document.getElementById('salary-display-min');
+        this.displayMax = document.getElementById('salary-display-max');
+        this.rangeFill = document.getElementById('salary-range-fill');
+        this.periodBtns = this.container.querySelectorAll('.period-btn');
+        this.resetBtn = document.getElementById('salary-reset-btn');
+        
+        this.currentPeriod = 'yearly';
+        this.currencySymbols = {
+            yearly: '$',
+            monthly: '$',
+            hourly: '$'
+        };
+        this.divisors = {
+            yearly: 1,
+            monthly: 12,
+            hourly: 2080 // 40 hours/week * 52 weeks
+        };
+        
+        this.initializeFromURL();
+        this.setupEventListeners();
+        this.updateDisplay();
+    }
+    
+    initializeFromURL() {
+        const params = new URLSearchParams(window.location.search);
+        const minParam = params.get('salary_min');
+        const maxParam = params.get('salary_max');
+        
+        if (minParam) {
+            this.minSlider.value = minParam;
+            this.minInput.value = minParam;
+        }
+        if (maxParam) {
+            this.maxSlider.value = maxParam;
+            this.maxInput.value = maxParam;
+        }
+    }
+    
+    setupEventListeners() {
+        // Slider events
+        this.minSlider.addEventListener('input', () => this.handleSliderChange());
+        this.maxSlider.addEventListener('input', () => this.handleSliderChange());
+        
+        // Input events
+        this.minInput.addEventListener('input', () => this.handleInputChange());
+        this.maxInput.addEventListener('input', () => this.handleInputChange());
+        
+        // Period toggle
+        this.periodBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                this.periodBtns.forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                this.currentPeriod = e.target.dataset.period;
+                this.updateDisplay();
+            });
+        });
+        
+        // Reset button
+        this.resetBtn.addEventListener('click', () => this.reset());
+    }
+    
+    handleSliderChange() {
+        let min = parseInt(this.minSlider.value);
+        let max = parseInt(this.maxSlider.value);
+        
+        // Ensure min doesn't exceed max
+        if (min > max) {
+            [min, max] = [max, min];
+            this.minSlider.value = min;
+            this.maxSlider.value = max;
+        }
+        
+        this.minInput.value = min;
+        this.maxInput.value = max;
+        this.updateDisplay();
+    }
+    
+    handleInputChange() {
+        let min = parseInt(this.minInput.value) || 0;
+        let max = parseInt(this.maxInput.value) || 500000;
+        
+        // Clamp values
+        min = Math.max(0, Math.min(min, 500000));
+        max = Math.max(min, Math.min(max, 500000));
+        
+        this.minSlider.value = min;
+        this.maxSlider.value = max;
+        this.minInput.value = min;
+        this.maxInput.value = max;
+        
+        this.updateDisplay();
+    }
+    
+    updateDisplay() {
+        const min = parseInt(this.minSlider.value);
+        const max = parseInt(this.maxSlider.value);
+        
+        // Update range fill
+        const minPercent = (min / 500000) * 100;
+        const maxPercent = (max / 500000) * 100;
+        this.rangeFill.style.left = minPercent + '%';
+        this.rangeFill.style.right = (100 - maxPercent) + '%';
+        
+        // Format display
+        this.displayMin.textContent = this.formatSalary(min);
+        this.displayMax.textContent = this.formatSalary(max);
+        
+        // Update label
+        const labels = {
+            yearly: 'per year',
+            monthly: 'per month',
+            hourly: 'per hour'
+        };
+        document.querySelector('.salary-display-label').textContent = labels[this.currentPeriod];
+    }
+    
+    formatSalary(value) {
+        const adjusted = Math.round(value / this.divisors[this.currentPeriod]);
+        
+        if (adjusted >= 1000000) {
+            return '$' + (adjusted / 1000000).toFixed(1) + 'M';
+        } else if (adjusted >= 1000) {
+            return '$' + (adjusted / 1000).toFixed(0) + 'K';
+        }
+        return '$' + adjusted;
+    }
+    
+    reset() {
+        this.minSlider.value = 0;
+        this.maxSlider.value = 500000;
+        this.minInput.value = '';
+        this.maxInput.value = '';
+        this.updateDisplay();
+        
+        // Update URL
+        const params = new URLSearchParams(window.location.search);
+        params.delete('salary_min');
+        params.delete('salary_max');
+        const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+        window.history.replaceState({}, '', newUrl);
+    }
+    
+    getValues() {
+        return {
+            min: parseInt(this.minSlider.value),
+            max: parseInt(this.maxSlider.value),
+            period: this.currentPeriod
+        };
+    }
+}
+
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    if (document.getElementById('salary-slider-container')) {
+        window.salaryRangeSlider = new SalaryRangeSlider();
+    }
+});
+</script>

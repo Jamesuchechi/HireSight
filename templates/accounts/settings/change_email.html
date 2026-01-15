@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Change Email Address - HireSight{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white border-b border-gray-200">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <h1 class="text-3xl font-bold text-gray-900">Change Email Address</h1>
+            <p class="mt-2 text-gray-600">Update your email address with verification.</p>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div class="max-w-md mx-auto">
+            <form method="post" class="bg-white rounded-lg shadow p-6">
+                {% csrf_token %}
+
+                <!-- Current Email Display -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Current Email Address
+                    </label>
+                    <div class="px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg text-gray-700">
+                        {{ user.email }}
+                    </div>
+                </div>
+
+                <!-- New Email Field -->
+                <div class="mb-6">
+                    <label for="{{ form.new_email.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        {{ form.new_email.label }}
+                    </label>
+                    {{ form.new_email }}
+                    {% if form.new_email.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.new_email.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Current Password Field -->
+                <div class="mb-6">
+                    <label for="{{ form.current_password.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        {{ form.current_password.label }}
+                    </label>
+                    {{ form.current_password }}
+                    {% if form.current_password.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.current_password.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Form Errors -->
+                {% if form.non_field_errors %}
+                <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                    {% for error in form.non_field_errors %}
+                    <p class="text-sm text-red-800">{{ error }}</p>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- Submit Button -->
+                <div class="flex gap-4">
+                    <a href="{% url 'accounts:settings' %}" class="flex-1 px-6 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition text-center">
+                        Cancel
+                    </a>
+                    <button type="submit" class="flex-1 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium">
+                        Send Verification Email
+                    </button>
+                </div>
+            </form>
+
+            <!-- Additional Info -->
+            <div class="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <h3 class="text-sm font-semibold text-blue-900 mb-2">🔐 Security Notice</h3>
+                <p class="text-sm text-blue-800">
+                    For security reasons, you'll need to verify your new email address before the change takes effect.
+                    A confirmation link will be sent to your new email address.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

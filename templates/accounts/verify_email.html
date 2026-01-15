@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Verify Email - HireSight{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white border-b border-gray-200">
+        <div class="max-w-md mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <h1 class="text-3xl font-bold text-gray-900">Verify Your Email</h1>
+            <p class="mt-2 text-gray-600">Enter the verification code sent to your email address.</p>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="max-w-md mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {% if messages %}
+        <div class="mb-6">
+            {% for message in messages %}
+            <div class="p-4 rounded-lg {% if message.tags %}bg-{{ message.tags }}-50 text-{{ message.tags }}-800 border border-{{ message.tags }}-200{% endif %}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="bg-white rounded-lg shadow px-6 py-8">
+            <form method="post" action="{% url 'accounts:verify_email_form' %}" class="space-y-6">
+                {% csrf_token %}
+
+                <!-- Token Field -->
+                <div>
+                    <label for="id_token" class="block text-sm font-semibold text-gray-700 mb-2">
+                        Verification Code
+                    </label>
+                    <input type="text"
+                           name="token"
+                           id="id_token"
+                           maxlength="32"
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-colors uppercase tracking-wider font-mono text-center text-lg"
+                           placeholder="Enter 32-character code"
+                           required>
+                    <p class="mt-2 text-sm text-gray-500">
+                        Check your email for the verification code. The code is case-insensitive.
+                    </p>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit"
+                        class="w-full bg-primary text-white py-3 px-4 rounded-lg font-semibold hover:bg-primary-dark focus:ring-2 focus:ring-primary focus:ring-offset-2 transition-colors">
+                    Verify Email
+                </button>
+            </form>
+
+            <!-- Alternative Actions -->
+            <div class="mt-6 text-center space-y-4">
+                <p class="text-sm text-gray-600">
+                    Didn't receive the code?
+                    <a href="{% url 'accounts:resend_verification' %}" class="text-primary hover:text-primary-dark font-semibold underline-animate">
+                        Resend verification email
+                    </a>
+                </p>
+
+                <div class="border-t border-gray-200 pt-4">
+                    <a href="{% url 'dashboard:dashboard_home' %}" class="text-sm text-gray-500 hover:text-gray-700 underline-animate">
+                        ← Back to dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

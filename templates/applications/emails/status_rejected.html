@@ -1,0 +1,92 @@
+{% extends 'emails/base.html' %}
+
+{% block subject %}Application Update - {{ job_title }}{% endblock %}
+
+{% block content %}
+<div style="max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif;">
+    <div style="background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); padding: 40px 30px; text-align: center; border-radius: 10px 10px 0 0;">
+        <h1 style="color: white; margin: 0; font-size: 28px; font-weight: bold;">Application Update</h1>
+        <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 16px;">{{ company_name }}</p>
+    </div>
+
+    <div style="background: white; padding: 40px 30px; border-radius: 0 0 10px 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <h2 style="color: #1f2937; margin: 0 0 20px 0; font-size: 24px;">Thank You for Your Application</h2>
+
+        <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 20px 0;">
+            Dear {{ applicant_name }},
+        </p>
+
+        <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 20px 0;">
+            Thank you for your interest in the <strong>{{ job_title }}</strong> position at {{ company_name }}
+            and for taking the time to apply.
+        </p>
+
+        <div style="background: #f9fafb; border-left: 4px solid #6b7280; padding: 20px; margin: 20px 0;">
+            <p style="margin: 0; font-size: 16px; color: #374151;">
+                <strong>Application Status:</strong> {{ status }}
+            </p>
+        </div>
+
+        {% if rejection_feedback %}
+        <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 20px; margin: 20px 0;">
+            <h3 style="color: #92400e; margin: 0 0 15px 0; font-size: 18px;">
+                📝 Feedback from {{ company_name }}
+            </h3>
+
+            {% if rejection_feedback.reason %}
+            <p style="margin: 0 0 10px 0; color: #92400e; font-weight: bold;">
+                Reason: {{ rejection_feedback.get_reason_display }}
+            </p>
+            {% endif %}
+
+            {% if rejection_feedback.feedback %}
+            <div style="color: #92400e; line-height: 1.6; margin: 10px 0;">
+                <strong>Additional Feedback:</strong><br>
+                {{ rejection_feedback.feedback|linebreaks }}
+            </div>
+            {% endif %}
+
+            {% if rejection_feedback.improvement_suggestions %}
+            <div style="color: #92400e; line-height: 1.6; margin: 10px 0;">
+                <strong>Suggestions for Improvement:</strong><br>
+                {{ rejection_feedback.improvement_suggestions|linebreaks }}
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <p style="color: #6b7280; line-height: 1.6; margin: 20px 0;">
+            While we won't be moving forward with your application at this time, we were impressed by your background
+            and encourage you to apply for future opportunities that match your skills and experience.
+        </p>
+
+        <div style="text-align: center; margin: 30px 0;">
+            <a href="{% url 'jobs:browse' %}"
+               style="background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+                Browse More Jobs
+            </a>
+        </div>
+
+        <div style="background: #f0f9ff; border: 1px solid #bae6fd; padding: 15px; border-radius: 6px; margin: 20px 0;">
+            <p style="margin: 0; color: #0369a1; font-size: 14px;">
+                <strong>💡 Keep Exploring:</strong> We regularly post new opportunities. Follow {{ company_name }} to get notified about future job openings.
+            </p>
+        </div>
+
+        <p style="color: #6b7280; line-height: 1.6; margin: 20px 0;">
+            We wish you the best in your job search and future career endeavors.
+        </p>
+
+        <p style="color: #6b7280; line-height: 1.6; margin: 20px 0;">
+            Best regards,<br>
+            The {{ company_name }} Team
+        </p>
+
+        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+
+        <p style="color: #9ca3af; font-size: 14px; margin: 20px 0 0 0; text-align: center;">
+            This is an automated message. Please do not reply to this email.
+        </p>
+    </div>
+</div>
+{% endblock %}
