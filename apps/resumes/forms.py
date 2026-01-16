@@ -254,6 +254,59 @@ class ResumeReplaceFileForm(forms.ModelForm):
         return instance
 
 
+REWRITE_INDUSTRY_CHOICES = [
+    ('technology', 'Technology'),
+    ('finance', 'Finance'),
+    ('healthcare', 'Healthcare'),
+    ('marketing', 'Marketing'),
+    ('general', 'General'),
+]
+
+
+class ResumeRewriteForm(forms.Form):
+    """Form to collect context for AI resume rewrites."""
+
+    job_title = forms.CharField(
+        required=False,
+        max_length=200,
+        widget=forms.TextInput(attrs={
+            'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition',
+            'placeholder': 'Target job title (optional)'
+        })
+    )
+    industry = forms.ChoiceField(
+        required=False,
+        choices=REWRITE_INDUSTRY_CHOICES,
+        widget=forms.Select(attrs={
+            'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition'
+        })
+    )
+    highlights = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={
+            'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition',
+            'rows': 3,
+            'placeholder': 'Key skills, achievements, or projects to highlight (optional)'
+        })
+    )
+    metrics_focus = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={
+            'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition',
+            'rows': 3,
+            'placeholder': 'Any metrics you want to emphasize (optional)'
+        })
+    )
+    job_description = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={
+            'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition',
+            'rows': 4,
+            'placeholder': 'Context for rewrite (e.g. JD, goals, tone)'
+        })
+    )
+
+
 class BulkResumeDeleteForm(forms.Form):
     """Form for bulk deleting resumes."""
     

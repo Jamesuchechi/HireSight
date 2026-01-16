@@ -366,3 +366,37 @@ class ResumeSuggestion(models.Model):
     
     def __str__(self):
         return f"{self.priority.upper()}: {self.title}"
+
+
+class ResumeRewriteDraft(models.Model):
+    """Store AI generated resume rewrite drafts for review."""
+
+    STATUS_CHOICES = [
+        ('preview', 'Preview'),
+        ('saved', 'Saved'),
+    ]
+
+    resume = models.ForeignKey(
+        Resume,
+        on_delete=models.CASCADE,
+        related_name='rewrite_drafts'
+    )
+    rewritten_text = models.TextField()
+    job_title = models.CharField(max_length=255, blank=True)
+    industry = models.CharField(max_length=100, blank=True)
+    highlights = models.TextField(blank=True)
+    metrics_focus = models.TextField(blank=True)
+    job_description = models.TextField(blank=True)
+    optimization_snapshot = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(
+        max_length=10,
+        choices=STATUS_CHOICES,
+        default='preview'
+    )
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Rewrite Draft for {self.resume.title} ({self.get_status_display()})"

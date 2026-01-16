@@ -5,6 +5,7 @@ Provides AI-powered resume analysis and optimization suggestions.
 
 import re
 import json
+import textwrap
 from typing import Dict, List, Any, Tuple
 from collections import Counter
 import requests
@@ -407,9 +408,13 @@ class MistralResumeAdvisor:
     """AI-powered resume optimization using Mistral API."""
 
     def __init__(self):
-        self.api_key = getattr(settings, 'MISTRAL_API_KEY', None)
-        self.api_url = "https://api.mistral.ai/v1/chat/completions"
-        self.model = "mistral-medium"  # or mistral-small for faster responses
+        self.api_key = getattr(settings, 'MISTRAL_API_KEY', None) or getattr(settings, 'MISTRAL_AI_API_KEY', None)
+        base_url = getattr(settings, 'MISTRAL_API_URL', None) or getattr(settings, 'MISTRAL_AI_BASE_URL', 'https://api.mistral.ai/v1')
+        if base_url.endswith('/chat/completions'):
+            self.api_url = base_url
+        else:
+            self.api_url = base_url.rstrip('/') + '/chat/completions'
+        self.model = getattr(settings, 'MISTRAL_AI_MODEL', 'mistral-medium')
 
     def generate_suggestions(self, resume_text: str, job_description: str = None) -> Dict[str, Any]:
         """Generate AI-powered resume optimization suggestions."""
@@ -547,6 +552,85 @@ Provide 3-5 specific suggestions.
                 break
 
         return suggestions
+
+    def generate_rewrite(self, resume_text: str, job_title: str = None, industry: str = None,
+                         highlights: str = None, metrics_focus: str = None, job_description: str = None) -> Dict[str, Any]:
+        """Generate a rewritten resume using the Mistral API."""
+        if not self.api_key:
+            return {
+                'success': False,
+                'error': 'Mistral API key not configured. Please set MISTRAL_API_KEY to enable rewrites.',
+                'rewritten_text': ''
+            }
+
+        try:
+            prompt = self._build_rewrite_prompt(
+                resume_text,
+                job_title=job_title,
+                industry=industry,
+                highlights=highlights,
+                metrics_focus=metrics_focus,
+                job_description=job_description
+            )
+            response = self._call_mistral_api(prompt)
+
+            if response and 'choices' in response:
+                suggestions_text = response['choices'][0]['message']['content']
+                return {
+                    'success': True,
+                    'rewritten_text': suggestions_text.strip(),
+                    'raw_response': suggestions_text
+                }
+
+            return {
+                'success': False,
+                'error': 'Invalid rewrite response from AI',
+                'rewritten_text': ''
+            }
+
+        except Exception as e:
+            return {
+                'success': False,
+                'error': str(e),
+                'rewritten_text': ''
+            }
+
+    def _build_rewrite_prompt(self, resume_text: str, job_title: str = None, industry: str = None,
+                              highlights: str = None, metrics_focus: str = None, job_description: str = None) -> str:
+        """Build a specialized prompt for rewriting resumes."""
+        base_text = resume_text[:4000]
+        prompt = textwrap.dedent(f"""
+        You are an expert resume writer. Rewrite the resume below so it follows modern resume conventions, highlights achievements, and addresses any gaps related to the provided role context.
+
+        Original Resume:
+        {base_text}
+        """).strip()
+
+        additional_context = []
+        if job_title:
+            additional_context.append(f"Target Job Title: {job_title}")
+        if industry:
+            additional_context.append(f"Industry: {industry}")
+        if highlights:
+            additional_context.append(f"Highlights to emphasize: {highlights}")
+        if metrics_focus:
+            additional_context.append(f"Metrics focus: {metrics_focus}")
+        if job_description:
+            additional_context.append(f"Job Description/Goals:\n{job_description[:2000]}")
+
+        if additional_context:
+            prompt += "\n\nContext:\n" + "\n".join(additional_context)
+
+        prompt += textwrap.dedent("""
+
+        Instructions:
+        - Output a rewritten resume with clearly labeled sections (Summary, Experience, Skills, Education, etc.).
+        - Use strong action verbs, quantify achievements where possible, and improve ATS readability.
+        - Keep formatting simple (no tables), but use bullet points and short paragraphs.
+        - Do not explain your process, only return the rewritten resume text.
+        """)
+
+        return prompt
 
 
 class ResumeOptimizer:

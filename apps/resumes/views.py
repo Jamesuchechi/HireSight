@@ -11,9 +11,16 @@ from django.utils import timezone
 from django.db import transaction
 from django.views.decorators.http import require_POST
 
-from .models import Resume
-from .forms import ResumeUploadForm, ResumeEditForm, ResumeReplaceFileForm, BulkResumeDeleteForm
+from .models import Resume, ResumeOptimization, ResumeRewriteDraft, ResumeSuggestion
+from .forms import (
+    ResumeUploadForm,
+    ResumeEditForm,
+    ResumeReplaceFileForm,
+    BulkResumeDeleteForm,
+    ResumeRewriteForm
+)
 from .parsers import resume_parser
+from .rewriter import ResumeRewriter
 
 
 class UserResumeMixin:
@@ -368,7 +375,7 @@ def resume_stats_api(request):
         sum(exp_values) / len(exp_values) if exp_values else 0
     )
     
-    return JsonResponse(report_data)
+    return JsonResponse(stats)
 
 
 class ResumeComparisonView(LoginRequiredMixin, UserResumeMixin, TemplateView):
@@ -654,6 +661,38 @@ class ResumeOptimizationView(LoginRequiredMixin, UserResumeMixin, DetailView):
 
         context['optimization'] = optimization_results
         context['job_description'] = job_description
+        context['rewrite_form'] = ResumeRewriteForm(initial={'job_description': job_description})
+        rewrite_preview = self.request.session.get(_get_rewrite_session_key(resume.pk))
+        context['rewrite_preview'] = rewrite_preview
+        context['saved_rewrites'] = resume.rewrite_drafts.filter(status='saved')
+        if rewrite_preview:
+            score_cards = rewrite_preview.get('score_cards', {})
+            rewritten_scores = score_cards.get('rewritten', {})
+            score_deltas = rewrite_preview.get('score_deltas', {})
+            context['rewrite_score_cards'] = [
+                {
+                    'label': 'Overall',
+                    'score': rewritten_scores.get('overall_score'),
+                    'delta': score_deltas.get('overall_score', 0),
+                },
+                {
+                    'label': 'ATS',
+                    'score': rewritten_scores.get('ats_score'),
+                    'delta': score_deltas.get('ats_score', 0),
+                },
+                {
+                    'label': 'Action Verbs',
+                    'score': rewritten_scores.get('action_score'),
+                    'delta': score_deltas.get('action_score', 0),
+                },
+                {
+                    'label': 'Keywords',
+                    'score': rewritten_scores.get('keyword_score'),
+                    'delta': score_deltas.get('keyword_score', 0),
+                },
+            ]
+        else:
+            context['rewrite_score_cards'] = []
 
         return context
 
@@ -760,3 +799,366 @@ def resume_optimization_report(request, pk):
     except Exception as e:
         messages.error(request, f'Error generating report: {str(e)}')
         return redirect('resumes:detail', pk=pk)
+
+
+def _get_rewrite_session_key(resume_pk):
+    return f'rewrite_preview_{resume_pk}'
+
+
+def _get_original_score_card(resume, job_description=None):
+    """Get baseline scores from the existing optimization cache or run analysis."""
+    if resume.optimization:
+        return {
+            'overall_score': resume.optimization.overall_score,
+            'ats_score': resume.optimization.ats_score,
+            'action_score': resume.optimization.action_verb_score,
+            'keyword_score': resume.optimization.keyword_score,
+        }
+
+    if not resume.parsed_text:
+        return {
+            'overall_score': 0,
+            'ats_score': 0,
+            'action_score': 0,
+            'keyword_score': 0,
+        }
+
+    from .optimization import ResumeOptimizer
+
+    optimizer = ResumeOptimizer()
+    baseline = optimizer.optimize_resume(resume.parsed_text, job_description)
+
+    return {
+        'overall_score': baseline.get('overall_score', 0),
+        'ats_score': baseline.get('ats', {}).get('overall_score', 0),
+        'action_score': baseline.get('action_verbs', {}).get('score', 0),
+        'keyword_score': baseline.get('keywords', {}).get('density_score', 0),
+    }
+
+
+def _build_score_deltas(original_scores, rewritten_scores):
+    """Calculate how much each score changed in the rewrite."""
+    deltas = {}
+    for key, rewritten_value in rewritten_scores.items():
+        original_value = original_scores.get(key, 0)
+        deltas[key] = round((rewritten_value or 0) - (original_value or 0), 1)
+    return deltas
+
+
+def _parse_rewrite_text(rewritten_text: str, resume: Resume) -> dict:
+    """Parse the rewritten text to capture structured data."""
+    try:
+        result = resume_parser.parse_content(
+            rewritten_text.encode('utf-8', errors='ignore'),
+            f"{resume.title[:40]}-rewrite.txt"
+        )
+        if result.get('success'):
+            return result
+    except Exception:
+        pass
+    return {}
+
+
+def _create_resume_from_rewrite(original_resume: Resume, rewritten_text: str, parsed_data: dict, version_notes: str) -> Resume:
+    """Persist a new Resume version that reflects the rewritten content."""
+    new_resume = Resume(
+        user=original_resume.user,
+        title=original_resume.title,
+        file=original_resume.file.name,
+        original_filename=original_resume.original_filename,
+        file_size=original_resume.file_size,
+        status='parsed',
+        parsed_text=rewritten_text,
+        skills=parsed_data.get('skills', []),
+        experience_years=parsed_data.get('experience_years'),
+        education=parsed_data.get('education', []),
+        contact_info=parsed_data.get('contact_info', {}),
+        certifications=parsed_data.get('certifications', []),
+        parsed_at=timezone.now(),
+        version_notes=version_notes,
+        is_primary=False,
+    )
+    new_resume.save()
+    return new_resume
+
+
+def _create_optimization_for_resume(resume_obj: Resume, optimization_data: dict):
+    """Create optimization records for the newly created rewrite version."""
+    action_data = optimization_data.get('action_verbs', {})
+    keyword_data = optimization_data.get('keywords', {})
+    ats_data = optimization_data.get('ats', {})
+
+    optimization = ResumeOptimization.objects.create(
+        resume=resume_obj,
+        ats_score=ats_data.get('overall_score', 0),
+        action_verb_score=action_data.get('score', 0),
+        keyword_score=keyword_data.get('density_score', 0),
+        overall_score=optimization_data.get('overall_score', 0),
+        action_verb_analysis=action_data,
+        keyword_analysis=keyword_data,
+        suggestions=optimization_data.get('ai_suggestions', [])
+    )
+
+    ResumeSuggestion.objects.filter(optimization=optimization).delete()
+    for suggestion_data in optimization_data.get('ai_suggestions', [])[:5]:
+        ResumeSuggestion.objects.create(
+            optimization=optimization,
+            category=suggestion_data.get('category', 'general'),
+            priority=suggestion_data.get('impact_level', 'medium'),
+            title=suggestion_data.get('title', 'Rewrite Suggestion'),
+            description=suggestion_data.get('description', ''),
+            suggestion=suggestion_data.get('suggestion', ''),
+            example_before=suggestion_data.get('example_before', ''),
+            example_after=suggestion_data.get('example_after', '')
+        )
+
+    return optimization
+
+
+@login_required
+@require_POST
+def load_saved_resume_rewrite(request, pk, draft_pk):
+    """Load a previously saved rewrite preview back into the session."""
+    resume = get_object_or_404(Resume, pk=pk, user=request.user)
+    draft = get_object_or_404(
+        ResumeRewriteDraft,
+        pk=draft_pk,
+        resume=resume,
+        status='saved'
+    )
+
+    from .optimization import ResumeOptimizer
+
+    optimizer = ResumeOptimizer()
+    rewrite_optimization = optimizer.optimize_resume(
+        draft.rewritten_text,
+        job_description=draft.job_description
+    )
+
+    original_scores = _get_original_score_card(resume, job_description=draft.job_description)
+    rewritten_scores = {
+        'overall_score': rewrite_optimization.get('overall_score', 0),
+        'ats_score': rewrite_optimization.get('ats', {}).get('overall_score', 0),
+        'action_score': rewrite_optimization.get('action_verbs', {}).get('score', 0),
+        'keyword_score': rewrite_optimization.get('keywords', {}).get('density_score', 0),
+    }
+
+    preview_payload = {
+        'rewritten_text': draft.rewritten_text,
+        'context': {
+            'job_title': draft.job_title,
+            'industry': draft.industry,
+            'highlights': draft.highlights,
+            'metrics_focus': draft.metrics_focus,
+            'job_description': draft.job_description,
+        },
+        'optimization': rewrite_optimization,
+        'score_cards': {
+            'original': original_scores,
+            'rewritten': rewritten_scores,
+        },
+        'score_deltas': _build_score_deltas(original_scores, rewritten_scores),
+        'ai_raw_response': draft.optimization_snapshot.get('ai_suggestions', [])
+    }
+
+    session_key = _get_rewrite_session_key(pk)
+    request.session[session_key] = preview_payload
+    request.session.modified = True
+
+    messages.success(request, 'Loaded saved rewrite into preview mode. Compare and save or discard.')
+    return redirect('resumes:optimize', pk=pk)
+
+
+@login_required
+@require_POST
+def delete_saved_resume_rewrite(request, pk, draft_pk):
+    """Permanently remove a saved rewrite draft."""
+    resume = get_object_or_404(Resume, pk=pk, user=request.user)
+    draft = get_object_or_404(
+        ResumeRewriteDraft,
+        pk=draft_pk,
+        resume=resume,
+        status='saved'
+    )
+
+    draft.delete()
+    messages.info(request, 'Saved rewrite removed.')
+    return redirect('resumes:optimize', pk=pk)
+
+
+@login_required
+@require_POST
+def resume_rewrite_preview(request, pk):
+    """Generate an AI rewrite preview and stash it in the session."""
+    resume = get_object_or_404(Resume, pk=pk, user=request.user)
+    form = ResumeRewriteForm(request.POST or None)
+
+    if not form.is_valid():
+        messages.error(request, 'Please provide valid input to generate a rewrite.')
+        return redirect('resumes:optimize', pk=pk)
+
+    if not resume.parsed_text:
+        messages.error(request, 'Resume must be parsed before generating a rewrite.')
+        return redirect('resumes:optimize', pk=pk)
+
+    rewriter = ResumeRewriter()
+    ctx = {
+        'job_title': form.cleaned_data.get('job_title', ''),
+        'industry': form.cleaned_data.get('industry', ''),
+        'highlights': form.cleaned_data.get('highlights', ''),
+        'metrics_focus': form.cleaned_data.get('metrics_focus', ''),
+        'job_description': form.cleaned_data.get('job_description', ''),
+    }
+
+    rewrite_result = rewriter.rewrite_resume(
+        resume.parsed_text,
+        job_title=ctx['job_title'],
+        industry=ctx['industry'],
+        highlights=ctx['highlights'],
+        metrics_focus=ctx['metrics_focus'],
+        job_description=ctx['job_description']
+    )
+
+    if not rewrite_result.get('success'):
+        messages.error(request, rewrite_result.get('error', 'Failed to rewrite resume.'))
+        return redirect('resumes:optimize', pk=pk)
+
+    rewritten_text = (rewrite_result.get('rewritten_text') or '').strip()
+    if not rewritten_text:
+        messages.error(request, 'The AI rewrite did not return any content.')
+        return redirect('resumes:optimize', pk=pk)
+
+    from .optimization import ResumeOptimizer
+
+    optimizer = ResumeOptimizer()
+    rewrite_optimization = optimizer.optimize_resume(
+        rewritten_text,
+        job_description=ctx['job_description']
+    )
+
+    original_scores = _get_original_score_card(resume, job_description=ctx['job_description'])
+    rewritten_scores = {
+        'overall_score': rewrite_optimization.get('overall_score', 0),
+        'ats_score': rewrite_optimization.get('ats', {}).get('overall_score', 0),
+        'action_score': rewrite_optimization.get('action_verbs', {}).get('score', 0),
+        'keyword_score': rewrite_optimization.get('keywords', {}).get('density_score', 0),
+    }
+
+    preview_payload = {
+        'rewritten_text': rewritten_text,
+        'context': ctx,
+        'optimization': rewrite_optimization,
+        'score_cards': {
+            'original': original_scores,
+            'rewritten': rewritten_scores,
+        },
+        'score_deltas': _build_score_deltas(original_scores, rewritten_scores),
+        'ai_raw_response': rewrite_result.get('raw_response', '')
+    }
+
+    session_key = _get_rewrite_session_key(pk)
+    request.session[session_key] = preview_payload
+    request.session.modified = True
+
+    messages.success(request, 'AI rewrite generated—compare it below before saving or editing.')
+    return redirect('resumes:optimize', pk=pk)
+
+
+@login_required
+@require_POST
+def save_resume_rewrite(request, pk):
+    """Persist the rewrite preview as a draft."""
+    resume = get_object_or_404(Resume, pk=pk, user=request.user)
+    session_key = _get_rewrite_session_key(pk)
+    preview = request.session.get(session_key)
+
+    if not preview:
+        messages.error(request, 'No rewrite preview found to save.')
+        return redirect('resumes:optimize', pk=pk)
+
+    ResumeRewriteDraft.objects.create(
+        resume=resume,
+        rewritten_text=preview['rewritten_text'],
+        job_title=preview['context'].get('job_title', ''),
+        industry=preview['context'].get('industry', ''),
+        highlights=preview['context'].get('highlights', ''),
+        metrics_focus=preview['context'].get('metrics_focus', ''),
+        job_description=preview['context'].get('job_description', ''),
+        optimization_snapshot=preview['optimization'],
+        status='saved'
+    )
+
+    request.session.pop(session_key, None)
+    request.session.modified = True
+
+    messages.success(request, 'Rewrite saved as a draft. You can revisit it from the optimization page.')
+    return redirect('resumes:optimize', pk=pk)
+
+
+@login_required
+@require_POST
+def discard_resume_rewrite(request, pk):
+    """Forget the current rewrite preview."""
+    session_key = _get_rewrite_session_key(pk)
+    if session_key in request.session:
+        request.session.pop(session_key)
+        request.session.modified = True
+        messages.info(request, 'Rewrite preview discarded.')
+    else:
+        messages.warning(request, 'No rewrite preview found to discard.')
+
+    return redirect('resumes:optimize', pk=pk)
+
+
+@login_required
+@require_POST
+def apply_resume_rewrite(request, pk, draft_pk=None):
+    """Persist the rewrite as a new resume version."""
+    resume = get_object_or_404(Resume, pk=pk, user=request.user)
+
+    if draft_pk:
+        draft = get_object_or_404(
+            ResumeRewriteDraft,
+            pk=draft_pk,
+            resume=resume,
+            status='saved'
+        )
+        rewritten_text = draft.rewritten_text
+        context = {
+            'job_title': draft.job_title,
+            'industry': draft.industry,
+            'highlights': draft.highlights,
+            'metrics_focus': draft.metrics_focus,
+            'job_description': draft.job_description,
+        }
+        optimization_data = draft.optimization_snapshot or {}
+        job_description = draft.job_description
+    else:
+        session_key = _get_rewrite_session_key(pk)
+        preview = request.session.get(session_key)
+        if not preview:
+            messages.error(request, 'No rewrite preview available to apply.')
+            return redirect('resumes:optimize', pk=pk)
+        rewritten_text = preview['rewritten_text']
+        context = preview['context']
+        optimization_data = preview['optimization'] or {}
+        job_description = context.get('job_description', '')
+
+    parsed_data = _parse_rewrite_text(rewritten_text, resume)
+    version_notes = 'AI rewrite applied'
+    if context.get('job_title'):
+        version_notes += f" - {context['job_title']}"
+
+    new_resume = _create_resume_from_rewrite(resume, rewritten_text, parsed_data, version_notes)
+    _create_optimization_for_resume(new_resume, optimization_data)
+
+    if not draft_pk:
+        request.session.pop(session_key, None)
+        request.session.modified = True
+
+    messages.success(
+        request,
+        f'Rewrite applied as version {new_resume.version}. '
+        'Find it in your resume list and continue iterating.'
+    )
+    return redirect('resumes:list')

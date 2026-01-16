@@ -30,6 +30,13 @@ urlpatterns = [
     path('<int:pk>/optimize/', views.ResumeOptimizationView.as_view(), name='optimize'),
     path('<int:pk>/optimize/run/', views.optimize_resume, name='optimize_run'),
     path('<int:pk>/optimize/report/', views.resume_optimization_report, name='optimization_report'),
+    path('<int:pk>/rewrite/', views.resume_rewrite_preview, name='rewrite_preview'),
+    path('<int:pk>/rewrite/save/', views.save_resume_rewrite, name='rewrite_save'),
+    path('<int:pk>/rewrite/discard/', views.discard_resume_rewrite, name='rewrite_discard'),
+    path('<int:pk>/rewrite/load/<int:draft_pk>/', views.load_saved_resume_rewrite, name='rewrite_load'),
+    path('<int:pk>/rewrite/delete/<int:draft_pk>/', views.delete_saved_resume_rewrite, name='rewrite_delete'),
+    path('<int:pk>/rewrite/apply/', views.apply_resume_rewrite, name='rewrite_apply'),
+    path('<int:pk>/rewrite/apply/<int:draft_pk>/', views.apply_resume_rewrite, name='rewrite_apply_draft'),
     
     # Advanced Features
     path('compare/', views.ResumeComparisonView.as_view(), name='compare'),

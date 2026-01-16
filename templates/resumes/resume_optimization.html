@@ -5,333 +5,462 @@
 
 {% block content %}
 <div class="min-h-screen bg-gray-50 py-8">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <!-- Header -->
-        <div class="mb-8">
-            <div class="flex items-center justify-between">
-                <div>
-                    <h1 class="text-3xl font-bold text-gray-900">Resume Optimization</h1>
-                    <p class="mt-2 text-gray-600">{{ resume.title }}</p>
-                </div>
-                <div class="flex space-x-3">
-                    <a href="{% url 'resumes:detail' resume.pk %}" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-                        </svg>
-                        Back to Resume
-                    </a>
-                    {% if optimization %}
-                    <button onclick="generateReport()" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                        </svg>
-                        Generate Report
-                    </button>
-                    {% endif %}
-                </div>
-            </div>
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+    <div class="mb-6">
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 class="text-3xl font-display font-bold text-gray-900">Resume Optimization</h1>
+          <p class="text-sm text-gray-500">{{ resume.title }}</p>
         </div>
+        <div class="flex flex-wrap gap-2">
+          <a href="{% url 'resumes:detail' resume.pk %}" class="inline-flex items-center gap-2 rounded-2xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+            </svg>
+            Back to Resume
+          </a>
+          {% if optimization %}
+          <button onclick="generateReport()" class="btn-primary inline-flex items-center gap-2 rounded-2xl px-4 py-2 text-sm font-semibold">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            Generate Report
+          </button>
+          {% endif %}
+        </div>
+      </div>
+    </div>
 
-        <!-- Job Description Input -->
-        <div class="bg-white shadow rounded-lg mb-6">
-            <div class="px-6 py-4 border-b border-gray-200">
-                <h2 class="text-lg font-medium text-gray-900">Target Job (Optional)</h2>
-                <p class="mt-1 text-sm text-gray-600">Paste a job description to get tailored optimization suggestions.</p>
+    <div class="space-y-6">
+      <section class="rounded-3xl border border-gray-100 bg-white px-6 py-6 shadow-2xl shadow-gray-200/40 space-y-4">
+        <div>
+          <h2 class="text-xl font-display font-semibold text-gray-900">Target Job (Optional)</h2>
+          <p class="text-sm text-gray-600">Paste a job description to steer the optimization toward a specific role and company.</p>
+        </div>
+        <form id="job-description-form" class="space-y-4">
+          <label class="block text-sm font-medium text-gray-700">Job Description</label>
+          <textarea id="job_description" name="job_description" rows="4" class="mt-1 block w-full rounded-2xl border border-gray-200 px-4 py-3 shadow-sm focus:border-primary focus:ring-primary transition" placeholder="Paste the job description here to get personalized optimization suggestions...">{{ job_description }}</textarea>
+          <div class="flex justify-end">
+            <button type="submit" onclick="runOptimization(event)" class="btn-primary inline-flex items-center gap-2 rounded-2xl px-5 py-2.5 text-sm font-semibold shadow">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+              </svg>
+              Analyze with Job Description
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <section class="rounded-3xl border border-gray-100 bg-white px-6 py-6 shadow-2xl shadow-gray-200/40 space-y-4">
+        <div>
+          <h2 class="text-xl font-display font-semibold text-gray-900">AI-assisted Rewrite</h2>
+          <p class="text-sm text-gray-600">Provide context and let our AI craft a polished version of your resume.</p>
+        </div>
+        <form method="post" action="{% url 'resumes:rewrite_preview' resume.pk %}" class="space-y-4">
+          {% csrf_token %}
+          {% if rewrite_form.non_field_errors %}
+            <div class="rounded-2xl border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
+              {{ rewrite_form.non_field_errors }}
             </div>
-            <div class="px-6 py-4">
-                <form id="job-description-form" class="space-y-4">
-                    <div>
-                        <label for="job_description" class="block text-sm font-medium text-gray-700">Job Description</label>
-                        <textarea id="job_description" name="job_description" rows="4"
-                                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                                placeholder="Paste the job description here to get personalized optimization suggestions...">{{ job_description }}</textarea>
-                    </div>
-                    <div class="flex justify-end">
-                        <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700">
-                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                            </svg>
-                            Analyze with Job Description
-                        </button>
-                    </div>
+          {% endif %}
+          <div class="grid gap-4 lg:grid-cols-2">
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Target Job Title</label>
+              {{ rewrite_form.job_title }}
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Industry</label>
+              {{ rewrite_form.industry }}
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Highlights (skills / achievements)</label>
+            {{ rewrite_form.highlights }}
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Metrics to emphasize</label>
+            {{ rewrite_form.metrics_focus }}
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Context for rewrite (job description, tone, goals)</label>
+            {{ rewrite_form.job_description }}
+          </div>
+          <div class="flex justify-end">
+            <button type="submit" class="inline-flex items-center gap-2 rounded-2xl bg-secondary px-5 py-2.5 text-sm font-semibold text-white shadow hover:bg-secondary-light transition">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+              </svg>
+              Generate AI Rewrite
+            </button>
+          </div>
+        </form>
+      </section>
+
+      {% if saved_rewrites %}
+      <section class="rounded-3xl border border-gray-100 bg-white px-6 py-6 shadow-2xl shadow-gray-200/40 space-y-4">
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-display font-semibold text-gray-900">Saved Rewrite Drafts</h2>
+          <span class="text-xs font-semibold uppercase tracking-wide text-gray-400">Draft workspace</span>
+        </div>
+        <div class="space-y-3">
+          {% for draft in saved_rewrites %}
+          <div class="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 shadow-sm">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p class="text-sm font-semibold text-gray-900">{{ draft.job_title|default:"Untitled rewrite" }}</p>
+                <p class="text-xs text-gray-500">{{ draft.industry|default:"General" }} • {{ draft.created_at|date:"M d, Y H:i" }}</p>
+              </div>
+              <div class="flex gap-3">
+                <form method="post" action="{% url 'resumes:rewrite_load' resume.pk draft.pk %}">
+                  {% csrf_token %}
+                  <button type="submit" class="text-sm font-semibold text-primary underline-offset-4 hover:underline">Restore preview</button>
+                </form>
+                <form method="post" action="{% url 'resumes:rewrite_apply_draft' resume.pk draft.pk %}">
+                  {% csrf_token %}
+                  <button type="submit" class="text-sm font-semibold text-secondary underline-offset-4 hover:underline">Apply rewrite</button>
+                </form>
+                <form method="post" action="{% url 'resumes:rewrite_delete' resume.pk draft.pk %}">
+                  {% csrf_token %}
+                  <button type="submit" class="text-sm font-semibold text-danger underline-offset-4 hover:underline">Delete</button>
+                </form>
+              </div>
+            </div>
+            {% if draft.highlights %}
+              <p class="mt-2 text-xs text-gray-600">Highlights: {{ draft.highlights|truncatechars:180 }}</p>
+            {% endif %}
+            {% if draft.metrics_focus %}
+              <p class="text-xs text-gray-600">Metrics: {{ draft.metrics_focus|truncatechars:180 }}</p>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+      </section>
+      {% endif %}
+
+      {% if optimization %}
+      <section class="rounded-3xl border border-primary/20 bg-gradient-to-r from-white to-primary-light px-6 py-6 shadow-2xl shadow-primary/20 space-y-4">
+        <div class="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+          <div>
+            <h2 class="text-2xl font-display font-semibold text-gray-900">Optimization Score</h2>
+            <p class="text-sm text-gray-600">Key metrics that track ATS compatibility, verb usage, and keywords.</p>
+          </div>
+          <div class="text-right">
+            <p class="text-4xl font-bold text-gray-900">{{ optimization.overall_score }}</p>
+            <p class="text-xs uppercase tracking-wide text-gray-500">/ 100</p>
+          </div>
+        </div>
+        <div class="grid gap-4 md:grid-cols-4">
+          <div class="rounded-2xl border border-gray-200 bg-white/80 px-4 py-3 text-center shadow-sm">
+            <p class="text-xs text-gray-500">ATS</p>
+            <p class="text-2xl font-bold text-blue-600">{{ optimization.ats.overall_score }}</p>
+          </div>
+          <div class="rounded-2xl border border-gray-200 bg-white/80 px-4 py-3 text-center shadow-sm">
+            <p class="text-xs text-gray-500">Action Verbs</p>
+            <p class="text-2xl font-bold text-green-600">{{ optimization.action_verbs.score }}</p>
+          </div>
+          <div class="rounded-2xl border border-gray-200 bg-white/80 px-4 py-3 text-center shadow-sm">
+            <p class="text-xs text-gray-500">Keywords</p>
+            <p class="text-2xl font-bold text-purple-600">{{ optimization.keywords.density_score }}</p>
+          </div>
+          <div class="rounded-2xl border border-gray-200 bg-white/80 px-4 py-3 text-center shadow-sm">
+            <p class="text-xs text-gray-500">Readability</p>
+            <p class="text-2xl font-bold text-orange-600">{{ optimization.ats.component_scores.readability }}</p>
+          </div>
+        </div>
+      </section>
+
+      <div class="grid gap-6 lg:grid-cols-2">
+        <section class="rounded-3xl border border-gray-100 bg-white px-6 py-6 shadow-lg space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-lg font-display font-semibold text-gray-900">Action Verbs Analysis</h3>
+            <span class="text-xs text-gray-500">{{ optimization.action_verbs.total_strong_verbs }} strong verbs</span>
+          </div>
+          <div>
+            <div class="flex items-center justify-between text-xs uppercase tracking-wide text-gray-500">
+              <span>Score</span>
+              <span>{{ optimization.action_verbs.score }}/100</span>
+            </div>
+            <div class="mt-2 h-2 rounded-full bg-gray-100">
+              <div class="h-full rounded-full bg-gradient-to-r from-green-400 to-primary" style="width: {{ optimization.action_verbs.score }}%"></div>
+            </div>
+          </div>
+          <div class="space-y-3 text-sm text-gray-600">
+            {% for category, data in optimization.action_verbs.strong_verbs.items %}
+            <div>
+              <div class="flex items-center justify-between">
+                <span class="capitalize">{{ category }}</span>
+                <span>{{ data.count }} verbs</span>
+              </div>
+              {% if data.verbs %}
+              <p class="text-xs text-gray-500">{{ data.verbs|join:", " }}</p>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+          {% if optimization.action_verbs.recommendations %}
+          <div class="pt-4 border-t border-gray-100 text-sm text-gray-600 space-y-1">
+            {% for rec in optimization.action_verbs.recommendations %}
+            <p>• {{ rec }}</p>
+            {% endfor %}
+          </div>
+          {% endif %}
+        </section>
+
+        <section class="rounded-3xl border border-gray-100 bg-white px-6 py-6 shadow-lg space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-lg font-display font-semibold text-gray-900">Keywords Analysis</h3>
+            <span class="text-xs text-gray-500">Density focused</span>
+          </div>
+          <div>
+            <div class="flex items-center justify-between text-xs uppercase tracking-wide text-gray-500">
+              <span>Density Score</span>
+              <span>{{ optimization.keywords.density_score }}/100</span>
+            </div>
+            <div class="mt-2 h-2 rounded-full bg-gray-100">
+              <div class="h-full rounded-full bg-gradient-to-r from-purple-500 to-primary" style="width: {{ optimization.keywords.density_score }}%"></div>
+            </div>
+          </div>
+          <div class="space-y-3 text-sm text-gray-600">
+            {% for category, data in optimization.keywords.keyword_counts.items %}
+            <div>
+              <div class="flex items-center justify-between">
+                <span class="capitalize">{{ category }}</span>
+                <span>{{ data.total }} keywords</span>
+              </div>
+              {% if data.keywords %}
+              <p class="text-xs text-gray-500">
+                {% for keyword, count in data.keywords.items %}
+                  {{ keyword }} ({{ count }}){% if not forloop.last %}, {% endif %}
+                {% endfor %}
+              </p>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+          {% if optimization.keywords.recommendations %}
+          <div class="pt-4 border-t border-gray-100 text-sm text-gray-600 space-y-1">
+            {% for rec in optimization.keywords.recommendations %}
+            <p>• {{ rec }}</p>
+            {% endfor %}
+          </div>
+          {% endif %}
+        </section>
+      </div>
+
+      <section class="rounded-3xl border border-gray-100 bg-white px-6 py-6 shadow-lg space-y-4">
+        <div class="flex items-center justify-between">
+          <h3 class="text-lg font-display font-semibold text-gray-900">ATS Compatibility</h3>
+          <span class="text-xs text-gray-500">Scored automatically</span>
+        </div>
+        <div class="grid grid-cols-2 gap-3 md:grid-cols-5">
+          {% for component, score in optimization.ats.component_scores.items %}
+          <div class="rounded-2xl border border-gray-200 bg-gray-50 px-3 py-3 text-center text-gray-700">
+            <div class="text-lg font-semibold text-primary">{{ score }}</div>
+            <div class="text-xs uppercase tracking-wide">{{ component|capfirst }}</div>
+          </div>
+          {% endfor %}
+        </div>
+        {% if optimization.ats.issues %}
+        <div class="text-sm text-danger space-y-1">
+          <p class="font-semibold text-gray-800">Detected Issues</p>
+          <ul class="list-disc pl-4">
+            {% for issue in optimization.ats.issues %}
+            <li>{{ issue }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+        {% endif %}
+        {% if optimization.ats.recommendations %}
+        <div class="text-sm text-gray-600 space-y-1">
+          <p class="font-semibold text-gray-800">Recommendations</p>
+          <ul class="list-disc pl-4">
+            {% for rec in optimization.ats.recommendations %}
+            <li>{{ rec }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+        {% endif %}
+      </section>
+
+      {% if optimization.ai_suggestions %}
+      <section class="rounded-3xl border border-gray-100 bg-white px-6 py-6 shadow-lg space-y-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-lg font-display font-semibold text-gray-900">AI-powered Suggestions</h3>
+            <p class="text-xs text-gray-500">Personalized ideas based on your resume and goals.</p>
+          </div>
+          <button onclick="generateReport()" class="text-sm font-semibold text-primary underline-offset-4 hover:underline">Export report</button>
+        </div>
+        <div class="space-y-3">
+          {% for suggestion in optimization.ai_suggestions %}
+          <article class="rounded-2xl border border-gray-200 bg-gray-50 p-4 shadow-sm space-y-2">
+            <div class="flex items-center justify-between">
+              <h4 class="text-sm font-semibold text-gray-900">{{ suggestion.title }}</h4>
+              <span class="rounded-full border border-current px-2 py-0.5 text-xs font-semibold {% if suggestion.impact_level == 'high' %}text-danger{% elif suggestion.impact_level == 'medium' %}text-warning{% else %}text-success{% endif %}">
+                {{ suggestion.impact_level|upper }}
+              </span>
+            </div>
+            <p class="text-sm text-gray-600">{{ suggestion.description }}</p>
+            {% if suggestion.example_before or suggestion.example_after %}
+            <div class="rounded-2xl border border-gray-200 bg-white p-3 text-xs text-gray-500 space-y-1">
+              {% if suggestion.example_before %}<p><strong class="text-danger">Before:</strong> {{ suggestion.example_before }}</p>{% endif %}
+              {% if suggestion.example_after %}<p><strong class="text-success">After:</strong> {{ suggestion.example_after }}</p>{% endif %}
+            </div>
+            {% endif %}
+          </article>
+          {% endfor %}
+        </div>
+      </section>
+      {% endif %}
+
+      {% if rewrite_preview %}
+      <section class="rounded-3xl border border-gray-100 bg-white px-6 py-6 shadow-2xl space-y-5">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-lg font-display font-semibold text-gray-900">AI Rewrite Preview</h3>
+            <p class="text-xs text-gray-500">Compare your current resume with the rewritten draft before saving.</p>
+          </div>
+          <div class="text-xs text-gray-500 flex gap-4">
+            <span>Original</span>
+            <span class="text-primary font-semibold">AI Rewrite</span>
+          </div>
+        </div>
+        <div class="grid gap-6 md:grid-cols-2">
+          <div class="rounded-2xl border border-gray-200 bg-gray-50 p-4 space-y-3">
+            <div class="flex justify-between text-xs text-gray-500">
+              <span>Current Resume</span>
+              <span>Scores</span>
+            </div>
+            <div class="space-y-2 text-sm text-gray-600">
+              <div class="flex justify-between">
+                <span>Overall</span>
+                <span class="font-semibold text-gray-900">{{ rewrite_preview.score_cards.original.overall_score }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span>ATS</span>
+                <span>{{ rewrite_preview.score_cards.original.ats_score }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span>Action Verbs</span>
+                <span>{{ rewrite_preview.score_cards.original.action_score }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span>Keywords</span>
+                <span>{{ rewrite_preview.score_cards.original.keyword_score }}</span>
+              </div>
+            </div>
+            <div class="text-xs text-gray-500 max-h-60 overflow-y-auto whitespace-pre-wrap">
+              {{ resume.parsed_text|truncatechars:640|linebreaksbr }}
+            </div>
+          </div>
+          <div class="rounded-2xl border border-primary/30 bg-gradient-to-br from-white to-secondary-light p-4 space-y-3">
+            <div class="flex justify-between text-xs text-gray-700">
+              <span>AI Rewrite</span>
+              <span>Delta</span>
+            </div>
+                <div class="space-y-2 text-sm text-gray-900">
+                  {% for card in rewrite_score_cards %}
+                  <div class="flex items-center justify-between">
+                    <span>{{ card.label }}</span>
+                    <span class="font-semibold">
+                      {{ card.score }}
+                      <span class="text-xs font-normal text-success" title="Improvement vs original score">
+                        {% if card.delta > 0 %}+{% endif %}
+                        {{ card.delta|floatformat:1 }}
+                      </span>
+                    </span>
+                  </div>
+                  {% endfor %}
+                </div>
+            <div class="text-xs text-gray-700 max-h-80 overflow-y-auto whitespace-pre-wrap">
+              {{ rewrite_preview.rewritten_text|linebreaksbr }}
+            </div>
+            <div class="flex flex-col gap-3 sm:flex-row">
+                <form method="post" action="{% url 'resumes:rewrite_save' resume.pk %}" class="flex-1">
+                    {% csrf_token %}
+                    <button type="submit" class="w-full rounded-2xl bg-success px-4 py-2 text-sm font-semibold text-white shadow">Save rewrite draft</button>
+                </form>
+                <form method="post" action="{% url 'resumes:rewrite_discard' resume.pk %}" class="flex-1">
+                    {% csrf_token %}
+                    <button type="submit" class="w-full rounded-2xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700">Discard rewrite</button>
+                </form>
+                <form method="post" action="{% url 'resumes:rewrite_apply' resume.pk %}" class="flex-1">
+                    {% csrf_token %}
+                    <button type="submit" class="w-full rounded-2xl bg-primary px-4 py-2 text-sm font-semibold text-white shadow">Apply rewrite version</button>
                 </form>
             </div>
+          </div>
         </div>
-
-        {% if optimization %}
-        <!-- Overall Score -->
-        <div class="bg-white shadow rounded-lg mb-6">
-            <div class="px-6 py-4 border-b border-gray-200">
-                <div class="flex items-center justify-between">
-                    <h2 class="text-lg font-medium text-gray-900">Optimization Score</h2>
-                    <div class="flex items-center">
-                        <div class="text-3xl font-bold text-gray-900 mr-2">{{ optimization.overall_score }}</div>
-                        <div class="text-sm text-gray-500">/ 100</div>
-                    </div>
-                </div>
-            </div>
-            <div class="px-6 py-4">
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div class="text-center">
-                        <div class="text-2xl font-bold text-blue-600">{{ optimization.ats.overall_score }}</div>
-                        <div class="text-sm text-gray-600">ATS Score</div>
-                    </div>
-                    <div class="text-center">
-                        <div class="text-2xl font-bold text-green-600">{{ optimization.action_verbs.score }}</div>
-                        <div class="text-sm text-gray-600">Action Verbs</div>
-                    </div>
-                    <div class="text-center">
-                        <div class="text-2xl font-bold text-purple-600">{{ optimization.keywords.density_score }}</div>
-                        <div class="text-sm text-gray-600">Keywords</div>
-                    </div>
-                    <div class="text-center">
-                        <div class="text-2xl font-bold text-orange-600">{{ optimization.ats.component_scores.readability }}</div>
-                        <div class="text-sm text-gray-600">Readability</div>
-                    </div>
-                </div>
-            </div>
+      </section>
+      {% endif %}
+      {% else %}
+      <section class="rounded-3xl border border-gray-100 bg-white px-6 py-8 shadow-2xl text-center space-y-4">
+        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 48 48">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+        </svg>
+        <h3 class="text-sm font-medium text-gray-900">No optimization data available yet.</h3>
+        <p class="text-sm text-gray-500">Run an analysis to unlock scoring and rewrite suggestions.</p>
+        <div class="mt-4">
+          <button onclick="runOptimization(event)" class="btn-primary inline-flex items-center gap-2 rounded-2xl px-5 py-2.5 text-sm font-semibold shadow">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+            </svg>
+            Run Optimization Analysis
+          </button>
         </div>
-
-        <!-- Detailed Analysis -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            <!-- Action Verbs Analysis -->
-            <div class="bg-white shadow rounded-lg">
-                <div class="px-6 py-4 border-b border-gray-200">
-                    <h3 class="text-lg font-medium text-gray-900">Action Verbs Analysis</h3>
-                </div>
-                <div class="px-6 py-4">
-                    <div class="mb-4">
-                        <div class="flex justify-between items-center mb-2">
-                            <span class="text-sm font-medium text-gray-700">Score</span>
-                            <span class="text-sm text-gray-600">{{ optimization.action_verbs.score }}/100</span>
-                        </div>
-                        <div class="w-full bg-gray-200 rounded-full h-2">
-                            <div class="bg-green-600 h-2 rounded-full" style="width: {{ optimization.action_verbs.score }}%"></div>
-                        </div>
-                    </div>
-
-                    <div class="space-y-3">
-                        {% for category, data in optimization.action_verbs.strong_verbs.items %}
-                            <div>
-                                <div class="flex justify-between items-center">
-                                    <span class="text-sm font-medium text-gray-700 capitalize">{{ category }}</span>
-                                    <span class="text-sm text-gray-600">{{ data.count }} verbs</span>
-                                </div>
-                                {% if data.verbs %}
-                                    <p class="text-xs text-gray-500 mt-1">{{ data.verbs|join:", " }}</p>
-                                {% endif %}
-                            </div>
-                        {% endfor %}
-                    </div>
-
-                    {% if optimization.action_verbs.recommendations %}
-                        <div class="mt-4 pt-4 border-t border-gray-200">
-                            <h4 class="text-sm font-medium text-gray-900 mb-2">Recommendations</h4>
-                            <ul class="text-sm text-gray-600 space-y-1">
-                                {% for rec in optimization.action_verbs.recommendations %}
-                                    <li>• {{ rec }}</li>
-                                {% endfor %}
-                            </ul>
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
-
-            <!-- Keywords Analysis -->
-            <div class="bg-white shadow rounded-lg">
-                <div class="px-6 py-4 border-b border-gray-200">
-                    <h3 class="text-lg font-medium text-gray-900">Keywords Analysis</h3>
-                </div>
-                <div class="px-6 py-4">
-                    <div class="mb-4">
-                        <div class="flex justify-between items-center mb-2">
-                            <span class="text-sm font-medium text-gray-700">Density Score</span>
-                            <span class="text-sm text-gray-600">{{ optimization.keywords.density_score }}/100</span>
-                        </div>
-                        <div class="w-full bg-gray-200 rounded-full h-2">
-                            <div class="bg-purple-600 h-2 rounded-full" style="width: {{ optimization.keywords.density_score }}%"></div>
-                        </div>
-                    </div>
-
-                    <div class="space-y-3">
-                        {% for category, data in optimization.keywords.keyword_counts.items %}
-                            <div>
-                                <div class="flex justify-between items-center">
-                                    <span class="text-sm font-medium text-gray-700 capitalize">{{ category }}</span>
-                                    <span class="text-sm text-gray-600">{{ data.total }} keywords</span>
-                                </div>
-                                {% if data.keywords %}
-                                    <p class="text-xs text-gray-500 mt-1">
-                                        {% for keyword, count in data.keywords.items %}
-                                            {{ keyword }} ({{ count }}){% if not forloop.last %}, {% endif %}
-                                        {% endfor %}
-                                    </p>
-                                {% endif %}
-                            </div>
-                        {% endfor %}
-                    </div>
-
-                    {% if optimization.keywords.recommendations %}
-                        <div class="mt-4 pt-4 border-t border-gray-200">
-                            <h4 class="text-sm font-medium text-gray-900 mb-2">Recommendations</h4>
-                            <ul class="text-sm text-gray-600 space-y-1">
-                                {% for rec in optimization.keywords.recommendations %}
-                                    <li>• {{ rec }}</li>
-                                {% endfor %}
-                            </ul>
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-
-        <!-- ATS Analysis -->
-        <div class="bg-white shadow rounded-lg mb-6">
-            <div class="px-6 py-4 border-b border-gray-200">
-                <h3 class="text-lg font-medium text-gray-900">ATS Compatibility Analysis</h3>
-            </div>
-            <div class="px-6 py-4">
-                <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-                    {% for component, score in optimization.ats.component_scores.items %}
-                        <div class="text-center">
-                            <div class="text-xl font-bold text-blue-600">{{ score }}</div>
-                            <div class="text-xs text-gray-600 capitalize">{{ component }}</div>
-                        </div>
-                    {% endfor %}
-                </div>
-
-                {% if optimization.ats.issues %}
-                    <div class="mb-4">
-                        <h4 class="text-sm font-medium text-gray-900 mb-2">Issues Found</h4>
-                        <ul class="text-sm text-red-600 space-y-1">
-                            {% for issue in optimization.ats.issues %}
-                                <li>• {{ issue }}</li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                {% endif %}
-
-                {% if optimization.ats.recommendations %}
-                    <div>
-                        <h4 class="text-sm font-medium text-gray-900 mb-2">Recommendations</h4>
-                        <ul class="text-sm text-gray-600 space-y-1">
-                            {% for rec in optimization.ats.recommendations %}
-                                <li>• {{ rec }}</li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- AI Suggestions -->
-        {% if optimization.ai_suggestions %}
-        <div class="bg-white shadow rounded-lg">
-            <div class="px-6 py-4 border-b border-gray-200">
-                <h3 class="text-lg font-medium text-gray-900">AI-Powered Suggestions</h3>
-                <p class="mt-1 text-sm text-gray-600">Personalized recommendations based on your resume and target job.</p>
-            </div>
-            <div class="px-6 py-4">
-                <div class="space-y-4">
-                    {% for suggestion in optimization.ai_suggestions %}
-                        <div class="border border-gray-200 rounded-lg p-4">
-                            <div class="flex items-start justify-between mb-2">
-                                <h4 class="text-sm font-medium text-gray-900">{{ suggestion.title }}</h4>
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                                    {% if suggestion.impact_level == 'high' %}bg-red-100 text-red-800
-                                    {% elif suggestion.impact_level == 'medium' %}bg-yellow-100 text-yellow-800
-                                    {% else %}bg-green-100 text-green-800{% endif %}">
-                                    {{ suggestion.impact_level|upper }}
-                                </span>
-                            </div>
-                            <p class="text-sm text-gray-600 mb-2">{{ suggestion.description }}</p>
-                            {% if suggestion.example_before or suggestion.example_after %}
-                                <div class="bg-gray-50 rounded p-3 text-xs">
-                                    {% if suggestion.example_before %}
-                                        <div class="text-red-600 mb-1"><strong>Before:</strong> {{ suggestion.example_before }}</div>
-                                    {% endif %}
-                                    {% if suggestion.example_after %}
-                                        <div class="text-green-600"><strong>After:</strong> {{ suggestion.example_after }}</div>
-                                    {% endif %}
-                                </div>
-                            {% endif %}
-                        </div>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-        {% endif %}
-
-        {% else %}
-        <!-- No optimization data yet -->
-        <div class="bg-white shadow rounded-lg">
-            <div class="px-6 py-8 text-center">
-                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 48 48">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                </svg>
-                <h3 class="mt-2 text-sm font-medium text-gray-900">No optimization data available</h3>
-                <p class="mt-1 text-sm text-gray-500">Click the button below to analyze your resume for optimization opportunities.</p>
-                <div class="mt-6">
-                    <button onclick="runOptimization()" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                        </svg>
-                        Run Optimization Analysis
-                    </button>
-                </div>
-            </div>
-        </div>
-        {% endif %}
+      </section>
+      {% endif %}
     </div>
+  </div>
 </div>
 
 <script>
-function runOptimization() {
-    const jobDescription = document.getElementById('job_description').value;
+function runOptimization(event) {
+  event.preventDefault();
+  const button = event.currentTarget;
+  const jobDescription = document.getElementById('job_description').value;
+  const originalText = button.innerHTML;
 
-    // Show loading state
-    const button = event.target;
-    const originalText = button.innerHTML;
-    button.innerHTML = '<svg class="animate-spin w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Analyzing...';
-    button.disabled = true;
+  button.innerHTML = '<svg class="animate-spin w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Analyzing...';
+  button.disabled = true;
 
-    // Make AJAX request
-    fetch('{% url "resumes:optimize_run" resume.pk %}', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-        },
-        body: new URLSearchParams({
-            'job_description': jobDescription
-        })
+  fetch('{% url "resumes:optimize_run" resume.pk %}', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+    },
+    body: new URLSearchParams({
+      'job_description': jobDescription
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Reload page to show results
-            window.location.reload();
-        } else {
-            alert('Error: ' + data.error);
-            button.innerHTML = originalText;
-            button.disabled = false;
-        }
-    })
-    .catch(error => {
-        alert('Error running optimization: ' + error);
-        button.innerHTML = originalText;
-        button.disabled = false;
-    });
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      window.location.reload();
+    } else {
+      alert('Error: ' + data.error);
+      button.innerHTML = originalText;
+      button.disabled = false;
+    }
+  })
+  .catch(error => {
+    alert('Error running optimization: ' + error);
+    button.innerHTML = originalText;
+    button.disabled = false;
+  });
 }
 
 function generateReport() {
-    window.open('{% url "resumes:optimization_report" resume.pk %}', '_blank');
+  window.open("{% url 'resumes:optimization_report' resume.pk %}", '_blank');
 }
 
-document.getElementById('job-description-form').addEventListener('submit', function(e) {
-    e.preventDefault();
-    runOptimization();
-});
+const jobDescriptionForm = document.getElementById('job-description-form');
+if (jobDescriptionForm) {
+  jobDescriptionForm.addEventListener('submit', function(e) {
+    runOptimization(e);
+  });
+}
 </script>
 
 {% endblock %}
