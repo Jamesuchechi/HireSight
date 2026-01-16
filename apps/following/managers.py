@@ -2,11 +2,75 @@ from django.db import models
 from django.db.models import Q, Exists, OuterRef, Count
 
 
+class FollowQuerySet(models.QuerySet):
+    """QuerySet that normalizes legacy lookups like `following` -> `followed`."""
+
+    LEGACY_FIELD = 'following'
+    LEGACY_FIELD_ID = 'following_id'
+    LEGACY_PREFIX = f'{LEGACY_FIELD}__'
+    TARGET_FIELD = 'followed'
+    TARGET_FIELD_ID = f'{TARGET_FIELD}_id'
+    TARGET_PREFIX = f'{TARGET_FIELD}__'
+
+    def _normalize_kwargs(self, kwargs):
+        if not kwargs:
+            return {}
+
+        normalized = {}
+        for key, value in kwargs.items():
+            if key == self.LEGACY_FIELD:
+                normalized[self.TARGET_FIELD] = value
+            elif key == self.LEGACY_FIELD_ID:
+                normalized[self.TARGET_FIELD_ID] = value
+            elif key.startswith(self.LEGACY_PREFIX):
+                suffix = key[len(self.LEGACY_PREFIX):]
+                normalized[f'{self.TARGET_PREFIX}{suffix}'] = value
+            else:
+                normalized[key] = value
+        return normalized
+
+    def _normalize_defaults(self, defaults):
+        if not defaults:
+            return defaults
+        return self._normalize_kwargs(defaults)
+
+    def filter(self, *args, **kwargs):
+        return super().filter(*args, **self._normalize_kwargs(kwargs))
+
+    def exclude(self, *args, **kwargs):
+        return super().exclude(*args, **self._normalize_kwargs(kwargs))
+
+    def get(self, *args, **kwargs):
+        return super().get(*args, **self._normalize_kwargs(kwargs))
+
+    def create(self, **kwargs):
+        return super().create(**self._normalize_kwargs(kwargs))
+
+    def get_or_create(self, defaults=None, **kwargs):
+        return super().get_or_create(
+            defaults=self._normalize_defaults(defaults),
+            **self._normalize_kwargs(kwargs)
+        )
+
+    def update_or_create(self, defaults=None, **kwargs):
+        return super().update_or_create(
+            defaults=self._normalize_defaults(defaults),
+            **self._normalize_kwargs(kwargs)
+        )
+
+    def update(self, **kwargs):
+        return super().update(**self._normalize_kwargs(kwargs))
+
+
 class FollowManager(models.Manager):
     """
     Custom manager for Follow model with optimized queries.
     """
-    
+    use_in_migrations = True
+
+    def get_queryset(self):
+        return FollowQuerySet(self.model, using=self._db)
+
     def get_followers(self, user, annotate_mutual=False):
         """
         Get all users following the specified user.
@@ -115,7 +179,3 @@ class FollowManager(models.Manager):
         
         return list(follows)
 
-
-# Update the Follow model to use this manager
-# Add this to models.py:
-# objects = FollowManager()

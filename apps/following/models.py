@@ -3,6 +3,8 @@ from django.db.models import Count, Q
 from django.urls import reverse
 from apps.accounts.models import User
 
+from .managers import FollowManager
+
 
 class Follow(models.Model):
     """
@@ -10,6 +12,7 @@ class Follow(models.Model):
     Personal accounts can follow both companies and other personal accounts.
     Companies cannot follow anyone.
     """
+    objects = FollowManager()
     follower = models.ForeignKey(
         User, 
         on_delete=models.CASCADE, 
@@ -37,6 +40,16 @@ class Follow(models.Model):
 
     def __str__(self):
         return f"{self.follower.email} follows {self.followed.email}"
+
+    @property
+    def following(self):
+        """Alias for the entity being followed (kept for legacy code)."""
+        return self.followed
+
+    @property
+    def following_type(self):
+        """Return the followed user's account type for optional analytics metadata."""
+        return 'company' if self.followed.account_type == 'company' else 'user'
 
     def clean(self):
         """Validation: Users cannot follow themselves, companies cannot follow"""

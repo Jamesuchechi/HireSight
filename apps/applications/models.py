@@ -89,6 +89,16 @@ class Application(models.Model):
         related_name='applications'
     )
 
+    class ApplicationSource(models.TextChoices):
+        """Where the applicant discovered the job."""
+        ORGANIC = 'organic', 'Organic Search'
+        REFERRAL = 'referral', 'Referral'
+        SOCIAL = 'social', 'Social Media'
+        DIRECT = 'direct', 'Direct Link'
+        EMAIL = 'email', 'Email Campaign'
+        PARTNER = 'partner', 'Partner/ATS'
+        OTHER = 'other', 'Other'
+
     # Application Details
     cover_letter = models.TextField(
         blank=True,
@@ -97,6 +107,21 @@ class Application(models.Model):
     portfolio_url = models.URLField(
         blank=True,
         help_text="Optional portfolio URL"
+    )
+    source = models.CharField(
+        max_length=30,
+        choices=ApplicationSource.choices,
+        default=ApplicationSource.ORGANIC,
+        db_index=True,
+        help_text="How the applicant discovered this job"
+    )
+    cost_to_company = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0)],
+        help_text="Cost allocated for this hire (ads, referral bonuses, etc.)"
     )
     screening_answers = JSONField(
         default=dict,

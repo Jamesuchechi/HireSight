@@ -12,7 +12,12 @@ class NotificationType(models.TextChoices):
 
 
 class Notification(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='notifications',
+        help_text='Recipient of the notification'
+    )
     title = models.CharField(max_length=255, default='HireSight Notification')
     message = models.TextField()
     notification_type = models.CharField(

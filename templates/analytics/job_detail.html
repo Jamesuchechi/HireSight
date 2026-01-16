@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Job Analytics - {{ job.title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stat-card {
+        @apply bg-white rounded-lg shadow p-6 border border-gray-200;
+    }
+    .chart-container {
+        @apply bg-white rounded-lg shadow p-6 border border-gray-200;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="mb-8">
+        <a href="{% url 'analytics:dashboard' %}" class="text-blue-600 hover:underline mb-4 inline-block">
+            <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+        </a>
+        <h1 class="text-3xl font-bold text-gray-900">{{ job.title }}</h1>
+        <p class="text-gray-600 mt-1">Detailed analytics for this job posting</p>
+    </div>
+
+    <!-- Key Metrics -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="stat-card">
+            <div class="text-3xl font-bold text-gray-900">{{ total_applications }}</div>
+            <div class="text-sm text-gray-600 mt-1">Total Applications</div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="text-3xl font-bold text-gray-900">{{ total_views }}</div>
+            <div class="text-sm text-gray-600 mt-1">Total Views</div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="text-3xl font-bold text-blue-600">{{ application_rate|floatformat:1 }}%</div>
+            <div class="text-sm text-gray-600 mt-1">Application Rate</div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="text-3xl font-bold text-gray-900">
+                {{ job.status|upper }}
+            </div>
+            <div class="text-sm text-gray-600 mt-1">Job Status</div>
+        </div>
+    </div>
+
+    <!-- Application Pipeline -->
+    <div class="chart-container mb-8">
+        <h2 class="text-xl font-semibold mb-4">Application Pipeline</h2>
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            {% for status, count in status_breakdown.items %}
+            <div class="text-center p-4 border rounded-lg hover:shadow-lg transition">
+                <div class="text-2xl font-bold 
+                    {% if status == 'pending' %}text-yellow-600
+                    {% elif status == 'screening' %}text-blue-600
+                    {% elif status == 'interview' %}text-purple-600
+                    {% elif status == 'offer' %}text-green-600
+                    {% elif status == 'hired' %}text-emerald-600
+                    {% elif status == 'rejected' %}text-red-600
+                    {% endif %}">
+                    {{ count }}
+                </div>
+                <div class="text-sm text-gray-600 capitalize mt-1">{{ status }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Match Score Distribution -->
+    <div class="chart-container mb-8">
+        <h2 class="text-xl font-semibold mb-4">Match Score Distribution</h2>
+        <canvas id="scoreChart" height="80"></canvas>
+    </div>
+
+    <!-- Job Details -->
+    <div class="chart-container">
+        <h2 class="text-xl font-semibold mb-4">Job Details</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <div class="text-sm text-gray-600 mb-1">Location</div>
+                <div class="font-medium text-gray-900">{{ job.location }}</div>
+            </div>
+            <div>
+                <div class="text-sm text-gray-600 mb-1">Employment Type</div>
+                <div class="font-medium text-gray-900">{{ job.employment_type|title }}</div>
+            </div>
+            <div>
+                <div class="text-sm text-gray-600 mb-1">Remote Type</div>
+                <div class="font-medium text-gray-900">{{ job.remote_type|title }}</div>
+            </div>
+            <div>
+                <div class="text-sm text-gray-600 mb-1">Posted Date</div>
+                <div class="font-medium text-gray-900">{{ job.created_at|date:"M d, Y" }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script>
+    // Match score distribution chart
+    const ctx = document.getElementById('scoreChart').getContext('2d');
+    
+    const scoreData = {{ score_distribution|safe }};
+    
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: Object.keys(scoreData),
+            datasets: [{
+                label: 'Number of Applications',
+                data: Object.values(scoreData),
+                backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                borderColor: 'rgb(59, 130, 246)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

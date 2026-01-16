@@ -1,0 +1,300 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}My Analytics{% endblock %}
+
+{% block extra_css %}
+<style>
+    .metric-card {
+        @apply bg-white rounded-lg shadow p-6 border border-gray-200;
+    }
+    .metric-value {
+        @apply text-3xl font-bold text-gray-900;
+    }
+    .metric-label {
+        @apply text-sm text-gray-600 mt-1;
+    }
+    .chart-container {
+        @apply bg-white rounded-lg shadow p-6 border border-gray-200;
+    }
+    .status-badge {
+        @apply px-3 py-1 rounded-full text-sm font-medium;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-8">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900">My Analytics</h1>
+            <p class="text-gray-600 mt-1">Track your job search progress</p>
+        </div>
+        <div class="flex gap-3">
+            <a href="{% url 'analytics:export' %}?format=csv" 
+               class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                <i class="fas fa-download mr-2"></i>Export CSV
+            </a>
+            <a href="{% url 'analytics:export' %}?format=pdf" 
+               class="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition">
+                <i class="fas fa-file-pdf mr-2"></i>Download PDF
+            </a>
+            <a href="{% url 'analytics:report_builder' %}?days=30" 
+               class="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:opacity-90 transition text-sm">
+                <i class="fas fa-layer-group mr-2"></i>Custom Report
+            </a>
+        </div>
+</div>
+
+    <!-- Overview Metrics -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="metric-card">
+            <div class="metric-value">{{ overview.total_applications|default:0 }}</div>
+            <div class="metric-label">Total Applications</div>
+        </div>
+
+        <div class="metric-card">
+            <div class="metric-value">{{ overview.success_rate|default:0 }}%</div>
+            <div class="metric-label">Success Rate</div>
+            <div class="text-xs text-gray-500 mt-2">Offers received</div>
+        </div>
+
+        <div class="metric-card">
+            <div class="metric-value">
+                {% if overview.avg_response_time %}
+                    {{ overview.avg_response_time|floatformat:0 }}d
+                {% else %}
+                    N/A
+                {% endif %}
+            </div>
+            <div class="metric-label">Avg Response Time</div>
+            <div class="text-xs text-gray-500 mt-2">From companies</div>
+        </div>
+
+        <div class="metric-card">
+            <div class="metric-value">{{ overview.avg_match_score|default:0 }}</div>
+            <div class="metric-label">Avg Match Score</div>
+            <div class="text-xs text-gray-500 mt-2">Out of 100</div>
+        </div>
+    </div>
+
+    <!-- Application Status Breakdown -->
+    <div class="chart-container mb-8">
+        <h2 class="text-xl font-semibold mb-4">Application Status</h2>
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <div class="text-center p-4 border rounded-lg hover:shadow-lg transition">
+                <div class="text-2xl font-bold text-yellow-600">{{ application_status.pending }}</div>
+                <div class="text-sm text-gray-600 mt-1">Pending</div>
+            </div>
+            <div class="text-center p-4 border rounded-lg hover:shadow-lg transition">
+                <div class="text-2xl font-bold text-blue-600">{{ application_status.screening }}</div>
+                <div class="text-sm text-gray-600 mt-1">Screening</div>
+            </div>
+            <div class="text-center p-4 border rounded-lg hover:shadow-lg transition">
+                <div class="text-2xl font-bold text-purple-600">{{ application_status.interview }}</div>
+                <div class="text-sm text-gray-600 mt-1">Interview</div>
+            </div>
+            <div class="text-center p-4 border rounded-lg hover:shadow-lg transition">
+                <div class="text-2xl font-bold text-green-600">{{ application_status.offer }}</div>
+                <div class="text-sm text-gray-600 mt-1">Offer</div>
+            </div>
+            <div class="text-center p-4 border rounded-lg hover:shadow-lg transition">
+                <div class="text-2xl font-bold text-emerald-600">{{ application_status.hired }}</div>
+                <div class="text-sm text-gray-600 mt-1">Hired</div>
+            </div>
+            <div class="text-center p-4 border rounded-lg hover:shadow-lg transition">
+                <div class="text-2xl font-bold text-red-600">{{ application_status.rejected }}</div>
+                <div class="text-sm text-gray-600 mt-1">Rejected</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Job Search Activity -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div class="chart-container">
+            <h2 class="text-xl font-semibold mb-4">Job Search Activity</h2>
+            <div class="space-y-4">
+                <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-eye text-blue-600 text-xl"></i>
+                        <span class="text-gray-700">Jobs Viewed</span>
+                    </div>
+                    <span class="font-semibold text-gray-900">{{ activity.jobs_viewed|default:0 }}</span>
+                </div>
+                <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-bookmark text-yellow-600 text-xl"></i>
+                        <span class="text-gray-700">Jobs Saved</span>
+                    </div>
+                    <span class="font-semibold text-gray-900">{{ activity.jobs_saved|default:0 }}</span>
+                </div>
+                <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-search text-green-600 text-xl"></i>
+                        <span class="text-gray-700">Searches Performed</span>
+                    </div>
+                    <span class="font-semibold text-gray-900">{{ activity.searches_performed|default:0 }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <h2 class="text-xl font-semibold mb-4">Profile Analytics</h2>
+            <div class="space-y-4">
+                <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-users text-purple-600 text-xl"></i>
+                        <span class="text-gray-700">Profile Views</span>
+                    </div>
+                    <span class="font-semibold text-gray-900">{{ profile_analytics.views_count|default:0 }}</span>
+                </div>
+                <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-chart-line text-blue-600 text-xl"></i>
+                        <span class="text-gray-700">Profile Completion</span>
+                    </div>
+                    <span class="font-semibold text-gray-900">{{ profile_analytics.completion_score|default:0 }}%</span>
+                </div>
+                {% if profile_analytics.completion_score < 100 %}
+                <div class="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <p class="text-sm text-blue-800">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        Complete your profile to increase visibility
+                    </p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div class="chart-container">
+            <h2 class="text-xl font-semibold mb-4">Skill Assessments</h2>
+            <div class="flex justify-between items-center mb-4">
+                <div>
+                    <p class="text-sm text-gray-500">Assessments Taken</p>
+                    <p class="text-2xl font-bold">{{ skill_assessments.taken|default:0 }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Avg. Score</p>
+                    <p class="text-2xl font-bold">{{ skill_assessments.avg_score|default:0.0 }}</p>
+                </div>
+            </div>
+            <div class="space-y-3">
+                {% for assessment in recent_assessments %}
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
+                    <div>
+                        <p class="font-semibold text-gray-900">{{ assessment.test_name }}</p>
+                        <p class="text-sm text-gray-500">{{ assessment.taken_at|date:"M d, Y" }}</p>
+                    </div>
+                    <div class="text-sm text-gray-700">
+                        {{ assessment.score }}/{{ assessment.max_score }}{% if assessment.badge_awarded %}<br/><span class="text-emerald-600">Badge: {{ assessment.badge_awarded }}</span>{% endif %}
+                    </div>
+                </div>
+                {% empty %}
+                <p class="text-sm text-gray-500">No assessments recorded yet.</p>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="chart-container">
+            <h2 class="text-xl font-semibold mb-4">Skill Badges Earned</h2>
+            <div class="flex flex-wrap gap-2">
+                {% for badge in skill_badges %}
+                <span class="px-3 py-1 text-sm rounded-full bg-blue-50 text-blue-800 border border-blue-100">
+                    {{ badge }}
+                </span>
+                {% empty %}
+                <p class="text-sm text-gray-500">No badges earned yet.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Profile Viewers -->
+    {% if profile_analytics.recent_viewers %}
+    <div class="chart-container mb-8">
+        <h2 class="text-xl font-semibold mb-4">Recent Profile Viewers</h2>
+        <div class="space-y-3">
+            {% for view in profile_analytics.recent_viewers %}
+            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-semibold">
+                        {% if view.viewer %}
+                            {{ view.viewer.email|first|upper }}
+                        {% else %}
+                            ?
+                        {% endif %}
+                    </div>
+                    <div>
+                        <div class="font-medium text-gray-900">
+                            {% if view.viewer %}
+                                {{ view.viewer.email }}
+                            {% else %}
+                                Anonymous Viewer
+                            {% endif %}
+                        </div>
+                        <div class="text-sm text-gray-500">
+                            {{ view.viewed_at|timesince }} ago
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Application Status Chart -->
+    <div class="chart-container">
+        <h2 class="text-xl font-semibold mb-4">Application Distribution</h2>
+        <canvas id="statusChart" height="80"></canvas>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script>
+    // Application status pie chart
+    const ctx = document.getElementById('statusChart').getContext('2d');
+    
+    const statusData = {
+        pending: {{ application_status.pending }},
+        screening: {{ application_status.screening }},
+        interview: {{ application_status.interview }},
+        offer: {{ application_status.offer }},
+        hired: {{ application_status.hired }},
+        rejected: {{ application_status.rejected }}
+    };
+    
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Pending', 'Screening', 'Interview', 'Offer', 'Hired', 'Rejected'],
+            datasets: [{
+                data: Object.values(statusData),
+                backgroundColor: [
+                    'rgb(234, 179, 8)',   // Yellow
+                    'rgb(59, 130, 246)',   // Blue
+                    'rgb(168, 85, 247)',   // Purple
+                    'rgb(34, 197, 94)',    // Green
+                    'rgb(16, 185, 129)',   // Emerald
+                    'rgb(239, 68, 68)'     // Red
+                ],
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

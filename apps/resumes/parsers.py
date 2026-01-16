@@ -208,8 +208,9 @@ class ResumeParser:
             Dict containing parsed data with 'success' key
         """
         try:
+            actual_path = self._get_file_path(file_path)
             # Extract text from file
-            text = self._extract_text(file_path, filename)
+            text = self._extract_text_from_file(actual_path, filename)
 
             if not text or len(text.strip()) < 50:
                 return {
@@ -253,6 +254,26 @@ class ResumeParser:
             logger.error(f"Error extracting text from {filename}: {str(e)}")
             raise ResumeParserError(f"Could not extract text: {str(e)}")
 
+        except ResumeParserError:
+            raise
+        except Exception as e:
+            logger.error(f"Error extracting text from {filename}: {str(e)}")
+            raise ResumeParserError(f"Could not extract text: {str(e)}")
+
+    def _extract_text_from_file(self, file_path: str, filename: str) -> str:
+        """Extract text from file based on its type."""
+        file_extension = filename.lower().split('.')[-1]
+        
+        try:
+            if file_extension == 'pdf':
+                return self._extract_pdf_text(file_path)
+            elif file_extension in ['docx', 'doc']:
+                return self._extract_docx_text(file_path)
+            elif file_extension == 'txt':
+                return self._extract_txt_text(file_path)
+            else:
+                raise ResumeParserError(f"Unsupported file type: {file_extension}")
+        
         except ResumeParserError:
             raise
         except Exception as e:
@@ -313,6 +334,26 @@ class ResumeParser:
             f"Checked: absolute path, relative path, Django storage, and MEDIA_ROOT."
         )
 
+    def _extract_text_from_file(self, file_path: str, filename: str) -> str:
+        """Extract text from file based on its type."""
+        file_extension = filename.lower().split('.')[-1]
+        
+        try:
+            if file_extension == 'pdf':
+                return self._extract_pdf_text(file_path)
+            elif file_extension in ['docx', 'doc']:
+                return self._extract_docx_text(file_path)
+            elif file_extension == 'txt':
+                return self._extract_txt_text(file_path)
+            else:
+                raise ResumeParserError(f"Unsupported file type: {file_extension}")
+        
+        except ResumeParserError:
+            raise
+        except Exception as e:
+            logger.error(f"Error extracting text from {filename}: {str(e)}")
+            raise ResumeParserError(f"Could not extract text: {str(e)}")
+
     def _extract_pdf_text(self, file_path: str) -> str:
         """Extract text from PDF file."""
         text = ""
@@ -322,23 +363,23 @@ class ResumeParser:
             # Check if this is a temp file we created
             if file_path.startswith(tempfile.gettempdir()):
                 temp_file_created = True
-            
+             
             with fitz.open(file_path) as doc:
                 for page_num, page in enumerate(doc, 1):
                     page_text = page.get_text()
                     if page_text:
                         text += page_text + "\n"
-                    
+                     
                     # Safety check - limit to reasonable number of pages
                     if page_num > 20:
                         logger.warning(f"PDF has more than 20 pages, stopping at page {page_num}")
                         break
-            
+             
             return text.strip()
 
         except Exception as e:
             raise ResumeParserError(f"PDF extraction failed: {str(e)}")
-        
+         
         finally:
             # Clean up temp file if we created one
             if temp_file_created and os.path.exists(file_path):
@@ -409,24 +450,24 @@ class ResumeParser:
         
         try:
             # Create temporary file from bytes
-            with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as temp_file:
+            with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False, mode='wb') as temp_file:
                 temp_file.write(file_content)
                 temp_file_path = temp_file.name
-            
+             
             try:
                 with fitz.open(temp_file_path) as doc:
                     for page_num, page in enumerate(doc, 1):
                         page_text = page.get_text()
                         if page_text:
                             text += page_text + "\n"
-                        
+                         
                         # Safety check - limit to reasonable number of pages
                         if page_num > 20:
                             logger.warning(f"PDF has more than 20 pages, stopping at page {page_num}")
                             break
-                
+                 
                 return text.strip()
-            
+             
             finally:
                 # Clean up temp file
                 if os.path.exists(temp_file_path):
@@ -434,7 +475,7 @@ class ResumeParser:
                         os.unlink(temp_file_path)
                     except Exception as e:
                         logger.warning(f"Could not delete temp PDF file: {e}")
-
+         
         except Exception as e:
             raise ResumeParserError(f"PDF extraction failed: {str(e)}")
 
@@ -442,28 +483,28 @@ class ResumeParser:
         """Extract text from DOCX file content (bytes)."""
         try:
             # Create temporary file from bytes
-            with tempfile.NamedTemporaryFile(suffix='.docx', delete=False) as temp_file:
+            with tempfile.NamedTemporaryFile(suffix='.docx', delete=False, mode='wb') as temp_file:
                 temp_file.write(file_content)
                 temp_file_path = temp_file.name
-            
+             
             try:
                 doc = Document(temp_file_path)
                 text_parts = []
-                
+                 
                 # Extract from paragraphs
                 for paragraph in doc.paragraphs:
                     if paragraph.text.strip():
                         text_parts.append(paragraph.text)
-                
+                 
                 # Extract from tables
                 for table in doc.tables:
                     for row in table.rows:
                         for cell in row.cells:
                             if cell.text.strip():
                                 text_parts.append(cell.text)
-                
+                 
                 return "\n".join(text_parts)
-
+     
             finally:
                 # Clean up temp file
                 if os.path.exists(temp_file_path):
@@ -471,7 +512,7 @@ class ResumeParser:
                         os.unlink(temp_file_path)
                     except Exception as e:
                         logger.warning(f"Could not delete temp DOCX file: {e}")
-
+    
         except Exception as e:
             raise ResumeParserError(f"DOCX extraction failed: {str(e)}")
 

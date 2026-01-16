@@ -1,0 +1,78 @@
+{% load humanize %}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>{{ frequency }} Hiring Analytics</title>
+</head>
+<body style="font-family: Arial, sans-serif; color: #1f2937; background: #f9fafb; padding: 32px;">
+    <div style="max-width: 600px; margin: auto; background: white; padding: 24px; border-radius: 8px;">
+        <h1 style="font-size: 24px; margin-bottom: 8px;">{{ company.companyprofile.company_name|default:company.email }}</h1>
+        <p style="color: #6b7280;">{{ frequency }} hiring analytics summary</p>
+
+        <table style="width: 100%; border-collapse: collapse; margin-top: 16px;">
+            <tr>
+                <td style="padding: 8px; font-weight: bold;">Total Applications</td>
+                <td style="padding: 8px; text-align: right;">{{ latest.total_applications }}</td>
+            </tr>
+            <tr>
+                <td style="padding: 8px; font-weight: bold;">Total Hires</td>
+                <td style="padding: 8px; text-align: right;">{{ latest.total_hires }}</td>
+            </tr>
+            <tr>
+                <td style="padding: 8px; font-weight: bold;">Cost per Hire</td>
+                <td style="padding: 8px; text-align: right;">
+                    {% if latest.cost_per_hire %}
+                        ${{ latest.cost_per_hire|floatformat:2 }}
+                    {% else %}
+                        Not tracked
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <td style="padding: 8px; font-weight: bold;">New Applications</td>
+                <td style="padding: 8px; text-align: right;">{{ new_applications }}</td>
+            </tr>
+            <tr>
+                <td style="padding: 8px; font-weight: bold;">New Hires</td>
+                <td style="padding: 8px; text-align: right;">{{ new_hires }}</td>
+            </tr>
+        </table>
+
+        {% if source_breakdown %}
+        <div style="margin-top: 24px;">
+            <h3 style="margin-bottom: 8px;">Applicant Sources</h3>
+            <ul style="padding-left: 16px; color: #374151;">
+                {% for source, count in source_breakdown.items %}
+                <li>{{ source|title }}: {{ count }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        {% if top_skills %}
+        <div style="margin-top: 24px;">
+            <h3 style="margin-bottom: 8px;">Top Skills</h3>
+            <p style="margin: 0; color: #374151;">
+                {% for item in top_skills %}
+                <strong>{{ item.skill }}</strong> ({{ item.count }}){% if not forloop.last %}, {% endif %}
+                {% endfor %}
+            </p>
+        </div>
+        {% endif %}
+
+        {% if skill_gaps %}
+        <div style="margin-top: 24px;">
+            <h3 style="margin-bottom: 8px;">Skill Gaps</h3>
+            <p style="margin: 0; color: #374151;">
+                {% for item in skill_gaps %}
+                <strong>{{ item.skill }}</strong> ({{ item.count }}){% if not forloop.last %}, {% endif %}
+                {% endfor %}
+            </p>
+        </div>
+        {% endif %}
+
+        <p style="margin-top: 32px; font-size: 12px; color: #9ca3af;">This report was generated for {{ company.companyprofile.company_name|default:company.email }} on {{ latest.date }}</p>
+    </div>
+</body>
+</html>

@@ -83,6 +83,9 @@ MIDDLEWARE = [
     'django_otp.middleware.OTPMiddleware', 
     'apps.accounts.middleware.SessionTrackingMiddleware', 
     'apps.accounts.middleware.CleanupExpiredSessionsMiddleware', 
+    'apps.notifications.middleware.NotificationMiddleware',
+    'apps.following.middleware.FollowCountMiddleware',
+    'apps.analytics.middleware.AnalyticsTrackingMiddleware',
     'axes.middleware.AxesMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -266,6 +269,38 @@ CELERY_BEAT_SCHEDULE = {
     'cleanup-old-screening-files': {
         'task': 'apps.screening.tasks.cleanup_old_screening_files',
         'schedule': crontab(day_of_week=0, hour=3, minute=0),
+    },
+    'analytics-weekly-report': {
+        'task': 'apps.analytics.tasks.send_weekly_analytics_report',
+        'schedule': crontab(day_of_week='mon', hour=9, minute=0),
+    },
+    'analytics-monthly-report': {
+        'task': 'apps.analytics.tasks.send_monthly_analytics_report',
+        'schedule': crontab(day_of_month='1', hour=9, minute=0),
+    },
+    'predictive-analytics-snapshot': {
+        'task': 'apps.analytics.tasks.generate_predictive_snapshots',
+        'schedule': crontab(day_of_week='mon', hour=4, minute=0),
+    },
+    'salary-insights': {
+        'task': 'apps.analytics.tasks.generate_salary_insights',
+        'schedule': crontab(hour=5, minute=0),
+    },
+    'interview-questions': {
+        'task': 'apps.analytics.tasks.generate_interview_questions',
+        'schedule': crontab(day_of_week='mon', hour=2, minute=30),
+    },
+    'culture-fit-assessments': {
+        'task': 'apps.analytics.tasks.assess_culture_fit',
+        'schedule': crontab(day_of_week='tue', hour=3, minute=0),
+    },
+    'diversity-snapshots': {
+        'task': 'apps.analytics.tasks.generate_diversity_snapshots',
+        'schedule': crontab(day_of_week='wed', hour=3, minute=30),
+    },
+    'reference-checks': {
+        'task': 'apps.analytics.tasks.kickoff_reference_checks',
+        'schedule': crontab(day_of_week='thu', hour=4, minute=0),
     },
 }
 
