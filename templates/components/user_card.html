@@ -1,0 +1,48 @@
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition">
+    <div class="flex items-center justify-between gap-4">
+        <div class="flex items-center gap-4">
+            <div class="h-12 w-12 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                {% if user.account_type == 'company' and user.companyprofile.logo %}
+                    <img src="{{ user.companyprofile.logo.url }}" alt="{{ user.companyprofile.company_name }}" class="h-full w-full object-cover">
+                {% elif user.account_type == 'personal' and user.personalprofile.avatar %}
+                    <img src="{{ user.personalprofile.avatar.url }}" alt="{{ user.get_display_name }}" class="h-full w-full object-cover">
+                {% else %}
+                    <div class="text-gray-500 font-semibold">{{ user.get_display_name|slice:":2"|upper }}</div>
+                {% endif %}
+            </div>
+            <div>
+                <h3 class="text-lg font-semibold text-gray-900">
+                    <a href="{{ profile_url }}" class="hover:text-blue-600">
+                        {{ user.get_display_name }}
+                    </a>
+                </h3>
+                <p class="text-sm text-gray-500">
+                    {% if user.account_type == 'company' and user.companyprofile %}
+                        {{ user.companyprofile.industry|default:"Company" }}
+                    {% else %}
+                        {% if user.personalprofile and user.personalprofile.headline %}
+                            {{ user.personalprofile.headline }}
+                        {% else %}
+                            Professional
+                        {% endif %}
+                    {% endif %}
+                </p>
+                <p class="text-xs text-gray-400 mt-1">
+                    {{ follower_count|default:user.followers.count }} follower{{ follower_count|default:user.followers.count|pluralize }}
+                </p>
+                {% if show_mutual_badge and mutual_badge %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 mt-1">
+                        Mutual
+                    </span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="flex items-center gap-2">
+            {% if actions_template %}
+                {% include actions_template with target_id=action_target_id next_url=action_next_url initial_following=action_initial_following label=action_label button_classes=action_button_classes only %}
+            {% elif user_card_actions %}
+                {{ user_card_actions|safe }}
+            {% endif %}
+        </div>
+    </div>
+</div>

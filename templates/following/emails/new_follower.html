@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New follower on HireSight</title>
+</head>
+<body style="font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif; background:#f3f4f6; padding:32px;">
+    <div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 10px 35px rgba(15,23,42,0.15);">
+        <div style="padding:32px;text-align:center;background:linear-gradient(135deg,#2563eb,#7c3aed);color:#ffffff;">
+            <h1 style="margin:0;font-size:24px;font-weight:600;">{{ follower_name }} is now following you</h1>
+            <p style="margin:8px 0 0;font-size:14px;opacity:.9;">HireSight keeps you in the loop.</p>
+        </div>
+        <div style="padding:32px;color:#0f172a;">
+            <p style="margin:0;font-size:16px;">Hello {{ followed.get_display_name }},</p>
+            <p style="margin:16px 0 0;font-size:14px;line-height:1.6;">
+                {{ follower_name }} ({{ follower_headline }}) just started following you. Follow activity helps you stay connected with the people who care about your updates.
+            </p>
+            <div style="margin:24px 0;text-align:center;">
+                <a href="{{ profile_url }}" style="display:inline-flex;align-items:center;justify-content:center;padding:12px 24px;border-radius:999px;background:#2563eb;color:#ffffff;font-weight:600;text-decoration:none;box-shadow:0 10px 25px rgba(37,99,235,0.35);">
+                    View {{ follower_name }}'s profile
+                </a>
+            </div>
+            <p style="font-size:12px;color:#475569;margin-bottom:0;">
+                Manage how you hear from us on <a href="{{ manage_preferences_url }}" style="color:#2563eb;text-decoration:underline;">your email preferences</a>.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

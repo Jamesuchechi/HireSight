@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Activity Feed - HireSight{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 py-8 space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+        <div>
+            <p class="text-xs uppercase tracking-wide text-gray-500">Network</p>
+            <h1 class="text-3xl font-bold text-gray-900">Activity feed</h1>
+            <p class="text-gray-600">Updates from the people and companies you follow.</p>
+        </div>
+        <div class="flex items-center gap-2">
+            {% for option,label in [('all','All'),('companies','Companies'),('people','People')] %}
+                <a href="{% url 'following:activity_feed' %}?filter={{ option }}"
+                   class="px-3 py-1.5 rounded-full text-sm font-semibold {% if filter_option == option %}bg-blue-600 text-white{% else %}bg-gray-100 text-gray-700{% endif %} hover:bg-blue-500 hover:text-white transition-colors">
+                    {{ label }}
+                </a>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div id="activity-cards" class="space-y-4"
+         hx-get="{% url 'following:activity_feed' %}?filter={{ filter_option }}"
+         hx-trigger="every 30s"
+         hx-target="#activity-cards"
+         hx-swap="innerHTML">
+        {% include 'following/partials/activity_cards.html' %}
+    </div>
+</div>
+{% endblock %}

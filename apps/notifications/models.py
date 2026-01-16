@@ -8,6 +8,7 @@ class NotificationType(models.TextChoices):
     MESSAGE = 'message', 'Message'
     JOB = 'job', 'Job'
     SYSTEM = 'system', 'System'
+    NEW_FOLLOWER = 'new_follower', 'New Follower'
 
 
 class Notification(models.Model):
@@ -34,3 +35,14 @@ class Notification(models.Model):
     @property
     def type(self):
         return self.notification_type
+
+    def mark_as_read(self):
+        """Mark the notification as read."""
+        if not self.is_read:
+            self.is_read = True
+            self.save(update_fields=['is_read'])
+
+    @classmethod
+    def unread_count(cls, user):
+        """Return number of unread notifications for a user."""
+        return cls.objects.filter(user=user, is_read=False).count()

@@ -1,0 +1,205 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Bulk Follow Operations - HireSight{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto space-y-6 px-4 py-8">
+    <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+            <p class="text-xs uppercase tracking-wide text-blue-600">Following tools</p>
+            <h1 class="text-3xl font-semibold text-gray-900">Bulk follow operations</h1>
+            <p class="text-gray-600">Follow or unfollow many users with a single click and monitor progress.</p>
+        </div>
+    </div>
+
+    <div class="grid gap-6 lg:grid-cols-3">
+        <section class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm lg:col-span-2">
+            <div class="flex items-center justify-between">
+                <h2 class="text-lg font-semibold text-gray-900">Select users</h2>
+                <div class="flex gap-2">
+                    <button id="selectAll" type="button"
+                            class="rounded-lg border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-600 hover:bg-gray-50">
+                        Select all
+                    </button>
+                    <button id="deselectAll" type="button"
+                            class="rounded-lg border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-600 hover:bg-gray-50">
+                        Clear
+                    </button>
+                </div>
+            </div>
+            <form method="get" class="mt-3 flex items-center gap-2">
+                <input name="q" type="text" placeholder="Search by name or email"
+                       class="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:border-blue-500 focus:outline-none"
+                       value="{{ request.GET.q|default:'' }}" />
+                <button type="submit"
+                        class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50">
+                    Search
+                </button>
+            </form>
+
+            <form id="bulkSelectionForm" method="post" class="mt-5 space-y-5">
+                {% csrf_token %}
+                <input id="bulkUserIds" type="hidden" name="user_ids" value="" />
+                <input id="bulkActionInput" type="hidden" name="action" value="follow" />
+
+                <div class="space-y-3">
+                    {% for user in candidate_users %}
+                        <label class="flex cursor-pointer items-start gap-3 rounded-2xl border border-gray-200 bg-gray-50 p-4 transition hover:border-blue-500">
+                            <input type="checkbox"
+                                   class="bulk-user-checkbox mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                   value="{{ user.id }}" data-user-id="{{ user.id }}" />
+                            <div class="flex-1">
+                                <div class="flex items-center justify-between">
+                                    <a href="{% url 'accounts:profile_detail' user_id=user.id %}"
+                                       class="text-sm font-semibold text-gray-900 hover:text-blue-600">
+                                        {{ user.get_display_name }}
+                                    </a>
+                                    <span class="rounded-full bg-white px-3 py-1 text-xs font-semibold text-gray-800">
+                                        {{ user.followers.count }} followers
+                                    </span>
+                                </div>
+                                <p class="text-xs text-gray-500">
+                                    {{ user.personalprofile.location|default:"Location not set" }}
+                                </p>
+                            </div>
+                        </label>
+                    {% empty %}
+                        <p class="text-sm text-gray-500">No users available for bulk follow.</p>
+                    {% endfor %}
+                </div>
+
+                <div class="flex flex-col gap-3 sm:flex-row">
+                    <button data-action="follow" type="submit"
+                            class="flex-1 rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500">
+                        Follow selected
+                    </button>
+                    <button data-action="unfollow" type="submit"
+                            class="flex-1 rounded-2xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">
+                        Unfollow selected
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <section class="space-y-5 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+            <div>
+                <h2 class="text-lg font-semibold text-gray-900">Bulk import</h2>
+                <p class="text-sm text-gray-500">Upload a CSV (email or user_id) to follow up to 50 people.</p>
+            </div>
+            <form method="post" enctype="multipart/form-data" class="space-y-3">
+                {% csrf_token %}
+                {{ csv_form.action }}
+                <label class="block text-sm font-medium text-gray-700">CSV file</label>
+                <input type="file" name="csv_file" accept=".csv"
+                       class="mt-1 w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700 focus:border-blue-500 focus:outline-none" />
+                <div class="mt-3 text-xs text-gray-500">
+                    <a href="{% static 'templates/bulk_follow_template.csv' %}" class="font-semibold text-blue-600 hover:text-blue-500">
+                        Download CSV template
+                    </a>
+                    <span class="ml-2 font-normal">| Limit 50 rows</span>
+                </div>
+                <button type="submit"
+                        class="mt-4 w-full rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500">
+                    Queue import
+                </button>
+            </form>
+
+            <div class="space-y-2 rounded-2xl border border-gray-100 bg-gray-50 p-4 text-sm text-gray-700">
+                <p class="font-semibold text-gray-900">Progress</p>
+                <div class="h-2 w-full rounded-full bg-white">
+                    <div id="bulkProgressBar" class="h-full rounded-full bg-blue-600" style="width: 0%"></div>
+                </div>
+                <p>
+                    <span id="bulkProgressProcessed">{{ progress_data.processed|default:0 }}</span> /
+                    <span id="bulkProgressTotal">{{ progress_data.total|default:0 }}</span> processed
+                </p>
+                <p>Status: <span id="bulkProgressStatus">{{ progress_data.status|default:"idle" }}</span></p>
+                {% if progress_data.errors %}
+                    <div class="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-xs text-red-700">
+                        <p class="font-semibold text-red-700">Recent issues</p>
+                        <ul class="list-disc space-y-1 pl-4">
+                            {% for item in progress_data.errors|slice:":3" %}
+                                <li>{{ item }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+            </div>
+            {% if last_result %}
+                <div class="rounded-2xl border border-gray-200 bg-white p-4 text-sm text-gray-600">
+                    <p class="font-semibold text-gray-900">Last result</p>
+                    <p>{{ last_result.success }} successful, {{ last_result.already|default:0 }} skipped, {{ last_result.errors|length }} errors</p>
+                </div>
+            {% endif %}
+        </section>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('bulkSelectionForm');
+        const actionInput = document.getElementById('bulkActionInput');
+        const userIdsInput = document.getElementById('bulkUserIds');
+        const checkboxes = document.querySelectorAll('.bulk-user-checkbox');
+
+        const updateHiddenInput = () => {
+            const selected = Array.from(checkboxes)
+                .filter(checkbox => checkbox.checked)
+                .map(checkbox => checkbox.value);
+            userIdsInput.value = selected.join(',');
+            return selected;
+        };
+
+        form.addEventListener('submit', function (event) {
+            const selected = updateHiddenInput();
+            if (selected.length === 0) {
+                event.preventDefault();
+                alert('Select at least one user to continue.');
+            }
+        });
+
+        document.querySelectorAll('[data-action]').forEach(button => {
+            button.addEventListener('click', () => {
+                actionInput.value = button.dataset.action;
+            });
+        });
+
+        document.getElementById('selectAll').addEventListener('click', () => {
+            checkboxes.forEach(checkbox => checkbox.checked = true);
+        });
+
+        document.getElementById('deselectAll').addEventListener('click', () => {
+            checkboxes.forEach(checkbox => checkbox.checked = false);
+            userIdsInput.value = '';
+        });
+
+        const progressUrl = '{{ bulk_progress_url }}';
+        const progressBar = document.getElementById('bulkProgressBar');
+        const processed = document.getElementById('bulkProgressProcessed');
+        const total = document.getElementById('bulkProgressTotal');
+        const status = document.getElementById('bulkProgressStatus');
+
+        const updateProgress = async () => {
+            try {
+                const response = await fetch(progressUrl);
+                const data = await response.json();
+                const processedValue = data.processed || 0;
+                const totalValue = data.total || 0;
+                processed.textContent = processedValue;
+                total.textContent = totalValue;
+                status.textContent = data.status || 'idle';
+                if (totalValue > 0) {
+                    const ratio = Math.min(100, Math.round((processedValue / totalValue) * 100));
+                    progressBar.style.width = `${ratio}%`;
+                }
+            } catch (error) {
+                console.error(error);
+            }
+        };
+
+        updateProgress();
+        setInterval(updateProgress, 5000);
+    });
+</script>
+{% endblock %}

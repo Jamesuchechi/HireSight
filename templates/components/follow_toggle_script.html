@@ -1,0 +1,63 @@
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const followClasses = ['bg-blue-600', 'text-white', 'border-transparent', 'hover:bg-blue-700'];
+    const followingClasses = ['bg-white', 'text-gray-700', 'border', 'border-gray-300', 'hover:bg-gray-50'];
+
+    const updateButtonStyles = (button, isFollowing) => {
+        if (!button) return;
+        if (isFollowing) {
+            button.textContent = 'Following';
+            button.classList.remove(...followClasses);
+            button.classList.add(...followingClasses);
+        } else {
+            button.textContent = 'Follow';
+            button.classList.remove(...followingClasses);
+            button.classList.add(...followClasses);
+        }
+    };
+
+    document.querySelectorAll('.follow-toggle-form').forEach(form => {
+        const button = form.querySelector('button');
+        const initialFollowing = button?.dataset?.initialFollowing === 'true';
+        updateButtonStyles(button, initialFollowing);
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            if (!button) return;
+
+            button.disabled = true;
+            const formData = new FormData(form);
+
+            try {
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+                    },
+                    body: formData
+                });
+                const data = await response.json();
+
+                if (!response.ok || !data.success) {
+                    throw new Error(data.error || 'Unable to update follow status');
+                }
+
+                updateButtonStyles(button, data.is_following);
+
+                const counterId = form.dataset.followersCountTarget;
+                if (counterId) {
+                    const counter = document.getElementById(counterId);
+                    if (counter && typeof data.follower_count === 'number') {
+                        counter.textContent = data.follower_count;
+                    }
+                }
+            } catch (error) {
+                alert(error.message);
+            } finally {
+                button.disabled = false;
+            }
+        });
+    });
+});
+</script>

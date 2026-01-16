@@ -1,0 +1,9 @@
+<form method="post" action="{% url 'following:toggle' target_id %}" class="follow-toggle-form inline-flex">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ next_url|default:request.path }}">
+    <button type="submit"
+            data-initial-following="{{ initial_following|yesno:'true,false' }}"
+            class="{{ button_classes|default:'px-4 py-2 rounded-md text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500' }}">
+        {{ label|default:"Follow" }}
+    </button>
+</form>

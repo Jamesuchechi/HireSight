@@ -1,0 +1,11 @@
+{{ follower_name }} started following you on HireSight.
+
+Name: {{ follower_name }}
+Headline: {{ follower_headline }}
+
+View their profile: {{ profile_url }}
+
+Manage your notification preferences: {{ manage_preferences_url }}
+
+Thanks,
+The HireSight Team

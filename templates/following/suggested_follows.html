@@ -1,0 +1,134 @@
+{% extends 'base.html' %}
+
+{% block title %}Suggested Follows - HireSight{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 py-8">
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">Suggested for You</h1>
+        <p class="text-gray-600">Discover companies and professionals in your network</p>
+    </div>
+
+    <!-- Filter Tabs -->
+    <div class="mb-6 border-b border-gray-200">
+        <nav class="flex space-x-8">
+            <a href="{% url 'following:following_list' %}" 
+               class="border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 hover:text-gray-700">
+                Following
+            </a>
+            <a href="{% url 'following:followers_list' %}" 
+               class="border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 hover:text-gray-700">
+                Followers
+            </a>
+            <a href="{% url 'following:suggested_follows' %}" 
+               class="border-b-2 border-blue-500 py-4 px-1 text-sm font-medium text-blue-600">
+                Suggestions
+            </a>
+        </nav>
+    </div>
+
+    {% if suggested_companies %}
+        <section class="space-y-4">
+            <header class="flex items-center justify-between">
+                <div>
+                    <p class="text-xs uppercase tracking-wide text-gray-500">Companies</p>
+                    <h2 class="text-2xl font-bold text-gray-900">Suggested companies</h2>
+                </div>
+            </header>
+            {% for company in suggested_companies %}
+                {% url 'accounts:profile_detail' company.id as company_url %}
+                {% include 'components/user_card.html' with
+                    user=company
+                    profile_url=company_url
+                    follower_count=company.followers_count
+                    show_mutual_badge=False
+                    mutual_badge=False
+                    actions_template='following/partials/follow_button.html'
+                    action_target_id=company.id
+                    action_next_url=request.path
+                    action_label='Follow'
+                    action_initial_following=False
+                    action_button_classes='px-4 py-2 rounded-md text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500'
+                    only
+                %}
+            {% endfor %}
+        </section>
+    {% endif %}
+
+    {% if suggested_users %}
+        <section class="space-y-4 mt-6">
+            <header class="flex items-center justify-between">
+                <div>
+                    <p class="text-xs uppercase tracking-wide text-gray-500">Professionals</p>
+                    <h2 class="text-2xl font-bold text-gray-900">People with shared skills</h2>
+                </div>
+            </header>
+            {% for match in suggested_users %}
+                {% url 'accounts:profile_detail' match.user.id as match_url %}
+                <div class="space-y-2">
+                    {% include 'components/user_card.html' with
+                        user=match.user
+                        profile_url=match_url
+                        follower_count=match.user.followers_count
+                        show_mutual_badge=False
+                        mutual_badge=False
+                        actions_template='following/partials/follow_button.html'
+                        action_target_id=match.user.id
+                        action_next_url=request.path
+                        action_label='Follow'
+                        action_initial_following=False
+                        action_button_classes='px-4 py-2 rounded-md text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500'
+                        only
+                    %}
+                    {% if match.shared_skills %}
+                        <p class="text-xs text-gray-500">Shared skills: {{ match.shared_skills|join:", " }}</p>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </section>
+    {% endif %}
+
+    {% if not suggested_companies and not suggested_users %}
+        <div class="text-center py-12">
+            <p class="text-gray-500">No suggestions available at the moment</p>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+document.querySelectorAll('.follow-form-ajax').forEach(form => {
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const btn = this.querySelector('button');
+        const originalText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = 'Following...';
+        
+        const formData = new FormData(this);
+        const response = await fetch(this.action, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+            },
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            btn.textContent = 'Following';
+            btn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+            btn.classList.add('bg-gray-300', 'text-gray-700');
+            setTimeout(() => {
+                this.closest('.bg-white').style.opacity = '0.5';
+            }, 500);
+        } else {
+            btn.disabled = false;
+            btn.textContent = originalText;
+            alert(data.error || 'Failed to follow');
+        }
+    });
+});
+</script>
+{% endblock %}

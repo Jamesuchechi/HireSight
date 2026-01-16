@@ -30,6 +30,8 @@ from .decorators import personal_required, company_required
 from django.contrib.admin.views.decorators import staff_member_required
 from django.utils.decorators import method_decorator
 
+from apps.following.models import Follow
+
 
 class RegisterView(FormView):
     """User registration view."""
@@ -1069,7 +1071,29 @@ class PublicPersonalProfileView(TemplateView):
         context['is_own_profile'] = self.request.user == self.profile_user
         context['applications_count'] = getattr(self.profile_user, 'applications_count', 0)
         context['profile_completion'] = self.profile.calculate_completion_score()
-        
+        context['followers_count'] = Follow.get_follower_count(self.profile_user)
+        context['following_count'] = Follow.get_following_count(self.profile_user)
+
+        request_user = self.request.user
+        is_authenticated = request_user.is_authenticated
+        is_personal_requestor = getattr(request_user, 'account_type', None) == 'personal'
+
+        context['is_following'] = (
+            is_authenticated and Follow.objects.filter(
+                follower=request_user,
+                followed=self.profile_user
+            ).exists()
+        )
+        context['follows_you'] = False
+        if is_authenticated:
+            context['follows_you'] = Follow.objects.filter(
+                follower=self.profile_user,
+                followed=request_user
+            ).exists()
+        context['is_mutual_follow'] = context['is_following'] and context['follows_you']
+        context['can_follow'] = is_personal_requestor and not context['is_own_profile']
+        context['can_view_mutual'] = is_personal_requestor and is_authenticated and not context['is_own_profile']
+
         # Add view count if viewing own profile
         if context['is_own_profile']:
             context['total_profile_views'] = self.profile_user.get_profile_views_count()
@@ -1128,8 +1152,22 @@ class PublicCompanyProfileView(TemplateView):
         context['profile'] = self.profile
         context['is_own_profile'] = self.request.user == self.profile_user
         context['active_jobs_count'] = 0  
-        context['followers_count'] = 0  
         context['recent_jobs'] = []  
+
+        request_user = self.request.user
+        is_authenticated = request_user.is_authenticated
+        is_personal_requestor = getattr(request_user, 'account_type', None) == 'personal'
+
+        context['followers_count'] = Follow.get_follower_count(self.profile_user)
+        context['following_count'] = Follow.get_following_count(self.profile_user)
+        context['is_following'] = (
+            is_authenticated and Follow.objects.filter(
+                follower=request_user,
+                followed=self.profile_user
+            ).exists()
+        )
+        context['can_follow'] = is_personal_requestor and not context['is_own_profile']
+        context['can_view_mutual'] = is_personal_requestor and is_authenticated and not context['is_own_profile']
         
         # Add view count if viewing own profile
         if context['is_own_profile']:

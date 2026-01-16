@@ -1,0 +1,85 @@
+{% load humanize %}
+
+{% if not has_following %}
+    <div class="bg-white rounded-2xl shadow border border-dashed border-gray-200 p-8 text-center">
+        <p class="text-gray-600">Follow people and companies to fuel this feed with updates.</p>
+        <a href="{% url 'following:suggested_follows' %}" class="mt-4 inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-full font-semibold hover:bg-blue-700 transition-colors">
+            Discover suggestions
+        </a>
+    </div>
+{% elif activities %}
+    {% for activity in activities %}
+        <article class="bg-white rounded-2xl shadow border border-gray-200 p-5 flex flex-col gap-3">
+            <div class="flex items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                    <div class="h-12 w-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center">
+                        {% if activity.activity_type == ActivityType.JOB_POSTED %}
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-6a2 2 0 012-2h2a2 2 0 012 2v6m-6 0H5a2 2 0 002 2h10a2 2 0 002-2h-6"></path>
+                            </svg>
+                        {% elif activity.activity_type == ActivityType.PROFILE_UPDATED %}
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                        {% elif activity.activity_type == ActivityType.SKILL_ADDED %}
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-3-3v6m-4 5h.01M5.05 16.05a7 7 0 1113.9 0L12 21l-6.95-4.95z"></path>
+                            </svg>
+                        {% else %}
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2 text-sm text-gray-600">
+                            <a href="{{ activity.get_profile_url }}" class="font-semibold text-gray-900 hover:text-blue-600">
+                                {{ activity.user.get_display_name }}
+                            </a>
+                            <span class="text-xs uppercase tracking-wide text-gray-400">{{ activity.get_activity_type_display }}</span>
+                        </div>
+                        <p class="text-xs text-gray-500">{{ activity.created_at|naturaltime }}</p>
+                    </div>
+                </div>
+                {% if activity.activity_type == ActivityType.JOB_POSTED and activity.content.job_slug %}
+                    <a href="{% url 'jobs:detail' slug=activity.content.job_slug %}" class="text-xs text-blue-600 hover:underline">View job</a>
+                {% endif %}
+            </div>
+            <div class="text-sm text-gray-700 space-y-1">
+                {% if activity.activity_type == ActivityType.JOB_POSTED %}
+                    <p class="font-semibold text-gray-900">{{ activity.content.job_title }}</p>
+                    <p class="text-xs text-gray-500">{{ activity.content.location }}</p>
+                {% elif activity.activity_type == ActivityType.SKILL_ADDED and activity.content.added_skills %}
+                    <p>Added new skills: <span class="font-semibold">{{ activity.content.added_skills|join:", " }}</span></p>
+                {% elif activity.activity_type == ActivityType.PROFILE_UPDATED %}
+                    <p>{{ activity.content.headline|default:activity.content.company_name|default:"Updated their profile" }}</p>
+                {% elif activity.activity_type == ActivityType.FOLLOWED_USER %}
+                    <p>Started following {{ activity.content.followed_user_name }}</p>
+                {% else %}
+                    <p>Shared an update.</p>
+                {% endif %}
+            </div>
+        </article>
+    {% endfor %}
+
+    {% if is_paginated %}
+        <div class="flex justify-center">
+            <nav class="inline-flex rounded-md shadow-sm -space-x-px">
+                {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}&filter={{ filter_option }}" class="px-3 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-600 hover:bg-gray-50">Previous</a>
+                {% endif %}
+                <span class="px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}&filter={{ filter_option }}" class="px-3 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-600 hover:bg-gray-50">Next</a>
+                {% endif %}
+            </nav>
+        </div>
+    {% endif %}
+{% else %}
+    <div class="bg-white rounded-2xl shadow border border-gray-200 p-8 text-center">
+        <p class="text-gray-600">No activity yet. Follow more people or companies to see their updates here.</p>
+        <a href="{% url 'following:suggested_follows' %}" class="mt-4 inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-full font-semibold hover:bg-blue-700 transition-colors">
+            Browse suggestions
+        </a>
+    </div>
+{% endif %}

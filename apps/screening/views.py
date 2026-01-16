@@ -41,7 +41,7 @@ class CompanyOnlyMixin:
     def dispatch(self, request, *args, **kwargs):
         if request.user.account_type != 'company':
             messages.error(request, "Only company accounts can access screening features.")
-            return redirect('dashboard:home')
+            return redirect('dashboard:dashboard_home')
         return super().dispatch(request, *args, **kwargs)
 
 

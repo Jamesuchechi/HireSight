@@ -86,13 +86,24 @@
                         </a>
                     </div>
                 {% else %}
-                    <div class="flex flex-col sm:flex-row gap-3">
+                    <div class="flex flex-col sm:flex-row gap-3 flex-wrap items-center">
                         <button class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all">
                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
                             </svg>
                             Message
                         </button>
+                        {% if can_follow %}
+                            <form method="post" action="{% url 'following:toggle' profile_user.id %}" class="follow-toggle-form inline-flex items-center justify-center px-6 py-3 rounded-xl font-semibold shadow-lg transition-all" data-followers-count-target="personal-profile-followers-count">
+                                {% csrf_token %}
+                                <input type="hidden" name="next" value="{{ request.path }}">
+                                <button type="submit"
+                                        data-initial-following="{{ is_following|yesno:'true,false' }}"
+                                        class="px-6 py-3 rounded-xl font-semibold bg-blue-600 text-white border border-transparent hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-primary">
+                                    Follow
+                                </button>
+                            </form>
+                        {% endif %}
                         <button class="inline-flex items-center justify-center px-6 py-3 bg-white border-2 border-primary text-primary rounded-xl font-semibold hover:bg-primary-light transition-all">
                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path>
@@ -102,6 +113,35 @@
                     </div>
                 {% endif %}
             </div>
+
+            <div class="flex flex-wrap items-center gap-2 mt-3">
+                {% if follows_you %}
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 border border-green-200">
+                        Follows you
+                    </span>
+                {% endif %}
+                {% if is_mutual_follow %}
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 border border-blue-200">
+                        Mutual
+                    </span>
+                {% endif %}
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 mt-4">
+                <div class="bg-white rounded-2xl shadow border border-gray-100 p-4 text-center">
+                    <p class="text-xs uppercase tracking-wide text-gray-500">Followers</p>
+                    <p id="personal-profile-followers-count" class="text-3xl font-bold text-gray-900">{{ followers_count }}</p>
+                </div>
+                <div class="bg-white rounded-2xl shadow border border-gray-100 p-4 text-center">
+                    <p class="text-xs uppercase tracking-wide text-gray-500">Following</p>
+                    <p class="text-3xl font-bold text-gray-900">{{ following_count }}</p>
+                </div>
+            </div>
+            {% if can_view_mutual %}
+                <div class="mt-3 text-sm text-primary font-semibold">
+                    <a href="{% url 'following:mutual_followers' profile_user.id %}" class="hover:underline">See mutual connections</a>
+                </div>
+            {% endif %}
 
             <!-- Profile Completion Bar -->
             {% if is_own_profile %}
@@ -476,4 +516,5 @@
         </div>
     </div>
 </div>
+{% include 'components/follow_toggle_script.html' %}
 {% endblock %}

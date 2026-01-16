@@ -34,7 +34,7 @@ class CompanyRequiredMixin(UserPassesTestMixin):
             self.request,
             'You need a company account to access this page.'
         )
-        return redirect('dashboard:home')
+        return redirect('dashboard:dashboard_home')
 
 
 class JobOwnerMixin(UserPassesTestMixin):

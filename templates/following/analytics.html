@@ -1,0 +1,233 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Following Analytics - HireSight{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 py-8 space-y-8">
+    <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+            <p class="text-xs uppercase tracking-wide text-blue-600">Analytics</p>
+            <h1 class="text-3xl font-semibold text-gray-900">Follower health dashboard</h1>
+            <p class="text-gray-600">Monitor your follower growth, engagement, and recent activity.</p>
+        </div>
+        <form method="get" class="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <label class="sr-only" for="start-date">Start</label>
+            <input id="start-date" type="date" name="start_date" value="{{ selected_start_date }}"
+                   class="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none">
+            <label class="sr-only" for="end-date">End</label>
+            <input id="end-date" type="date" name="end_date" value="{{ selected_end_date }}"
+                   class="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none">
+            <button type="submit"
+                    class="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500 focus:outline-none">
+                Update
+            </button>
+        </form>
+    </div>
+
+    <div class="grid gap-4 md:grid-cols-4">
+        <div class="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+            <p class="text-sm font-semibold text-gray-500">Followers</p>
+            <p class="mt-2 text-3xl font-bold text-gray-900">{{ follower_count|intcomma }}</p>
+            <p class="text-xs text-gray-400">Total people watching your journey</p>
+        </div>
+        <div class="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+            <p class="text-sm font-semibold text-gray-500">Following</p>
+            <p class="mt-2 text-3xl font-bold text-gray-900">{{ following_count|intcomma }}</p>
+            <p class="text-xs text-gray-400">Profiles you follow</p>
+        </div>
+        <div class="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+            <p class="text-sm font-semibold text-gray-500">Growth rate</p>
+            <p class="mt-2 text-3xl font-bold text-gray-900">{{ growth_rate }}%</p>
+            <p class="text-xs text-gray-400">Compared to previous period</p>
+        </div>
+        <div class="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+            <p class="text-sm font-semibold text-gray-500">Retention</p>
+            <p class="mt-2 text-3xl font-bold text-gray-900">{{ retention_rate }}%</p>
+            <p class="text-xs text-gray-400">Followers still connected after 30 days</p>
+        </div>
+    </div>
+
+    <div class="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+        <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+                <h2 class="text-lg font-semibold text-gray-900">New followers over time</h2>
+                <p class="text-sm text-gray-500">Data refreshes for the selected date range.</p>
+            </div>
+            <span class="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-600">
+                {{ current_period_new }} new
+            </span>
+        </div>
+        <div class="mt-4 h-72">
+            <canvas id="followersChart" class="h-full w-full"></canvas>
+        </div>
+    </div>
+
+    <div class="grid gap-6 lg:grid-cols-3">
+        <section class="space-y-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm lg:col-span-2">
+            <h3 class="text-base font-semibold text-gray-900">Top followers by influence</h3>
+            <p class="text-sm text-gray-500">People who bring the most reach to your profile.</p>
+            <div class="space-y-3">
+                {% for follower in top_followers %}
+                    <div class="flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
+                        <div>
+                            <a href="{{ follower.profile_url }}" class="text-sm font-semibold text-gray-900 hover:text-blue-600">
+                                {{ follower.name }}
+                            </a>
+                            <p class="text-xs text-gray-500">{{ follower.account_type|title }} account</p>
+                        </div>
+                        <span class="rounded-full bg-white px-3 py-1 text-xs font-semibold text-gray-800">
+                            {{ follower.influence }} followers
+                        </span>
+                    </div>
+                {% empty %}
+                    <p class="text-sm text-gray-500">No followers recorded yet.</p>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section class="space-y-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+            <h3 class="text-base font-semibold text-gray-900">Engagement from followers</h3>
+            <div class="space-y-4">
+                <div class="flex items-center justify-between">
+                    <p class="text-sm font-medium text-gray-600">Profile views (30d)</p>
+                    <p class="text-lg font-bold text-gray-900">{{ engagement.profile_views }}</p>
+                </div>
+                <div class="flex items-center justify-between">
+                    <p class="text-sm font-medium text-gray-600">Unique followers viewed</p>
+                    <p class="text-lg font-bold text-gray-900">{{ engagement.unique_viewers }}</p>
+                </div>
+            </div>
+            <div>
+                <h4 class="text-sm font-semibold text-gray-700">Geographic spread</h4>
+                <div class="mt-2 space-y-2 text-sm text-gray-700">
+                    {% for row in geo_distribution %}
+                        <div class="flex items-center justify-between">
+                            <span>{{ row.location }}</span>
+                            <span class="font-semibold text-gray-900">{{ row.count }}</span>
+                        </div>
+                    {% empty %}
+                        <p class="text-gray-500">Location data is not available yet.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div class="grid gap-6 lg:grid-cols-2">
+        <section class="space-y-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+            <h3 class="text-base font-semibold text-gray-900">Recent unfollows</h3>
+            <p class="text-sm text-gray-500">Who stopped following you in the last 30 days.</p>
+            <div class="space-y-3">
+                {% for unfollow in recent_unfollows %}
+                    <div class="flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
+                        <div>
+                            <a href="{{ unfollow.profile_url }}"
+                               class="text-sm font-semibold text-gray-900 hover:text-blue-600">{{ unfollow.name }}</a>
+                            <p class="text-xs text-gray-500">{{ unfollow.when|date:"M j, Y" }}</p>
+                        </div>
+                        <span class="rounded-full bg-white px-3 py-1 text-xs font-semibold text-gray-800">
+                            left your network
+                        </span>
+                    </div>
+                {% empty %}
+                    <p class="text-sm text-gray-500">No recent unfollows.</p>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section class="space-y-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+            <h3 class="text-base font-semibold text-gray-900">Details</h3>
+            <dl class="space-y-2 text-sm text-gray-600">
+                <div class="flex items-center justify-between">
+                    <dt>Total new followers</dt>
+                    <dd class="font-semibold text-gray-900">{{ current_period_new }}</dd>
+                </div>
+                <div class="flex items-center justify-between">
+                    <dt>Previous period</dt>
+                    <dd class="font-semibold text-gray-900">{{ previous_period_new }}</dd>
+                </div>
+                <div class="flex items-center justify-between">
+                    <dt>Time window</dt>
+                    <dd class="font-semibold text-gray-900">{{ selected_start_date }} → {{ selected_end_date }}</dd>
+                </div>
+            </dl>
+        </section>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const ctx = document.getElementById('followersChart');
+        if (!ctx) return;
+        const chartCtx = ctx.getContext('2d');
+        let followersChart;
+        const apiUrl = '{{ analytics_api_url }}';
+        const params = new URLSearchParams({
+            start_date: '{{ selected_start_date }}',
+            end_date: '{{ selected_end_date }}'
+        });
+
+        const renderChart = (payload) => {
+            const config = {
+                type: 'line',
+                data: {
+                    labels: payload.labels,
+                    datasets: [{
+                        label: 'New followers',
+                        data: payload.values,
+                        borderColor: '#2563eb',
+                        backgroundColor: 'rgba(37, 99, 235, 0.15)',
+                        tension: 0.35,
+                        fill: true,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => `${context.parsed.y} new followers`
+                            }
+                        }
+                    }
+                }
+            };
+
+            if (followersChart) {
+                followersChart.data = config.data;
+                followersChart.update();
+            } else {
+                followersChart = new Chart(chartCtx, config);
+            }
+        };
+
+        const fetchData = async () => {
+            try {
+                const response = await fetch(`${apiUrl}?${params.toString()}`);
+                if (!response.ok) {
+                    throw new Error('Unable to load analytics data.');
+                }
+                const data = await response.json();
+                renderChart(data.chart);
+            } catch (error) {
+                console.error(error);
+            }
+        };
+
+        fetchData();
+    });
+</script>
+{% endblock %}

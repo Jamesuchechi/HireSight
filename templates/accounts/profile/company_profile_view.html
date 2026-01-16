@@ -139,14 +139,30 @@
                         </svg>
                         Contact Company
                     </button>
-                    <button class="inline-flex items-center justify-center px-6 py-3 bg-white border-2 border-primary text-primary rounded-xl font-semibold hover:bg-primary-light transition-all">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
-                        </svg>
-                        Follow
-                    </button>
+                    {% if can_follow %}
+                        <form method="post" action="{% url 'following:toggle' profile_user.id %}" class="follow-toggle-form inline-flex items-center justify-center px-6 py-3 rounded-xl font-semibold shadow-lg transition-all" data-followers-count-target="company-profile-followers-count">
+                            {% csrf_token %}
+                            <input type="hidden" name="next" value="{{ request.path }}">
+                            <button type="submit"
+                                    data-initial-following="{{ is_following|yesno:'true,false' }}"
+                                    class="px-6 py-3 rounded-xl font-semibold bg-white border border-primary text-primary hover:bg-primary-light focus:outline-none focus:ring-2 focus:ring-primary">
+                                Follow
+                            </button>
+                        </form>
+                    {% endif %}
                 {% endif %}
             </div>
+
+            {% if not is_own_profile %}
+                <div class="flex flex-wrap justify-center gap-4 mt-4 text-sm text-gray-600">
+                    {% if following_count is not none %}
+                        <div>
+                            <span class="text-lg font-bold text-gray-900">{{ following_count }}</span>
+                            <span class="ml-1 uppercase tracking-wide text-xs">Following</span>
+                        </div>
+                    {% endif %}
+                </div>
+            {% endif %}
 
             <!-- Company Stats -->
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8">
@@ -155,7 +171,7 @@
                     <div class="text-xs text-gray-600 font-semibold mt-1">Active Jobs</div>
                 </div>
                 <div class="bg-gradient-to-br from-secondary-light to-white rounded-xl p-4 border border-secondary/20 text-center hover:shadow-lg transition-all">
-                    <div class="text-2xl font-bold bg-gradient-to-r from-secondary to-accent bg-clip-text text-transparent">{{ followers_count }}</div>
+                    <div id="company-profile-followers-count" class="text-2xl font-bold bg-gradient-to-r from-secondary to-accent bg-clip-text text-transparent">{{ followers_count }}</div>
                     <div class="text-xs text-gray-600 font-semibold mt-1">Followers</div>
                 </div>
                 <div class="bg-gradient-to-br from-success/10 to-white rounded-xl p-4 border border-success/20 text-center hover:shadow-lg transition-all">
@@ -167,6 +183,11 @@
                     <div class="text-xs text-gray-600 font-semibold mt-1">Locations</div>
                 </div>
             </div>
+            {% if can_view_mutual %}
+                <div class="text-center mt-3 text-sm font-semibold text-primary">
+                    <a href="{% url 'following:mutual_followers' profile_user.id %}" class="hover:underline">See mutual connections</a>
+                </div>
+            {% endif %}
         </div>
     </div>
 
@@ -419,6 +440,7 @@
         </div>
     </div>
 </div>
+{% include 'components/follow_toggle_script.html' %}
 
 <!-- Load Company Profile View Map JavaScript -->
 <script src="{% static 'js/company_profile_view_map.js' %}"></script>
