@@ -3,100 +3,191 @@
 {% block title %}Upload Resume - HireSight{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50">
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
     <!-- Header -->
-    <div class="bg-white shadow-sm border-b border-gray-200">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-            <div class="flex items-center justify-between">
-                <div>
-                    <h1 class="text-3xl font-display font-bold text-gray-900">Upload Resume</h1>
-                    <p class="text-gray-600 mt-1">Upload your resume for AI-powered parsing and job matching</p>
-                </div>
-                <a href="{% url 'resumes:list' %}" class="text-primary hover:text-primary/80 font-medium flex items-center">
-                    <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                    </svg>
-                    Back to Resumes
-                </a>
-            </div>
+    <div class="mb-6">
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 class="text-3xl font-display font-bold text-gray-900">Upload Resume</h1>
+          <p class="text-sm text-gray-600 mt-1">Upload your resume for AI-powered parsing and job matching</p>
         </div>
+        <a href="{% url 'resumes:list' %}" class="inline-flex items-center gap-2 rounded-2xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 transition-colors">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+          </svg>
+          Back to Resumes
+        </a>
+      </div>
     </div>
 
-    <!-- Main Content -->
-    <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
-            <form method="post" enctype="multipart/form-data" class="space-y-6">
-                {% csrf_token %}
+    <!-- Main Upload Form -->
+    <section class="rounded-3xl border border-gray-100 bg-white px-8 py-8 shadow-2xl shadow-gray-200/40">
+      <form method="post" enctype="multipart/form-data" class="space-y-6">
+        {% csrf_token %}
 
-                <!-- Title Field -->
-                <div>
-                    <label for="{{ form.title.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                        Resume Title
-                    </label>
-                    {{ form.title }}
-                    {% if form.title.errors %}
-                    <p class="mt-1 text-sm text-red-600">{{ form.title.errors.0 }}</p>
-                    {% endif %}
-                    <p class="mt-1 text-sm text-gray-500">Give your resume a descriptive name (e.g., "Software Engineer Resume")</p>
-                </div>
-
-                <!-- File Field -->
-                <div>
-                    <label for="{{ form.file.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                        Resume File
-                    </label>
-                    {{ form.file }}
-                    {% if form.file.errors %}
-                    <p class="mt-1 text-sm text-red-600">{{ form.file.errors.0 }}</p>
-                    {% endif %}
-                    <div class="mt-1 text-sm text-gray-500">
-                        <p>Supported formats: PDF, DOCX</p>
-                        <p>Maximum file size: 5MB</p>
-                    </div>
-                </div>
-
-                <!-- Primary Checkbox -->
-                <div class="flex items-center">
-                    {{ form.is_primary }}
-                    <label for="{{ form.is_primary.id_for_label }}" class="ml-2 block text-sm text-gray-700">
-                        Set as primary resume
-                    </label>
-                </div>
-                {% if form.is_primary.errors %}
-                <p class="mt-1 text-sm text-red-600">{{ form.is_primary.errors.0 }}</p>
-                {% endif %}
-
-                <!-- Submit Button -->
-                <div class="pt-4">
-                    <button type="submit" class="w-full bg-primary text-white py-3 px-4 rounded-xl font-semibold hover:bg-primary/90 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
-                        Upload & Parse Resume
-                    </button>
-                </div>
-            </form>
-
-            <!-- Info Section -->
-            <div class="mt-8 p-4 bg-blue-50 rounded-lg">
-                <div class="flex">
-                    <div class="flex-shrink-0">
-                        <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
-                        </svg>
-                    </div>
-                    <div class="ml-3">
-                        <h3 class="text-sm font-medium text-blue-800">What happens next?</h3>
-                        <div class="mt-2 text-sm text-blue-700">
-                            <p>After upload, our AI will automatically:</p>
-                            <ul class="list-disc list-inside mt-1 space-y-1">
-                                <li>Extract text from your resume</li>
-                                <li>Identify skills and technologies</li>
-                                <li>Parse education and experience</li>
-                                <li>Extract contact information</li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <!-- Title Field -->
+        <div>
+          <label for="{{ form.title.id_for_label }}" class="block text-sm font-semibold text-gray-900 mb-2">
+            Resume Title
+          </label>
+          <input type="text" 
+                 name="{{ form.title.name }}" 
+                 id="{{ form.title.id_for_label }}"
+                 class="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm shadow-sm focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                 placeholder="e.g., Software Engineer Resume - 2026"
+                 value="{{ form.title.value|default:'' }}">
+          {% if form.title.errors %}
+          <p class="mt-2 text-sm text-red-600 flex items-center gap-1">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+            </svg>
+            {{ form.title.errors.0 }}
+          </p>
+          {% endif %}
+          <p class="mt-2 text-xs text-gray-500">Give your resume a descriptive name for easy identification</p>
         </div>
-    </div>
+
+        <!-- File Upload Field -->
+        <div>
+          <label for="{{ form.file.id_for_label }}" class="block text-sm font-semibold text-gray-900 mb-2">
+            Resume File
+          </label>
+          <div class="relative">
+            <input type="file" 
+                   name="{{ form.file.name }}" 
+                   id="{{ form.file.id_for_label }}"
+                   accept=".pdf,.docx"
+                   class="block w-full text-sm text-gray-500 file:mr-4 file:py-3 file:px-6 file:rounded-2xl file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-primary/90 file:transition-colors cursor-pointer border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary/20">
+          </div>
+          {% if form.file.errors %}
+          <p class="mt-2 text-sm text-red-600 flex items-center gap-1">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+            </svg>
+            {{ form.file.errors.0 }}
+          </p>
+          {% endif %}
+          <div class="mt-3 flex items-start gap-3 rounded-2xl bg-blue-50 border border-blue-200 p-4">
+            <svg class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+            </svg>
+            <div class="text-xs text-blue-800 space-y-1">
+              <p class="font-semibold">Supported formats: PDF, DOCX</p>
+              <p>Maximum file size: 5MB</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Primary Checkbox -->
+        <div class="rounded-2xl bg-gray-50 border border-gray-200 p-4">
+          <label class="flex items-start cursor-pointer group">
+            <div class="flex items-center h-5">
+              <input type="checkbox" 
+                     name="{{ form.is_primary.name }}" 
+                     id="{{ form.is_primary.id_for_label }}"
+                     {% if form.is_primary.value %}checked{% endif %}
+                     class="w-5 h-5 text-primary border-gray-300 rounded focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer">
+            </div>
+            <div class="ml-3">
+              <span class="text-sm font-semibold text-gray-900 group-hover:text-primary transition-colors">Set as primary resume</span>
+              <p class="text-xs text-gray-500 mt-1">This will be your default resume for job applications</p>
+            </div>
+          </label>
+          {% if form.is_primary.errors %}
+          <p class="mt-2 text-sm text-red-600 flex items-center gap-1">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+            </svg>
+            {{ form.is_primary.errors.0 }}
+          </p>
+          {% endif %}
+        </div>
+
+        <!-- Submit Button -->
+        <button type="submit" class="w-full rounded-2xl bg-gradient-to-r from-primary to-primary/90 px-6 py-4 text-base font-semibold text-white shadow-lg hover:shadow-xl hover:from-primary/90 hover:to-primary transition-all flex items-center justify-center gap-3 group">
+          <svg class="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+          </svg>
+          Upload & Parse Resume
+        </button>
+      </form>
+    </section>
+
+    <!-- Info Section -->
+    <section class="rounded-3xl border border-primary/20 bg-gradient-to-br from-white to-primary-light px-8 py-6 shadow-lg">
+      <div class="flex items-start gap-4">
+        <div class="flex-shrink-0">
+          <div class="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center">
+            <svg class="w-6 h-6 text-primary" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+            </svg>
+          </div>
+        </div>
+        <div class="flex-1">
+          <h3 class="text-base font-semibold text-gray-900 mb-3">What happens next?</h3>
+          <p class="text-sm text-gray-600 mb-4">After upload, our AI will automatically process your resume:</p>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="flex items-start gap-3">
+              <div class="flex-shrink-0 w-6 h-6 bg-primary rounded-full flex items-center justify-center text-white text-xs font-bold">1</div>
+              <div>
+                <p class="text-sm font-medium text-gray-900">Extract text</p>
+                <p class="text-xs text-gray-600">Parse content from PDF/DOCX</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-3">
+              <div class="flex-shrink-0 w-6 h-6 bg-primary rounded-full flex items-center justify-center text-white text-xs font-bold">2</div>
+              <div>
+                <p class="text-sm font-medium text-gray-900">Identify skills</p>
+                <p class="text-xs text-gray-600">Detect technologies & expertise</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-3">
+              <div class="flex-shrink-0 w-6 h-6 bg-primary rounded-full flex items-center justify-center text-white text-xs font-bold">3</div>
+              <div>
+                <p class="text-sm font-medium text-gray-900">Parse experience</p>
+                <p class="text-xs text-gray-600">Analyze education & work history</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-3">
+              <div class="flex-shrink-0 w-6 h-6 bg-primary rounded-full flex items-center justify-center text-white text-xs font-bold">4</div>
+              <div>
+                <p class="text-sm font-medium text-gray-900">Extract contacts</p>
+                <p class="text-xs text-gray-600">Save email, phone & profiles</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tips Section -->
+    <section class="rounded-3xl border border-gray-100 bg-white px-8 py-6 shadow-lg">
+      <h3 class="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
+        <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+        </svg>
+        Pro Tips for Best Results
+      </h3>
+      <ul class="space-y-3">
+        <li class="flex items-start gap-3">
+          <span class="flex-shrink-0 w-1.5 h-1.5 bg-primary rounded-full mt-2"></span>
+          <span class="text-sm text-gray-600"><strong class="text-gray-900">Use standard formatting:</strong> Stick to common fonts and avoid complex layouts for better parsing accuracy</span>
+        </li>
+        <li class="flex items-start gap-3">
+          <span class="flex-shrink-0 w-1.5 h-1.5 bg-primary rounded-full mt-2"></span>
+          <span class="text-sm text-gray-600"><strong class="text-gray-900">Include contact info:</strong> Make sure your email, phone, and LinkedIn are clearly visible</span>
+        </li>
+        <li class="flex items-start gap-3">
+          <span class="flex-shrink-0 w-1.5 h-1.5 bg-primary rounded-full mt-2"></span>
+          <span class="text-sm text-gray-600"><strong class="text-gray-900">List your skills:</strong> Create a dedicated skills section with relevant technologies and tools</span>
+        </li>
+        <li class="flex items-start gap-3">
+          <span class="flex-shrink-0 w-1.5 h-1.5 bg-primary rounded-full mt-2"></span>
+          <span class="text-sm text-gray-600"><strong class="text-gray-900">Keep it updated:</strong> Upload the most recent version of your resume for accurate analysis</span>
+        </li>
+      </ul>
+    </section>
+  </div>
 </div>
 {% endblock %}

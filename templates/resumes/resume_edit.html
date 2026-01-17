@@ -1,74 +1,104 @@
-<!-- resume_edit.html -->
 {% extends 'base.html' %}
 
 {% block title %}Edit Resume - {{ object.title }}{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50">
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
     <!-- Header -->
-    <div class="bg-white shadow-sm border-b border-gray-200">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-            <div class="flex items-center justify-between">
-                <div>
-                    <h1 class="text-3xl font-display font-bold text-gray-900">Edit Resume</h1>
-                    <p class="text-gray-600 mt-1">{{ object.title }}</p>
-                </div>
-                <a href="{% url 'resumes:detail' object.pk %}" class="text-primary hover:text-primary/80 font-medium flex items-center">
-                    <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                    </svg>
-                    Back to Details
-                </a>
+    <div class="mb-6">
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 class="text-3xl font-display font-bold text-gray-900">Edit Resume</h1>
+          <p class="text-sm text-gray-600 mt-1">{{ object.title }}</p>
+        </div>
+        <a href="{% url 'resumes:detail' object.pk %}" class="inline-flex items-center gap-2 rounded-2xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 transition-colors">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+          </svg>
+          Back to Details
+        </a>
+      </div>
+    </div>
+
+    <!-- Main Edit Form -->
+    <section class="rounded-3xl border border-gray-100 bg-white px-8 py-8 shadow-2xl shadow-gray-200/40">
+      <form method="post" class="space-y-6">
+        {% csrf_token %}
+
+        <!-- Title Field -->
+        <div>
+          <label for="{{ form.title.id_for_label }}" class="block text-sm font-semibold text-gray-900 mb-2">
+            Resume Title
+          </label>
+          <input type="text" 
+                 name="{{ form.title.name }}" 
+                 id="{{ form.title.id_for_label }}"
+                 class="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm shadow-sm focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                 placeholder="e.g., Software Engineer Resume - 2026"
+                 value="{{ form.title.value|default:'' }}">
+          {% if form.title.errors %}
+          <p class="mt-2 text-sm text-red-600 flex items-center gap-1">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+            </svg>
+            {{ form.title.errors.0 }}
+          </p>
+          {% endif %}
+        </div>
+
+        <!-- Primary Checkbox -->
+        <div class="rounded-2xl bg-gray-50 border border-gray-200 p-4">
+          <label class="flex items-start cursor-pointer group">
+            <div class="flex items-center h-5">
+              <input type="checkbox" 
+                     name="{{ form.is_primary.name }}" 
+                     id="{{ form.is_primary.id_for_label }}"
+                     {% if form.is_primary.value %}checked{% endif %}
+                     class="w-5 h-5 text-primary border-gray-300 rounded focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer">
             </div>
+            <div class="ml-3">
+              <span class="text-sm font-semibold text-gray-900 group-hover:text-primary transition-colors">Set as primary resume</span>
+              <p class="text-xs text-gray-500 mt-1">This will be your default resume for job applications</p>
+            </div>
+          </label>
+          {% if form.is_primary.errors %}
+          <p class="mt-2 text-sm text-red-600 flex items-center gap-1">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+            </svg>
+            {{ form.is_primary.errors.0 }}
+          </p>
+          {% endif %}
         </div>
-    </div>
 
-    <!-- Main Content -->
-    <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
-            <form method="post" class="space-y-6">
-                {% csrf_token %}
-
-                <!-- Title Field -->
-                <div>
-                    <label for="{{ form.title.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                        Resume Title
-                    </label>
-                    {{ form.title }}
-                    {% if form.title.errors %}
-                    <p class="mt-1 text-sm text-red-600">{{ form.title.errors.0 }}</p>
-                    {% endif %}
-                </div>
-
-                <!-- Primary Checkbox -->
-                <div class="flex items-center">
-                    {{ form.is_primary }}
-                    <label for="{{ form.is_primary.id_for_label }}" class="ml-2 block text-sm text-gray-700">
-                        Set as primary resume
-                    </label>
-                </div>
-                {% if form.is_primary.errors %}
-                <p class="mt-1 text-sm text-red-600">{{ form.is_primary.errors.0 }}</p>
-                {% endif %}
-
-                <!-- Info Box -->
-                <div class="p-4 bg-blue-50 rounded-lg">
-                    <p class="text-sm text-blue-700">
-                        <strong>Note:</strong> To change the resume file, use the "Replace File" option from the detail page.
-                    </p>
-                </div>
-
-                <!-- Submit Buttons -->
-                <div class="flex space-x-4">
-                    <button type="submit" class="flex-1 bg-primary text-white py-3 px-4 rounded-xl font-semibold hover:bg-primary/90 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
-                        Save Changes
-                    </button>
-                    <a href="{% url 'resumes:detail' object.pk %}" class="flex-1 bg-gray-200 text-gray-800 py-3 px-4 rounded-xl font-semibold hover:bg-gray-300 transition-colors text-center">
-                        Cancel
-                    </a>
-                </div>
-            </form>
+        <!-- Info Box -->
+        <div class="rounded-2xl border border-blue-200 bg-gradient-to-r from-blue-50 to-blue-100/50 p-5">
+          <div class="flex items-start gap-3">
+            <svg class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+            </svg>
+            <div>
+              <p class="text-sm font-semibold text-blue-900 mb-1">File Replacement</p>
+              <p class="text-sm text-blue-800">To change the resume file, use the "Replace File" option from the detail page. This form only updates the title and primary status.</p>
+            </div>
+          </div>
         </div>
-    </div>
+
+        <!-- Submit Buttons -->
+        <div class="flex flex-col sm:flex-row gap-3 pt-4">
+          <button type="submit" class="flex-1 rounded-2xl bg-gradient-to-r from-primary to-primary/90 px-6 py-3.5 text-sm font-semibold text-white shadow-lg hover:shadow-xl hover:from-primary/90 hover:to-primary transition-all flex items-center justify-center gap-2 group">
+            <svg class="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+            Save Changes
+          </button>
+          <a href="{% url 'resumes:detail' object.pk %}" class="flex-1 rounded-2xl border-2 border-gray-200 bg-white px-6 py-3.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all text-center">
+            Cancel
+          </a>
+        </div>
+      </form>
+    </section>
+  </div>
 </div>
 {% endblock %}

@@ -661,39 +661,75 @@ class ResumeOptimizationView(LoginRequiredMixin, UserResumeMixin, DetailView):
 
         context['optimization'] = optimization_results
         context['job_description'] = job_description
-        context['rewrite_form'] = ResumeRewriteForm(initial={'job_description': job_description})
-        rewrite_preview = self.request.session.get(_get_rewrite_session_key(resume.pk))
-        context['rewrite_preview'] = rewrite_preview
-        context['saved_rewrites'] = resume.rewrite_drafts.filter(status='saved')
-        if rewrite_preview:
-            score_cards = rewrite_preview.get('score_cards', {})
-            rewritten_scores = score_cards.get('rewritten', {})
-            score_deltas = rewrite_preview.get('score_deltas', {})
-            context['rewrite_score_cards'] = [
-                {
-                    'label': 'Overall',
-                    'score': rewritten_scores.get('overall_score'),
-                    'delta': score_deltas.get('overall_score', 0),
-                },
-                {
-                    'label': 'ATS',
-                    'score': rewritten_scores.get('ats_score'),
-                    'delta': score_deltas.get('ats_score', 0),
-                },
-                {
-                    'label': 'Action Verbs',
-                    'score': rewritten_scores.get('action_score'),
-                    'delta': score_deltas.get('action_score', 0),
-                },
-                {
-                    'label': 'Keywords',
-                    'score': rewritten_scores.get('keyword_score'),
-                    'delta': score_deltas.get('keyword_score', 0),
-                },
-            ]
-        else:
-            context['rewrite_score_cards'] = []
 
+        return context
+
+
+class ResumeRewriteWorkspaceView(LoginRequiredMixin, UserResumeMixin, DetailView):
+    """Dedicated workspace for generating and editing AI rewrites."""
+    model = Resume
+    template_name = 'resumes/resume_rewrite_workspace.html'
+    context_object_name = 'resume'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        resume = self.object
+        session_key = _get_rewrite_session_key(resume.pk)
+        rewrite_preview = self.request.session.get(session_key)
+
+        initial = {}
+        if rewrite_preview:
+            preview_context = rewrite_preview.get('context', {})
+            initial.update({
+                'job_title': preview_context.get('job_title', ''),
+                'industry': preview_context.get('industry', ''),
+                'highlights': preview_context.get('highlights', ''),
+                'metrics_focus': preview_context.get('metrics_focus', ''),
+                'job_description': preview_context.get('job_description', ''),
+            })
+        else:
+            job_description = self.request.GET.get('job_description', '')
+            if job_description:
+                initial['job_description'] = job_description
+
+        context['rewrite_form'] = ResumeRewriteForm(initial=initial)
+        context['rewrite_preview'] = rewrite_preview
+        context['rewrite_score_cards'] = _assemble_rewrite_score_cards(rewrite_preview)
+        context['saved_rewrites'] = resume.rewrite_drafts.filter(status='saved')
+        context['session_key'] = session_key
+        return context
+
+
+class ResumeSuggestionsView(LoginRequiredMixin, UserResumeMixin, DetailView):
+    """List AI-generated suggestions derived from the latest optimization."""
+    model = Resume
+    template_name = 'resumes/resume_suggestions.html'
+    context_object_name = 'resume'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        optimization = self.object.optimization
+        if optimization:
+            context['suggestions'] = optimization.detailed_suggestions.all()
+        else:
+            context['suggestions'] = []
+        return context
+
+
+class ResumeSuggestionDetailView(LoginRequiredMixin, TemplateView):
+    """Detailed view for a single suggestion."""
+    template_name = 'resumes/resume_suggestion_detail.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        resume = get_object_or_404(Resume, pk=self.kwargs['pk'], user=self.request.user)
+        suggestion = get_object_or_404(
+            ResumeSuggestion,
+            pk=self.kwargs['suggestion_pk'],
+            optimization__resume=resume
+        )
+        context['resume'] = resume
+        context['suggestion'] = suggestion
         return context
 
 
@@ -803,6 +839,54 @@ def resume_optimization_report(request, pk):
 
 def _get_rewrite_session_key(resume_pk):
     return f'rewrite_preview_{resume_pk}'
+
+
+def _assemble_rewrite_score_cards(rewrite_preview):
+    if not rewrite_preview:
+        return []
+
+    score_cards = rewrite_preview.get('score_cards', {})
+    rewritten_scores = score_cards.get('rewritten', {})
+    score_deltas = rewrite_preview.get('score_deltas', {})
+
+    return [
+        {
+            'label': 'Overall',
+            'score': rewritten_scores.get('overall_score'),
+            'delta': score_deltas.get('overall_score', 0),
+        },
+        {
+            'label': 'ATS',
+            'score': rewritten_scores.get('ats_score'),
+            'delta': score_deltas.get('ats_score', 0),
+        },
+        {
+            'label': 'Action Verbs',
+            'score': rewritten_scores.get('action_score'),
+            'delta': score_deltas.get('action_score', 0),
+        },
+        {
+            'label': 'Keywords',
+            'score': rewritten_scores.get('keyword_score'),
+            'delta': score_deltas.get('keyword_score', 0),
+        },
+    ]
+
+
+def _get_rewrite_preview_from_session(request, pk, update_text=False):
+    session_key = _get_rewrite_session_key(pk)
+    preview = request.session.get(session_key)
+    if not preview:
+        return None
+
+    if update_text:
+        edited_text = request.POST.get('edited_text')
+        if edited_text is not None:
+            preview['rewritten_text'] = edited_text.strip()
+            request.session[session_key] = preview
+            request.session.modified = True
+
+    return preview
 
 
 def _get_original_score_card(resume, job_description=None):
@@ -966,7 +1050,7 @@ def load_saved_resume_rewrite(request, pk, draft_pk):
     request.session.modified = True
 
     messages.success(request, 'Loaded saved rewrite into preview mode. Compare and save or discard.')
-    return redirect('resumes:optimize', pk=pk)
+    return redirect('resumes:rewrite_workspace', pk=pk)
 
 
 @login_required
@@ -983,7 +1067,7 @@ def delete_saved_resume_rewrite(request, pk, draft_pk):
 
     draft.delete()
     messages.info(request, 'Saved rewrite removed.')
-    return redirect('resumes:optimize', pk=pk)
+    return redirect('resumes:rewrite_workspace', pk=pk)
 
 
 @login_required
@@ -995,11 +1079,11 @@ def resume_rewrite_preview(request, pk):
 
     if not form.is_valid():
         messages.error(request, 'Please provide valid input to generate a rewrite.')
-        return redirect('resumes:optimize', pk=pk)
+        return redirect('resumes:rewrite_workspace', pk=pk)
 
     if not resume.parsed_text:
         messages.error(request, 'Resume must be parsed before generating a rewrite.')
-        return redirect('resumes:optimize', pk=pk)
+        return redirect('resumes:rewrite_workspace', pk=pk)
 
     rewriter = ResumeRewriter()
     ctx = {
@@ -1021,12 +1105,12 @@ def resume_rewrite_preview(request, pk):
 
     if not rewrite_result.get('success'):
         messages.error(request, rewrite_result.get('error', 'Failed to rewrite resume.'))
-        return redirect('resumes:optimize', pk=pk)
+        return redirect('resumes:rewrite_workspace', pk=pk)
 
     rewritten_text = (rewrite_result.get('rewritten_text') or '').strip()
     if not rewritten_text:
         messages.error(request, 'The AI rewrite did not return any content.')
-        return redirect('resumes:optimize', pk=pk)
+        return redirect('resumes:rewrite_workspace', pk=pk)
 
     from .optimization import ResumeOptimizer
 
@@ -1061,7 +1145,7 @@ def resume_rewrite_preview(request, pk):
     request.session.modified = True
 
     messages.success(request, 'AI rewrite generated—compare it below before saving or editing.')
-    return redirect('resumes:optimize', pk=pk)
+    return redirect('resumes:rewrite_workspace', pk=pk)
 
 
 @login_required
@@ -1070,11 +1154,11 @@ def save_resume_rewrite(request, pk):
     """Persist the rewrite preview as a draft."""
     resume = get_object_or_404(Resume, pk=pk, user=request.user)
     session_key = _get_rewrite_session_key(pk)
-    preview = request.session.get(session_key)
+    preview = _get_rewrite_preview_from_session(request, pk, update_text=True)
 
     if not preview:
         messages.error(request, 'No rewrite preview found to save.')
-        return redirect('resumes:optimize', pk=pk)
+        return redirect('resumes:rewrite_workspace', pk=pk)
 
     ResumeRewriteDraft.objects.create(
         resume=resume,
@@ -1091,8 +1175,8 @@ def save_resume_rewrite(request, pk):
     request.session.pop(session_key, None)
     request.session.modified = True
 
-    messages.success(request, 'Rewrite saved as a draft. You can revisit it from the optimization page.')
-    return redirect('resumes:optimize', pk=pk)
+    messages.success(request, 'Rewrite saved as a draft. You can revisit it from the rewrite workspace.')
+    return redirect('resumes:rewrite_workspace', pk=pk)
 
 
 @login_required
@@ -1107,7 +1191,7 @@ def discard_resume_rewrite(request, pk):
     else:
         messages.warning(request, 'No rewrite preview found to discard.')
 
-    return redirect('resumes:optimize', pk=pk)
+    return redirect('resumes:rewrite_workspace', pk=pk)
 
 
 @login_required
@@ -1135,10 +1219,10 @@ def apply_resume_rewrite(request, pk, draft_pk=None):
         job_description = draft.job_description
     else:
         session_key = _get_rewrite_session_key(pk)
-        preview = request.session.get(session_key)
+        preview = _get_rewrite_preview_from_session(request, pk, update_text=True)
         if not preview:
             messages.error(request, 'No rewrite preview available to apply.')
-            return redirect('resumes:optimize', pk=pk)
+            return redirect('resumes:rewrite_workspace', pk=pk)
         rewritten_text = preview['rewritten_text']
         context = preview['context']
         optimization_data = preview['optimization'] or {}

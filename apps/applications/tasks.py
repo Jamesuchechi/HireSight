@@ -7,7 +7,7 @@ from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.conf import settings
 from django.utils import timezone
-
+from django.db.models import Q
 from .models import ApplicationStatus
 
 logger = logging.getLogger(__name__)
@@ -447,7 +447,7 @@ def update_application_analytics():
     try:
         from .models import Application, ApplicationStatus
         from apps.analytics.models import ApplicationAnalytics
-        from django.db.models import Count, Avg
+        from django.db.models import Count, Avg, Q
         
         # Calculate daily statistics
         today = timezone.now().date()
@@ -468,7 +468,13 @@ def update_application_analytics():
         # Store analytics
         ApplicationAnalytics.objects.create(
             date=today,
-            **stats
+            total_applications=stats['total'],
+            applications_pending=stats['pending'],
+            applications_screening=stats['screening'],
+            applications_interview=stats['interview'],
+            applications_offer=stats['offer'],
+            applications_hired=stats['hired'],
+            applications_rejected=stats['rejected'],
         )
         
         logger.info(f"Application analytics updated for {today}")

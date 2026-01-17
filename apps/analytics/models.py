@@ -91,6 +91,26 @@ class SearchQuery(models.Model):
         return f"{self.query_text} ({self.results_count} results)"
 
 
+class ApplicationAnalytics(models.Model):
+    """Aggregate metrics for applications - updated daily via task."""
+    
+    date = models.DateField(unique=True, db_index=True)
+    total_applications = models.IntegerField(default=0)
+    applications_pending = models.IntegerField(default=0)
+    applications_screening = models.IntegerField(default=0)
+    applications_interview = models.IntegerField(default=0)
+    applications_offer = models.IntegerField(default=0)
+    applications_hired = models.IntegerField(default=0)
+    applications_rejected = models.IntegerField(default=0)
+    
+    class Meta:
+        ordering = ['-date']
+        verbose_name_plural = 'Application analytics'
+    
+    def __str__(self):
+        return f"Analytics for {self.date}"
+
+
 class ApplicationMetrics(models.Model):
     """Aggregate metrics for applications - updated daily via task."""
     

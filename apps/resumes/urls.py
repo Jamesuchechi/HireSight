@@ -37,6 +37,9 @@ urlpatterns = [
     path('<int:pk>/rewrite/delete/<int:draft_pk>/', views.delete_saved_resume_rewrite, name='rewrite_delete'),
     path('<int:pk>/rewrite/apply/', views.apply_resume_rewrite, name='rewrite_apply'),
     path('<int:pk>/rewrite/apply/<int:draft_pk>/', views.apply_resume_rewrite, name='rewrite_apply_draft'),
+    path('<int:pk>/rewrite/workspace/', views.ResumeRewriteWorkspaceView.as_view(), name='rewrite_workspace'),
+    path('<int:pk>/suggestions/', views.ResumeSuggestionsView.as_view(), name='suggestions'),
+    path('<int:pk>/suggestions/<int:suggestion_pk>/', views.ResumeSuggestionDetailView.as_view(), name='suggestion_detail'),
     
     # Advanced Features
     path('compare/', views.ResumeComparisonView.as_view(), name='compare'),
