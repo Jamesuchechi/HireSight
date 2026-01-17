@@ -248,6 +248,16 @@ python manage.py runserver
 
 ---
 
+## 📚 Assessment Docs
+
+Centralized resources for the assessment workflows:
+
+- **User guide** – [`docs/assessments/assessments-user-guide.md`](docs/assessments/assessments-user-guide.md) outlines taking tests, auto-save behavior, and badge sharing.
+- **Admin guide** – [`docs/assessments/assessments-admin-guide.md`](docs/assessments/assessments-admin-guide.md) documents AI question generation, exports, invitations, and monitoring tips.
+- **API reference** – [`docs/assessments/assessments-api.md`](docs/assessments/assessments-api.md) lists endpoints plus analytics hooks.
+- **Troubleshooting** – [`docs/assessments/assessments-troubleshooting.md`](docs/assessments/assessments-troubleshooting.md) explains debugging for generation, auto-save, certificates, recommendations, and scheduled jobs.
+
+
 ## 📁 Project Structure
 
 ```
@@ -275,6 +285,8 @@ HireSight/
 │   ├── messages/                   # In-app messaging
 │   ├── following/                  # Follow system
 │   └── analytics/                  # Reports & analytics
+|   |--- assessments/               # Skills Assesssments
+|   |--- interviews/                # Interviews and job schedules
 │
 ├── templates/                      # HTML templates
 │   ├── base.html

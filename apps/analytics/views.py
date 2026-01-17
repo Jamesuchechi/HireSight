@@ -12,6 +12,12 @@ from django.http import JsonResponse, HttpResponse
 from django.views import View
 import csv
 from io import BytesIO
+from django.http import HttpResponse, request
+from apps.assessments.analytics_helpers import (
+    get_skill_proficiency_data,
+    get_assessment_trends,
+    generate_assessment_report_for_user,
+)
 
 from .models import (
     ProfileView, JobView, SearchQuery, 
@@ -285,7 +291,7 @@ class AnalyticsDashboardView(LoginRequiredMixin, TemplateView):
             return context
 
         snapshot = PersonalAnalyticsSnapshot.objects.filter(user=user).order_by('-date').first()
-        applications = Application.objects.filter(user=user)
+        applications = Application.objects.filter(applicant=user)
 
         total_applications = applications.count()
         status_counts = applications.values('status').annotate(count=Count('id'))
@@ -437,6 +443,41 @@ class AnalyticsDashboardView(LoginRequiredMixin, TemplateView):
             pass
         
         return score
+
+
+
+class SkillProficiencyDashboard(LoginRequiredMixin, TemplateView):
+    """Dashboard focused on skill proficiency and assessment insights."""
+
+    template_name = 'analytics/skill_proficiency.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+
+        proficiency_data = get_skill_proficiency_data(user)
+        trends = get_assessment_trends(user, days=90)
+        report = generate_assessment_report_for_user(user)
+
+        default_report = {
+            'total_attempts': 0,
+            'total_passed': 0,
+            'pass_rate': 0,
+            'total_badges': 0,
+            'average_score': 0,
+            'total_time_spent': 0,
+            'skills_tested': 0,
+            'recent_activity': [],
+            'top_skills': [],
+        }
+
+        context.update({
+            'proficiency_data': proficiency_data,
+            'trends': trends,
+            'report': report or default_report,
+        })
+
+        return context
 
 
 class JobAnalyticsDetailView(LoginRequiredMixin, TemplateView):

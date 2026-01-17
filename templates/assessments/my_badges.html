@@ -1,0 +1,190 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}My Skill Badges - HireSight{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-4xl font-display font-bold text-gray-900 mb-2">🏆 My Skill Badges</h1>
+        <p class="text-lg text-gray-600">Your verified achievements and certifications</p>
+    </div>
+
+    <!-- Stats Overview -->
+    {% if total_badges > 0 %}
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-xl shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-semibold opacity-90 uppercase tracking-wide">Total Badges</p>
+                    <p class="text-4xl font-bold mt-1">{{ total_badges }}</p>
+                </div>
+                <div class="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                    <svg class="w-10 h-10" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-primary">
+            <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Skills Mastered</p>
+            <p class="text-3xl font-bold text-gray-900 mt-1">{{ skill_counts|length }}</p>
+            <div class="mt-2 flex flex-wrap gap-1">
+                {% for skill, count in skill_counts.items|slice:":3" %}
+                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-primary-light text-primary">
+                    {{ skill }}
+                </span>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-success">
+            <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Difficulty Levels</p>
+            <div class="mt-2 space-y-1">
+                {% for level, count in difficulty_counts.items %}
+                <div class="flex items-center justify-between text-sm">
+                    <span class="text-gray-700">{{ level }}</span>
+                    <span class="font-bold text-gray-900">{{ count }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Badges Grid -->
+    {% if badges %}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for badge in badges %}
+        <div class="bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden group border-t-4
+            {% if badge.badge_level == 'BEGINNER' %}border-green-500
+            {% elif badge.badge_level == 'INTERMEDIATE' %}border-yellow-500
+            {% elif badge.badge_level == 'ADVANCED' %}border-orange-500
+            {% else %}border-red-500{% endif %}">
+            
+            <!-- Badge Icon -->
+            <div class="bg-gradient-to-br 
+                {% if badge.badge_level == 'BEGINNER' %}from-green-400 to-green-600
+                {% elif badge.badge_level == 'INTERMEDIATE' %}from-yellow-400 to-yellow-600
+                {% elif badge.badge_level == 'ADVANCED' %}from-orange-400 to-orange-600
+                {% else %}from-red-400 to-red-600{% endif %}
+                p-8 text-center">
+                {% if badge.badge_image_url %}
+                <img src="{{ badge.badge_image_url.url }}" alt="{{ badge.badge_name }}" class="w-24 h-24 mx-auto">
+                {% else %}
+                <div class="text-6xl mb-2">
+                    {% if badge.badge_level == 'BEGINNER' %}🥉
+                    {% elif badge.badge_level == 'INTERMEDIATE' %}🥈
+                    {% elif badge.badge_level == 'ADVANCED' %}🥇
+                    {% else %}💎{% endif %}
+                </div>
+                {% endif %}
+                <p class="text-white font-bold text-lg">{{ badge.test.skill_name }}</p>
+            </div>
+
+            <div class="p-6">
+                <!-- Badge Name -->
+                <h3 class="text-xl font-bold text-gray-900 mb-1">{{ badge.badge_name }}</h3>
+                <p class="text-sm text-gray-600 mb-4">{{ badge.get_badge_level_display }} Level</p>
+
+                <!-- Test Details -->
+                <div class="space-y-2 mb-4 text-sm">
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-600">Score:</span>
+                        <span class="font-bold text-green-600">{{ badge.attempt.score }}%</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-600">Date Earned:</span>
+                        <span class="font-semibold text-gray-900">{{ badge.issued_at|date:"M d, Y" }}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-600">Views:</span>
+                        <span class="font-semibold text-gray-900">{{ badge.view_count }}</span>
+                    </div>
+                </div>
+
+                <!-- Verification Code -->
+                <div class="bg-gray-50 rounded-lg p-3 mb-4">
+                    <p class="text-xs text-gray-500 mb-1">Verification Code</p>
+                    <p class="font-mono text-xs text-gray-700 break-all">{{ badge.verification_code }}</p>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex gap-2">
+                    <a href="{% url 'assessments:certificate' badge.attempt.id %}" 
+                       class="flex-1 text-center px-4 py-2 bg-primary text-white rounded-lg font-semibold text-sm hover:bg-primary-dark transition-colors">
+                        📄 Certificate
+                    </a>
+                    <a href="{% url 'assessments:verify_badge' badge.verification_code %}" 
+                       target="_blank"
+                       class="flex-1 text-center px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-semibold text-sm hover:bg-gray-300 transition-colors">
+                        🔍 Verify
+                    </a>
+                </div>
+
+                <!-- Share Button -->
+                <button onclick="shareBadge('{{ badge.verification_code }}')"
+                        class="w-full mt-2 px-4 py-2 bg-secondary text-white rounded-lg font-semibold text-sm hover:bg-opacity-90 transition-colors">
+                    📤 Share Badge
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if is_paginated %}
+    <div class="flex justify-center items-center space-x-2 mt-8">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}" class="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Previous</a>
+        {% endif %}
+        
+        <span class="px-4 py-2 bg-primary text-white rounded-lg">
+            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+        </span>
+        
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}" class="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Next</a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% else %}
+    <!-- Empty State -->
+    <div class="bg-white rounded-xl shadow-lg p-12 text-center">
+        <div class="text-8xl mb-6">🏅</div>
+        <h3 class="text-2xl font-bold text-gray-900 mb-2">No Badges Yet</h3>
+        <p class="text-gray-600 mb-6">Take skill assessments to earn verified badges and showcase your expertise!</p>
+        <a href="{% url 'assessments:browse' %}" 
+           class="inline-block px-8 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg font-bold hover:shadow-lg transition-all">
+            Browse Assessments
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function shareBadge(verificationCode) {
+    const url = `${window.location.origin}/assessments/verify/${verificationCode}/`;
+    
+    if (navigator.share) {
+        navigator.share({
+            title: 'My Skill Badge',
+            text: 'Check out my verified skill badge!',
+            url: url
+        }).catch(err => console.log('Error sharing:', err));
+    } else {
+        // Fallback: Copy to clipboard
+        navigator.clipboard.writeText(url).then(() => {
+            alert('Badge link copied to clipboard!');
+        }).catch(err => {
+            console.error('Failed to copy:', err);
+        });
+    }
+}
+</script>
+{% endblock %}

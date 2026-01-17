@@ -6,7 +6,7 @@ Provides AI-powered resume analysis and optimization suggestions.
 import re
 import json
 import textwrap
-from typing import Dict, List, Any, Tuple
+from typing import Dict, List, Any, Tuple, Optional
 from collections import Counter
 import requests
 from django.conf import settings
@@ -196,6 +196,7 @@ class KeywordOptimizer:
             'recommendations': self._generate_keyword_recommendations(keyword_counts, missing_keywords)
         }
 
+
     def _extract_job_keywords(self, job_description: str) -> List[str]:
         """Extract important keywords from job description."""
         # Simple extraction - could be enhanced with NLP
@@ -251,6 +252,111 @@ class KeywordOptimizer:
             recommendations.append(f"Balance your keywords - you have more {max_cat} terms than {min_cat} terms.")
 
         return recommendations
+
+
+def get_ai_rewrite_prompt(resume_text: str, context_lines: Optional[List[str]] = None,
+                          header_text: Optional[str] = None) -> str:
+    """
+    Build the enhanced AI rewrite prompt that enforces formatting and quality rules.
+    """
+    prompt = textwrap.dedent(f"""
+        You are an expert ATS-optimized resume writer. Rewrite the following resume to be professional, compelling, and recruiter-friendly.
+
+        CRITICAL RULES:
+        - Output ONLY the rewritten resume content, NO explanatory comments or meta-commentary
+        - Do NOT include phrases like "Here's the rewritten version" or "I've improved your resume"
+        - Do NOT add introduction or conclusion text
+        - Start directly with the resume content
+        - Use clean markdown formatting ONLY
+
+        FORMATTING REQUIREMENTS:
+        - Use ## for section headers (Professional Summary, Experience, Skills, Education)
+        - Use ### for job titles and company names
+        - Use - for bullet points
+        - Use **bold** for emphasis on key achievements and metrics
+        - Keep formatting clean and ATS-compatible
+
+        BOLD FORMATTING RULES (CRITICAL):
+        - Use bold SPARINGLY - only for emphasis on key items
+        - Bold job titles: **Senior Software Engineer**
+        - Bold company names: **Google Inc**
+        - Bold metrics when inline (e.g., "improved performance by **65%**")
+        - DO NOT bold: action verbs, entire phrases, skill names, or complete sentences
+        - Maximum 2-3 bold items per bullet point
+        - Example GOOD bullet: "Architected microservices platform that reduced API latency by **45%** and supported **100,000+ users**"
+        - Example BAD bullet: "**Architected** **microservices platform** that **reduced API latency** by **45%** and **supported 100,000+ users**"
+
+        CONTENT REQUIREMENTS:
+        - Start with a compelling 2-3 sentence Professional Summary
+        - Use strong action verbs (Led, Developed, Achieved, Engineered, Designed, Implemented, Optimized)
+        - Include quantifiable metrics and results (percentages, numbers, growth figures)
+        - Focus on achievements and impact, not just responsibilities
+        - Make every bullet point demonstrate value and results
+        - Remove vague statements; be specific and concrete
+        - Ensure skills match industry standards and job requirements
+
+        STRUCTURE:
+        ## Professional Summary
+        [Compelling 2-3 sentences highlighting expertise, key skills, and value proposition]
+
+        ## Experience
+        ### [Job Title] | [Company Name] | [Month Year - Month Year]
+        - [Achievement with specific metric/result]
+        - [Achievement demonstrating impact]
+        - [Technical accomplishment with tools/technologies]
+
+        ### [Previous Job Title] | [Company] | [Dates]
+        - [Achievement-focused bullet points]
+
+        ## Skills
+        **Technical Skills:** [Relevant technical skills]
+        **Tools & Technologies:** [Specific tools]
+        **Soft Skills:** [Key soft skills]
+
+        ## Education
+        ### [Degree] | [Institution] | [Dates]
+        [Relevant details, honors, achievements]
+
+        ORIGINAL RESUME:
+        {resume_text}
+        """).strip()
+
+    if context_lines:
+        prompt += "\n\nCONTEXT:\n" + "\n".join(context_lines)
+
+    if header_text:
+        prompt += "\n\nHEADER TO USE (copied exactly):\n" + header_text.strip()
+
+    prompt += "\n\n" + textwrap.dedent("""
+
+        OUTPUT FORMAT: Start immediately with "## Professional Summary" - no preamble, no comments.
+        """).strip()
+
+    return prompt
+
+
+def clean_ai_response(text: str) -> str:
+    """
+    Remove common AI commentary prefixes that may slip into the response.
+    """
+    if not text:
+        return ""
+
+    unwanted_phrases = [
+        "Here's the rewritten resume:",
+        "Here is the rewritten version:",
+        "I've rewritten your resume:",
+        "Below is the improved resume:",
+        "Here's an improved version:",
+        "I've enhanced your resume:"
+    ]
+
+    cleaned = text.strip()
+    for phrase in unwanted_phrases:
+        if cleaned.lower().startswith(phrase.lower()):
+            cleaned = cleaned[len(phrase):].strip()
+
+    return cleaned
 
 
 class ATSScorer:
@@ -499,7 +605,16 @@ Provide 3-5 specific suggestions.
 
         data = {
             'model': self.model,
-            'messages': [{'role': 'user', 'content': prompt}],
+            'messages': [
+                {
+                    'role': 'system',
+                    'content': 'You are an expert resume writer. Use bold formatting sparingly - only for job titles, company names, and key metrics. Do not bold action verbs or entire phrases.'
+                },
+                {
+                    'role': 'user',
+                    'content': prompt
+                }
+            ],
             'max_tokens': 1000,
             'temperature': 0.7
         }
@@ -554,7 +669,8 @@ Provide 3-5 specific suggestions.
         return suggestions
 
     def generate_rewrite(self, resume_text: str, job_title: str = None, industry: str = None,
-                         highlights: str = None, metrics_focus: str = None, job_description: str = None) -> Dict[str, Any]:
+                         highlights: str = None, metrics_focus: str = None, job_description: str = None,
+                         header_text: str = None) -> Dict[str, Any]:
         """Generate a rewritten resume using the Mistral API."""
         if not self.api_key:
             return {
@@ -570,15 +686,22 @@ Provide 3-5 specific suggestions.
                 industry=industry,
                 highlights=highlights,
                 metrics_focus=metrics_focus,
-                job_description=job_description
+                job_description=job_description,
+                header_text=header_text
             )
             response = self._call_mistral_api(prompt)
 
             if response and 'choices' in response:
                 suggestions_text = response['choices'][0]['message']['content']
+                cleaned_text = clean_ai_response(suggestions_text)
+                if header_text:
+                    header_prefix = header_text.strip().splitlines()[0] if header_text.strip().splitlines() else ''
+                    if header_prefix and not cleaned_text.lower().startswith(header_prefix.lower()):
+                        cleaned_text = f"{header_text.strip()}\n\n{cleaned_text}"
+
                 return {
                     'success': True,
-                    'rewritten_text': suggestions_text.strip(),
+                    'rewritten_text': cleaned_text,
                     'raw_response': suggestions_text
                 }
 
@@ -596,41 +719,27 @@ Provide 3-5 specific suggestions.
             }
 
     def _build_rewrite_prompt(self, resume_text: str, job_title: str = None, industry: str = None,
-                              highlights: str = None, metrics_focus: str = None, job_description: str = None) -> str:
+                              highlights: str = None, metrics_focus: str = None, job_description: str = None,
+                              header_text: str = None) -> str:
         """Build a specialized prompt for rewriting resumes."""
         base_text = resume_text[:4000]
-        prompt = textwrap.dedent(f"""
-        You are an expert resume writer. Rewrite the resume below so it follows modern resume conventions, highlights achievements, and addresses any gaps related to the provided role context.
-
-        Original Resume:
-        {base_text}
-        """).strip()
-
-        additional_context = []
+        context_lines = []
         if job_title:
-            additional_context.append(f"Target Job Title: {job_title}")
+            context_lines.append(f"Target Job Title: {job_title}")
         if industry:
-            additional_context.append(f"Industry: {industry}")
+            context_lines.append(f"Industry: {industry}")
         if highlights:
-            additional_context.append(f"Highlights to emphasize: {highlights}")
+            context_lines.append(f"Highlights to emphasize: {highlights}")
         if metrics_focus:
-            additional_context.append(f"Metrics focus: {metrics_focus}")
+            context_lines.append(f"Metrics focus: {metrics_focus}")
         if job_description:
-            additional_context.append(f"Job Description/Goals:\n{job_description[:2000]}")
+            context_lines.append(f"Job Description/Goals:\n{job_description[:2000]}")
 
-        if additional_context:
-            prompt += "\n\nContext:\n" + "\n".join(additional_context)
-
-        prompt += textwrap.dedent("""
-
-        Instructions:
-        - Output a rewritten resume with clearly labeled sections (Summary, Experience, Skills, Education, etc.).
-        - Use strong action verbs, quantify achievements where possible, and improve ATS readability.
-        - Keep formatting simple (no tables), but use bullet points and short paragraphs.
-        - Do not explain your process, only return the rewritten resume text.
-        """)
-
-        return prompt
+        return get_ai_rewrite_prompt(
+            base_text,
+            context_lines=context_lines or None,
+            header_text=header_text
+        )
 
 
 class ResumeOptimizer:

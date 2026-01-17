@@ -1,0 +1,4 @@
+<p>Hi {{ candidate.get_full_name|default:candidate.email }},</p>
+<p>The interview for {{ interview.application.job.title }} has been cancelled.</p>
+{% if interview.cancellation_reason %}<p>Reason: {{ interview.cancellation_reason }}</p>{% endif %}
+<p>We will be in touch if a replacement slot is available.</p>

@@ -1,0 +1,5 @@
+<p>Hi {{ candidate.get_full_name|default:candidate.email }},</p>
+<p>This is a friendly reminder that your interview for {{ interview.application.job.title }} starts in {{ timeframe }}.</p>
+<p>Scheduled Date: {{ interview.scheduled_date|date:"M d, Y" }} at {{ interview.scheduled_date|time:"h:i A" }}</p>
+{% if interview.video_link %}<p>Join via: <a href="{{ interview.video_link }}">{{ interview.video_link }}</a></p>{% endif %}
+<p>Good luck!</p>

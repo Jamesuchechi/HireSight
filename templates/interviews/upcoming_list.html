@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+
+{% block title %}Upcoming Interviews{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto p-6">
+    <h1 class="text-3xl font-bold mb-6">Upcoming Interviews</h1>
+    {% if interviews %}
+    <div class="space-y-4">
+        {% for interview in interviews %}
+        <div class="bg-white shadow rounded-lg p-6 border-l-4 {% if interview.status == 'RESCHEDULED' %}border-yellow-500{% else %}border-blue-500{% endif %}">
+            <div class="flex justify-between">
+                <div>
+                    <h2 class="text-xl font-semibold">{{ interview.get_interview_type_display }}</h2>
+                    <p class="text-sm text-gray-500">{{ interview.application.job.title }} @ {{ interview.application.job.company.company_name }}</p>
+                </div>
+                <div class="text-right">
+                    <p class="font-semibold">{{ interview.scheduled_date|date:"M d, Y" }}</p>
+                    <p class="text-sm text-gray-500">{{ interview.scheduled_date|time:"h:i A" }}</p>
+                </div>
+            </div>
+            <div class="mt-4 flex gap-2">
+                {% if interview.video_link %}
+                <a href="{{ interview.video_link }}" class="bg-green-600 text-white px-3 py-2 rounded text-sm">Join Call</a>
+                {% endif %}
+                <a href="{% url 'interviews:reschedule' interview.id %}" class="bg-gray-200 text-gray-700 px-3 py-2 rounded text-sm">Reschedule</a>
+                <a href="{% url 'interviews:cancel' interview.id %}" class="bg-red-100 text-red-700 px-3 py-2 rounded text-sm">Cancel</a>
+                {% if request.user.account_type == 'company' %}
+                <a href="{% url 'interviews:complete' interview.id %}" class="bg-blue-600 text-white px-3 py-2 rounded text-sm">Mark Completed</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
+        <p class="text-gray-500">No upcoming interviews yet.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

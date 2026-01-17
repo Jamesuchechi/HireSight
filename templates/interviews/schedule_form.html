@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block title %}Schedule Interview{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto p-6">
+    <h1 class="text-3xl font-bold mb-6">Schedule Interview</h1>
+    <form method="post" class="space-y-4 bg-white shadow rounded-lg p-6">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        <div>
+            <label class="font-semibold">Interview Type</label>
+            {{ form.interview_type }}
+        </div>
+        <div>
+            <label class="font-semibold">Scheduled Date</label>
+            {{ form.scheduled_date }}
+        </div>
+        <div>
+            <label class="font-semibold">Duration (minutes)</label>
+            {{ form.duration_minutes }}
+        </div>
+        <div>
+            <label class="font-semibold">Video Link</label>
+            {{ form.video_link }}
+        </div>
+        <div>
+            <label class="font-semibold">Location</label>
+            {{ form.location }}
+        </div>
+        <div>
+            <label class="font-semibold">Interviewer Name</label>
+            {{ form.interviewer_name }}
+        </div>
+        <div>
+            <label class="font-semibold">Interviewer Email</label>
+            {{ form.interviewer_email }}
+        </div>
+        <div>
+            <label class="font-semibold">Candidate Instructions</label>
+            {{ form.candidate_instructions }}
+        </div>
+        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Schedule Interview</button>
+    </form>
+</div>
+{% endblock %}

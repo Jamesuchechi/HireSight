@@ -124,8 +124,73 @@
                         View all →
                     </a>
                 </div>
-            </div>
         </div>
+    </div>
+
+        <!-- Assessment Spotlight Card -->
+        <section class="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl shadow-lg p-6 mb-8">
+            <div class="flex items-center justify-between flex-wrap gap-4">
+                <div>
+                    <h2 class="font-display text-2xl font-bold text-gray-900 dark:text-white">Assessment Spotlight</h2>
+                    <p class="text-sm text-gray-500 dark:text-gray-300">Track badges earned and tests recommended just for you.</p>
+                </div>
+                <a href="{% url 'assessments:browse' %}" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-full border border-primary text-primary hover:bg-primary hover:text-white transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                    Browse assessments
+                </a>
+            </div>
+            <div class="grid gap-6 mt-6 lg:grid-cols-2">
+                <div>
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Recent badges earned</h3>
+                        <span class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Latest</span>
+                    </div>
+                    <div class="space-y-4">
+                        {% for badge in recent_badges %}
+                        <div class="flex items-center gap-4 p-4 bg-gray-50 dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm">
+                            {% if badge.badge_image_url %}
+                            <img src="{{ badge.badge_image_url.url }}" alt="{{ badge.badge_name }}" class="w-14 h-14 rounded-xl object-cover">
+                            {% else %}
+                            <div class="w-14 h-14 bg-primary/10 text-primary flex items-center justify-center rounded-xl font-semibold">
+                                {{ badge.badge_name|slice:":1"|upper }}
+                            </div>
+                            {% endif %}
+                            <div class="flex-1">
+                                <p class="font-semibold text-gray-900 dark:text-white">{{ badge.badge_name }}</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">{{ badge.test.skill_name }} • {{ badge.get_badge_level_display }}</p>
+                            </div>
+                            <div class="text-right text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+                                {{ badge.attempt.score }}%
+                            </div>
+                        </div>
+                        {% empty %}
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Earn your first badge by completing a skill assessment.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div>
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Recommended tests</h3>
+                        <span class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Suggested</span>
+                    </div>
+                    <ul class="space-y-3">
+                        {% for test in pending_recommendations %}
+                        <li class="flex items-center justify-between gap-4 p-4 bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm">
+                            <div>
+                                <p class="font-semibold text-gray-900 dark:text-white">{{ test.title }}</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">{{ test.skill_name }} • {{ test.get_difficulty_display }}</p>
+                            </div>
+                            <span class="text-xs text-gray-500 dark:text-gray-400">{{ test.duration_minutes }}m</span>
+                        </li>
+                        {% empty %}
+                        <p class="text-sm text-gray-500 dark:text-gray-400">You're caught up with all recommended assessments.</p>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </section>
 
         <!-- Main Content Grid -->
         <div class="grid lg:grid-cols-3 gap-8">
@@ -298,6 +363,40 @@
                     </div>
                     {% endif %}
                 </section>
+
+                <!-- Upcoming Interviews -->
+                <section class="bg-white rounded-2xl shadow-lg p-6 relative" data-dashboard-card="upcoming-interviews">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="font-display text-2xl font-bold text-gray-900">Upcoming Interviews</h2>
+                        <a href="{% url 'interviews:upcoming' %}" class="text-primary text-sm font-semibold hover:underline">
+                            View all
+                        </a>
+                    </div>
+                    {% if upcoming_interviews %}
+                    <div class="space-y-4">
+                        {% for interview in upcoming_interviews %}
+                        <div class="border border-gray-200 rounded-xl p-4 hover:border-primary hover:shadow-md transition-all">
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <p class="text-sm text-gray-500">{{ interview.get_interview_type_display }}</p>
+                                    <p class="font-semibold text-gray-900">{{ interview.application.job.title }}</p>
+                                </div>
+                                <div class="text-right text-sm text-gray-700">
+                                    <p>{{ interview.scheduled_date|date:"M d, Y" }}</p>
+                                    <p>{{ interview.scheduled_date|time:"h:i A" }}</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between mt-3 text-xs text-gray-600">
+                                <span>{{ interview.application.job.company.company_name }}</span>
+                                <span>{{ interview.duration_minutes }} mins</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-gray-500">No interviews scheduled yet.</p>
+                    {% endif %}
+                </section>
             </div>
 
             <!-- Right Column (1/3) -->
@@ -390,6 +489,18 @@
                             </div>
                         </a>
 
+                        <a href="{% url 'assessments:browse' %}" class="flex items-center p-3 border border-gray-200 rounded-xl hover:border-indigo-400 hover:bg-indigo-50 transition-all">
+                            <div class="w-10 h-10 bg-indigo-50 rounded-lg flex items-center justify-center mr-3">
+                                <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c1.657 0 3-1.343 3-3S13.657 2 12 2 9 3.343 9 5s1.343 3 3 3zm0 2c-2.667 0-8 1.333-8 4v3h16v-3c0-2.667-5.333-4-8-4z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="font-semibold text-gray-900 text-sm">Skill Assessments</div>
+                                <div class="text-xs text-gray-600">Validate skills & collect badges</div>
+                            </div>
+                        </a>
+
                         <a href="{% url 'messaging:inbox' %}" class="flex items-center p-3 border border-gray-200 rounded-xl hover:border-accent hover:bg-yellow-50 transition-all">
                             <div class="w-10 h-10 bg-yellow-50 rounded-lg flex items-center justify-center mr-3">
                                 <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -426,6 +537,25 @@
                             <p class="text-xs text-gray-600">Tailor your resume for each position for better results.</p>
                         </div>
                     </div>
+                </section>
+
+                <!-- Skill Badges -->
+                <section class="bg-white rounded-2xl shadow-lg p-6" data-dashboard-card="skill-badges">
+                    <h3 class="font-display text-xl font-bold mb-4">Skill Badges</h3>
+                    {% if skill_badges %}
+                    <div class="grid grid-cols-2 gap-3">
+                        {% for badge in skill_badges %}
+                        <div class="border rounded-xl border-gray-200 p-3 text-sm">
+                            <div class="font-semibold">{{ badge.badge_name }}</div>
+                            <div class="text-xs text-gray-500">{{ badge.test.skill_name }}</div>
+                            <div class="text-xs text-gray-500">Earned {{ badge.issued_at|timesince }} ago</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-gray-500 text-sm">Complete an assessment to unlock badges.</p>
+                    {% endif %}
+                    <a href="{% url 'assessments:my_badges' %}" class="mt-4 inline-flex text-sm font-semibold text-primary hover:underline">View badges →</a>
                 </section>
             </div>
         </div>

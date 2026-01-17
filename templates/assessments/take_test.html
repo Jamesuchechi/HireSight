@@ -1,0 +1,358 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ attempt.test.title }} - Assessment{% endblock %}
+
+{% block extra_css %}
+<style>
+    .question-card {
+        opacity: 0;
+        animation: fadeIn 0.3s ease-in forwards;
+    }
+    @keyframes fadeIn {
+        to { opacity: 1; }
+    }
+    .option-label {
+        transition: all 0.2s ease;
+    }
+    .option-label:hover {
+        transform: translateX(4px);
+    }
+    .timer-warning {
+        animation: pulse 1s infinite;
+    }
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+    }
+    .modal-hidden {
+        display: none !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header with Timer -->
+    <div class="bg-white rounded-xl shadow-lg p-6 mb-6 sticky top-20 z-10">
+        <div class="flex items-center justify-between flex-wrap gap-4">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">{{ attempt.test.title }}</h1>
+                <p class="text-sm text-gray-600 mt-1">{{ attempt.test.skill_name }} - {{ attempt.test.get_difficulty_display }}</p>
+            </div>
+            
+            <!-- Timer -->
+            <div class="flex items-center space-x-4">
+                <div class="text-right">
+                    <p class="text-sm text-gray-600">Time Remaining</p>
+                    <p class="text-2xl font-bold" id="timer-display">
+                        <span id="time-remaining"></span>
+                    </p>
+                </div>
+                
+                <!-- Progress -->
+                <div class="text-right">
+                    <p class="text-sm text-gray-600">Progress</p>
+                    <p class="text-2xl font-bold text-primary">
+                        <span id="answered-count">{{ answered_questions }}</span> / <span id="total-questions">{{ total_questions }}</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Progress Bar -->
+        <div class="mt-4 w-full bg-gray-200 rounded-full h-2.5">
+            <div id="progress-bar" class="bg-gradient-to-r from-primary to-secondary h-2.5 rounded-full transition-all duration-300" 
+                 style="width: {{ answered_questions|floatformat:0|default:'0' }}%"></div>
+        </div>
+    </div>
+
+    <!-- Test Form -->
+    <form method="post" id="test-form">
+        {% csrf_token %}
+        
+        <div class="space-y-6">
+            {% for question in attempt.frozen_questions %}
+            <div class="bg-white rounded-xl shadow-md p-6 question-card" 
+                 data-question-id="{{ question.id }}"
+                 style="animation-delay: {{ forloop.counter0|floatformat:1 }}s">
+                
+                <!-- Question Number & Points -->
+                <div class="flex items-center justify-between mb-4">
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-primary-light text-primary">
+                        Question {{ forloop.counter }}
+                    </span>
+                    <span class="text-sm text-gray-600">{{ question.points }} points</span>
+                </div>
+                
+                <!-- Question Text -->
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">{{ question.question }}</h3>
+                
+                <!-- Options -->
+                <div class="space-y-3">
+                    {% if question.type == 'multiple_choice' or question.type == 'true_false' %}
+                        {% for option in question.options %}
+                        <label class="option-label flex items-start p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-primary hover:bg-primary-light transition-all">
+                            <input type="radio" 
+                                   name="question_{{ question.id }}" 
+                                   value="{{ forloop.counter0 }}"
+                                   class="mt-1 h-4 w-4 text-primary focus:ring-primary question-input"
+                                   data-question-id="{{ question.id }}"
+                                   {% if attempt.answers|get_item:question.id == forloop.counter0|stringformat:"s" %}checked{% endif %}>
+                            <span class="ml-3 text-gray-900">{{ option }}</span>
+                        </label>
+                        {% endfor %}
+                    {% elif question.type == 'essay' %}
+                        <textarea name="question_{{ question.id }}"
+                                  rows="6"
+                                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary question-input"
+                                  data-question-id="{{ question.id }}"
+                                  placeholder="Enter your answer here...">{{ attempt.answers|get_item:question.id }}</textarea>
+                    {% elif question.type == 'code' %}
+                        <textarea name="question_{{ question.id }}"
+                                  rows="10"
+                                  class="w-full px-4 py-3 font-mono text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-gray-50 question-input"
+                                  data-question-id="{{ question.id }}"
+                                  placeholder="# Enter your code here">{{ attempt.answers|get_item:question.id }}</textarea>
+                    {% endif %}
+                </div>
+                
+                <!-- Estimated Time -->
+                {% if question.estimated_time %}
+                <p class="mt-3 text-xs text-gray-500">
+                    ⏱️ Estimated time: {{ question.estimated_time }} seconds
+                </p>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Submit Button -->
+        <div class="mt-8 bg-white rounded-xl shadow-md p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600">Ready to submit?</p>
+                    <p class="text-xs text-gray-500 mt-1">Make sure you've answered all questions before submitting.</p>
+                </div>
+                <button type="button" 
+                        id="submit-btn"
+                        class="px-8 py-3 bg-gradient-to-r from-success to-green-600 text-white rounded-lg font-bold text-lg hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200">
+                    Submit Assessment
+                </button>
+            </div>
+        </div>
+    </form>
+
+    <!-- Confirmation Modal -->
+    <div id="confirm-modal" 
+         class="modal-hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+            <h3 class="text-xl font-bold text-gray-900 mb-4">Submit Assessment?</h3>
+            <p class="text-gray-600 mb-6">
+                You've answered <span class="font-bold text-primary" id="modal-answered-count"></span> out of 
+                <span class="font-bold" id="modal-total-questions"></span> questions.
+                Are you sure you want to submit?
+            </p>
+            <div class="flex gap-3">
+                <button type="button" 
+                        id="review-btn"
+                        class="flex-1 px-4 py-3 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-colors">
+                    Review Answers
+                </button>
+                <button type="button" 
+                        id="confirm-submit-btn"
+                        class="flex-1 px-4 py-3 bg-gradient-to-r from-success to-green-600 text-white rounded-lg font-semibold hover:shadow-lg transition-all">
+                    Confirm Submit
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    // Initial values
+    let timeRemaining = {{ time_remaining }};
+    const totalQuestions = {{ total_questions }};
+    let answeredCount = {{ answered_questions }};
+    let autoSaveTimeout = null;
+    
+    // DOM elements
+    const timerDisplay = document.getElementById('timer-display');
+    const timeRemainingSpan = document.getElementById('time-remaining');
+    const answeredCountSpan = document.getElementById('answered-count');
+    const progressBar = document.getElementById('progress-bar');
+    const submitBtn = document.getElementById('submit-btn');
+    const confirmModal = document.getElementById('confirm-modal');
+    const reviewBtn = document.getElementById('review-btn');
+    const confirmSubmitBtn = document.getElementById('confirm-submit-btn');
+    const testForm = document.getElementById('test-form');
+    const modalAnsweredCount = document.getElementById('modal-answered-count');
+    const modalTotalQuestions = document.getElementById('modal-total-questions');
+    
+    // Format time function
+    function formatTime(minutes) {
+        const hrs = Math.floor(minutes / 60);
+        const mins = minutes % 60;
+        if (hrs > 0) {
+            return `${hrs}h ${mins}m`;
+        }
+        return `${mins}m`;
+    }
+    
+    // Update timer display
+    function updateTimerDisplay() {
+        timeRemainingSpan.textContent = formatTime(timeRemaining);
+        
+        // Update color based on time
+        if (timeRemaining <= 5) {
+            timerDisplay.className = 'text-2xl font-bold text-red-600 timer-warning';
+        } else if (timeRemaining <= 10) {
+            timerDisplay.className = 'text-2xl font-bold text-orange-600';
+        } else {
+            timerDisplay.className = 'text-2xl font-bold text-green-600';
+        }
+    }
+    
+    // Update progress
+    function updateProgress() {
+        answeredCountSpan.textContent = answeredCount;
+        const progressPercent = (answeredCount / totalQuestions * 100);
+        progressBar.style.width = progressPercent + '%';
+    }
+    
+    // Start timer
+    function startTimer() {
+        setInterval(function() {
+            if (timeRemaining > 0) {
+                timeRemaining--;
+                updateTimerDisplay();
+                
+                // Auto-submit when time runs out
+                if (timeRemaining === 0) {
+                    alert('Time is up! Submitting your assessment...');
+                    testForm.submit();
+                }
+                
+                // Warning at 5 minutes
+                if (timeRemaining === 300) {
+                    alert('5 minutes remaining!');
+                }
+            }
+        }, 60000); // Update every minute
+    }
+    
+    // Save progress
+    function saveProgress(questionId, answer) {
+        // Clear previous timeout
+        if (autoSaveTimeout) {
+            clearTimeout(autoSaveTimeout);
+        }
+        
+        // Auto-save after 2 seconds of inactivity
+        autoSaveTimeout = setTimeout(function() {
+            fetch('{% url "assessments:save_progress" attempt.id %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: 'question_id=' + questionId + '&answer=' + encodeURIComponent(answer)
+            })
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(data) {
+                if (data.success) {
+                    answeredCount = data.answered_count;
+                    updateProgress();
+                    console.log('Progress saved');
+                }
+            })
+            .catch(function(error) {
+                console.error('Error saving progress:', error);
+            });
+        }, 2000);
+    }
+    
+    // Show modal
+    function showModal() {
+        modalAnsweredCount.textContent = answeredCount;
+        modalTotalQuestions.textContent = totalQuestions;
+        confirmModal.classList.remove('modal-hidden');
+    }
+    
+    // Hide modal
+    function hideModal() {
+        confirmModal.classList.add('modal-hidden');
+    }
+    
+    // Initialize
+    function init() {
+        // Set initial display
+        updateTimerDisplay();
+        updateProgress();
+        
+        // Start timer
+        startTimer();
+        
+        // Warn before leaving
+        window.addEventListener('beforeunload', function(e) {
+            if (timeRemaining > 0) {
+                e.preventDefault();
+                e.returnValue = 'Are you sure you want to leave? Your progress will be lost.';
+                return e.returnValue;
+            }
+        });
+        
+        // Add event listeners to all question inputs
+        const questionInputs = document.querySelectorAll('.question-input');
+        questionInputs.forEach(function(input) {
+            const questionId = input.getAttribute('data-question-id');
+            
+            if (input.type === 'radio') {
+                input.addEventListener('change', function() {
+                    saveProgress(questionId, this.value);
+                });
+            } else {
+                input.addEventListener('input', function() {
+                    saveProgress(questionId, this.value);
+                });
+            }
+        });
+        
+        // Submit button click
+        submitBtn.addEventListener('click', function() {
+            showModal();
+        });
+        
+        // Review button click
+        reviewBtn.addEventListener('click', function() {
+            hideModal();
+        });
+        
+        // Confirm submit button click
+        confirmSubmitBtn.addEventListener('click', function() {
+            hideModal();
+            testForm.submit();
+        });
+        
+        // Close modal on background click
+        confirmModal.addEventListener('click', function(e) {
+            if (e.target === confirmModal) {
+                hideModal();
+            }
+        });
+    }
+    
+    // Run init when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+})();
+</script>
+{% endblock %}

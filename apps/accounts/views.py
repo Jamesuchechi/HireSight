@@ -1,6 +1,7 @@
 from django.http import JsonResponse, Http404, HttpResponse
 from django.contrib.auth import login, logout, authenticate, update_session_auth_hash
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.views.generic import View, TemplateView, FormView, UpdateView
 from django.urls import reverse_lazy
@@ -18,13 +19,14 @@ import json
 from .models import (
     User, PersonalProfile, CompanyProfile, EmailVerificationToken, 
     PasswordResetToken, EmailPreferences, EmailChangeToken, APIKey,
-    ProfileView, UserSession, AccountDeletionLog
+    ProfileView, UserSession, AccountDeletionLog, UserProfile
 )
 
 from .forms import (
     RegisterForm, LoginForm, EmailVerificationForm, ForgotPasswordForm,
     ResetPasswordForm, PersonalProfileForm, CompanyProfileForm, EmailPreferencesForm, ChangeEmailForm, CustomPasswordChangeForm, 
-    DeleteAccountForm, Enable2FAForm, Verify2FAForm, CreateAPIKeyForm, ResumeImportForm
+    DeleteAccountForm, Enable2FAForm, Verify2FAForm, CreateAPIKeyForm, ResumeImportForm,
+    UserProfileForm
 )
 from .decorators import personal_required, company_required
 from django.contrib.admin.views.decorators import staff_member_required
@@ -440,6 +442,30 @@ class ProfileRedirectView(LoginRequiredMixin, View):
         if request.user.account_type == 'company':
             return redirect('accounts:company_profile_view', user_id=user_id)
         return redirect('accounts:personal_profile_view', user_id=user_id)
+
+
+@login_required
+def edit_profile(request):
+    """Edit resume header contact info stored on the reusable UserProfile."""
+    profile, _ = UserProfile.objects.get_or_create(
+        user=request.user,
+        defaults={'full_name': request.user.get_full_name() or request.user.email.split('@')[0]}
+    )
+
+    if request.method == 'POST':
+        form = UserProfileForm(request.POST, instance=profile)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Your header details have been saved.')
+            return redirect('accounts:edit_profile')
+    else:
+        form = UserProfileForm(instance=profile)
+
+    context = {
+        'form': form,
+        'profile': profile,
+    }
+    return render(request, 'accounts/profile/edit_profile.html', context)
 
 
 class EditPersonalProfileView(LoginRequiredMixin, UpdateView):

@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Profile - HireSight{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 py-12">
+  <div class="bg-white rounded-3xl shadow-lg p-6 space-y-6">
+    <div>
+      <h1 class="text-3xl font-display font-bold text-gray-900">Edit Your Resume Header</h1>
+      <p class="text-gray-600 mt-2">This information will be included in AI rewrites and resume previews.</p>
+    </div>
+
+    {% if messages %}
+    <div class="space-y-2">
+      {% for message in messages %}
+      <div class="rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+        {{ message }}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="post" class="space-y-6">
+      {% csrf_token %}
+      <div class="grid gap-4 md:grid-cols-2">
+        {{ form.full_name.label_tag }}
+        {{ form.full_name }}
+        {{ form.professional_title.label_tag }}
+        {{ form.professional_title }}
+      </div>
+
+      <div class="grid gap-4 md:grid-cols-2">
+        {{ form.location.label_tag }}
+        {{ form.location }}
+        {{ form.phone.label_tag }}
+        {{ form.phone }}
+      </div>
+
+      <div class="grid gap-4 md:grid-cols-2">
+        {{ form.linkedin_url.label_tag }}
+        {{ form.linkedin_url }}
+        {{ form.portfolio_url.label_tag }}
+        {{ form.portfolio_url }}
+      </div>
+
+      <div>
+        {{ form.github_url.label_tag }}
+        {{ form.github_url }}
+      </div>
+
+      <div class="flex flex-wrap gap-3">
+        <button type="submit" class="bg-primary text-white px-6 py-3 rounded-2xl font-semibold shadow hover:bg-primary-dark transition">Save Profile</button>
+        <a href="{% url 'accounts:profile' %}" class="px-6 py-3 rounded-2xl border border-gray-200 text-gray-700 hover:bg-gray-50 transition">Cancel</a>
+      </div>
+    </form>
+
+    <div class="rounded-2xl border border-primary/30 bg-primary/10 p-4 space-y-1">
+      <p class="text-sm font-semibold text-primary">Header preview</p>
+      <p class="text-lg font-semibold text-gray-900">{{ profile.full_name }}</p>
+      {% if profile.professional_title %}
+      <p class="text-gray-600">{{ profile.professional_title }}</p>
+      {% endif %}
+      <p class="text-sm text-gray-600">
+        {% if profile.location %}{{ profile.location }}{% endif %}
+        {% if profile.phone %} | {{ profile.phone }}{% endif %}
+        | {{ request.user.email }}
+      </p>
+      <div class="text-sm text-primary flex flex-wrap gap-2">
+        {% if profile.linkedin_url %}
+        <a href="{{ profile.linkedin_url }}" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+        {% endif %}
+        {% if profile.portfolio_url %}
+        <a href="{{ profile.portfolio_url }}" target="_blank" rel="noopener noreferrer">Portfolio</a>
+        {% endif %}
+        {% if profile.github_url %}
+        <a href="{{ profile.github_url }}" target="_blank" rel="noopener noreferrer">GitHub</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

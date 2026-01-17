@@ -9,6 +9,7 @@ app_name = 'analytics'
 urlpatterns = [
     # Main dashboard
     path('', views.AnalyticsDashboardView.as_view(), name='dashboard'),
+    path('skill-proficiency/', views.SkillProficiencyDashboard.as_view(), name='skill_proficiency'),
     
     # Job-specific analytics (company only)
     path('job/<uuid:job_id>/', views.JobAnalyticsDetailView.as_view(), name='job_detail'),

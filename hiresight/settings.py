@@ -69,6 +69,8 @@ INSTALLED_APPS = [
     'apps.messaging',
     'apps.following',
     'apps.analytics',
+    'apps.assessments',
+    'apps.interviews',
 ]
 
 MIDDLEWARE = [
@@ -109,6 +111,7 @@ TEMPLATES = [
                 'apps.accounts.context_processors.language_context',
                 'apps.messaging.context_processors.unread_messages_count',
             ],
+            'builtins': ['apps.screening.templatetags.filters'],
         },
     },
 ]
@@ -301,6 +304,24 @@ CELERY_BEAT_SCHEDULE = {
     'reference-checks': {
         'task': 'apps.analytics.tasks.kickoff_reference_checks',
         'schedule': crontab(day_of_week='thu', hour=4, minute=0),
+    },
+    'interview-reminders': {
+        'task': 'apps.interviews.tasks.send_interview_reminders',
+        'schedule': crontab(minute='*/30'),
+    },
+    
+    'cleanup-expired-attempts': {
+        'task': 'apps.assessments.tasks.cleanup_expired_attempts',
+        'schedule': crontab(hour='*/2'), # Every 2 hours
+    },
+    
+    'send-test-recommendations': {
+        'task': 'apps.assessments.tasks.send_test_recommendation_emails',
+        'schedule': crontab(day_of_week='mon', hour=9, minute=0), 
+    },
+    'send-test-reminders': {
+        'task': 'apps.assessments.tasks.send_test_reminder_emails',
+        'schedule': crontab(minute='0', hour='*/1'),
     },
 }
 

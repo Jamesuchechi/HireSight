@@ -4,6 +4,8 @@ from django.utils import timezone
 from django.core.validators import MinLengthValidator, EmailValidator
 import uuid
 from django_otp.plugins.otp_totp.models import TOTPDevice
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 import secrets
 
 
@@ -985,3 +987,95 @@ class AccountDeletionLog(models.Model):
     def __str__(self):
         return f"{self.user_email} deleted on {self.deleted_at.strftime('%Y-%m-%d')}"
 
+
+class UserProfile(models.Model):
+    """Reusable profile storing contact details for resumes."""
+
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name='profile',
+        help_text='Generic profile used for resume headers and contact info'
+    )
+    full_name = models.CharField(
+        max_length=200,
+        help_text='Your full name as it should appear on resumes'
+    )
+    professional_title = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text='Current or target job title (e.g., "Senior Software Engineer")'
+    )
+    phone = models.CharField(
+        max_length=20,
+        blank=True,
+        help_text='Primary phone number'
+    )
+    location = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text='Location (city, region, or country)'
+    )
+    linkedin_url = models.URLField(
+        blank=True,
+        help_text='LinkedIn profile URL'
+    )
+    portfolio_url = models.URLField(
+        blank=True,
+        help_text='Portfolio or personal website'
+    )
+    github_url = models.URLField(
+        blank=True,
+        help_text='GitHub profile URL (for technical roles)'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "User Profile"
+        verbose_name_plural = "User Profiles"
+
+    def __str__(self):
+        return f"{self.full_name}'s Profile"
+
+    def get_header_text(self):
+        """Generate formatted header text for AI rewrites and resume previews."""
+        lines = [self.full_name]
+        if self.professional_title:
+            lines.append(self.professional_title)
+
+        contact_parts = []
+        if self.location:
+            contact_parts.append(self.location)
+        if self.phone:
+            contact_parts.append(self.phone)
+        if self.user.email:
+            contact_parts.append(self.user.email)
+        if self.linkedin_url:
+            contact_parts.append(self.linkedin_url)
+        if self.portfolio_url:
+            contact_parts.append(self.portfolio_url)
+        if self.github_url:
+            contact_parts.append(self.github_url)
+
+        if contact_parts:
+            lines.append(" | ".join(contact_parts))
+
+        return "\n".join(lines)
+
+
+@receiver(post_save, sender=User)
+def create_user_profile(sender, instance, created, **kwargs):
+    """Auto-create a user profile when a new user is created."""
+    if created:
+        UserProfile.objects.create(
+            user=instance,
+            full_name=instance.get_full_name() or instance.email.split('@')[0]
+        )
+
+
+@receiver(post_save, sender=User)
+def save_user_profile(sender, instance, **kwargs):
+    """Ensure the user profile stays in sync when the user is saved."""
+    if hasattr(instance, 'profile'):
+        instance.profile.save()

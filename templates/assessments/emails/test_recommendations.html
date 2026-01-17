@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Test Recommendations</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Inter', 'Segoe UI', sans-serif;
+      background-color: #0f172a;
+      color: #0f172a;
+    }
+    .email-wrapper {
+      max-width: 640px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 28px;
+      overflow: hidden;
+      box-shadow: 0 30px 60px rgba(15,23,42,0.25);
+    }
+    .header {
+      padding: 40px;
+      background: linear-gradient(135deg, #4338ca, #6366f1);
+      color: white;
+    }
+    .header h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+    }
+    .body {
+      padding: 32px 40px;
+    }
+    .test-card {
+      border: 1px solid #e2e8f0;
+      border-radius: 20px;
+      padding: 18px 22px;
+      margin-bottom: 16px;
+      background: #f8fafc;
+    }
+    .cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      justify-content: center;
+      background: linear-gradient(135deg, #4338ca, #a855f7);
+      color: white;
+      text-decoration: none;
+      font-weight: 600;
+      border-radius: 999px;
+      padding: 14px 28px;
+    }
+    .footer {
+      padding: 20px 40px 28px;
+      font-size: 12px;
+      color: #94a3b8;
+      text-align: center;
+    }
+    @media (max-width: 600px) {
+      .header, .body, .footer {
+        padding-left: 20px;
+        padding-right: 20px;
+      }
+      .cta {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="email-wrapper">
+    <div class="header">
+      <p style="margin:0; letter-spacing:0.25em; text-transform:uppercase; font-size:12px;">HireSight Assessments</p>
+      <h1>Level up your skills, {{ user_name }}.</h1>
+      <p style="margin:0; color: rgba(255,255,255,0.85);">Our AI recommends the next assessments tailored to your profile.</p>
+    </div>
+    <div class="body">
+      <p style="margin:0 0 24px;">Based on your recent activity, these skill tests will boost your profile visibility.</p>
+      {% for test in recommended_tests %}
+      <div class="test-card">
+        <p style="margin:0; font-weight:600; font-size:16px;">{{ test.title }}</p>
+        <p style="margin:4px 0 8px; color:#475467;">{{ test.skill_name }} • {{ test.difficulty }} • {{ test.duration_minutes }} min</p>
+        <p style="margin:0; font-size:13px; color:#94a3b8;">{{ test.description|default:"Hands-on challenges curated by HireSight." }}</p>
+      </div>
+      {% empty %}
+      <p style="margin:0 0 18px; color:#475467;">You're already up-to-date with the recommended tests. Keep tracking your progress!</p>
+      {% endfor %}
+      <div style="text-align:center; margin-top:24px;">
+        <a class="cta" href="{{ browse_url }}" target="_blank">View recommended tests</a>
+      </div>
+    </div>
+    <div class="footer">
+      <p style="margin-bottom:4px;">Need to pause recommendations? <a href="{{ unsubscribe_url }}" style="color:#4338ca;">Unsubscribe</a></p>
+      <p style="margin:0;">HireSight • Track your skills • support@hiresight.io</p>
+    </div>
+  </div>
+</body>
+</html>

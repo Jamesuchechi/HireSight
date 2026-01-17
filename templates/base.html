@@ -260,6 +260,105 @@
             background: rgba(0, 0, 0, 0.5);
             backdrop-filter: blur(4px);
         }
+
+        .resume-content {
+            font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #1f2937;
+        }
+
+        .resume-content h1,
+        .resume-content h2 {
+            color: #0f172a;
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .resume-content h2 {
+            font-size: 1.5rem;
+            border-bottom: 2px solid #0ea5e9;
+            padding-bottom: 0.3rem;
+        }
+
+        .resume-content h3 {
+            font-size: 1.25rem;
+            color: #1e293b;
+            margin-top: 1rem;
+        }
+
+        .resume-content ul {
+            list-style-type: disc;
+            padding-left: 2rem;
+            margin: 0.5rem 0;
+        }
+
+        .resume-content li {
+            margin: 0.25rem 0;
+        }
+
+        .resume-content strong {
+            font-weight: 600;
+            color: #0f172a;
+        }
+
+        .resume-content p {
+            margin: 0.5rem 0;
+        }
+
+        .resume-header {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .resume-header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 0.25rem;
+            letter-spacing: -0.025em;
+        }
+
+        .resume-header .title {
+            font-size: 1.25rem;
+            font-weight: 500;
+            color: #4b5563;
+            margin-bottom: 0.75rem;
+        }
+
+        .resume-header .contact-info {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            font-size: 0.95rem;
+            color: #6b7280;
+        }
+
+        .resume-header .contact-info span,
+        .resume-header .contact-info a {
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .resume-header .contact-info a {
+            color: #2563eb;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .resume-header .contact-info a:hover {
+            color: #1d4ed8;
+            text-decoration: underline;
+        }
+
+        .resume-header .contact-info span:not(:last-child)::after {
+            content: "|";
+            margin-left: 0.75rem;
+            color: #d1d5db;
+        }
     </style>
     
     {% block extra_css %}{% endblock %}
@@ -464,6 +563,13 @@
                             </svg>
                             <span class="sidebar-nav-text font-medium whitespace-nowrap">Saved Jobs</span>
                         </a>
+                        <a href="{% url 'analytics:dashboard' %}" 
+                           class="sidebar-nav-link flex items-center px-4 py-3 text-gray-700 hover:bg-primary-light hover:text-primary transition-colors">
+                            <svg class="sidebar-nav-icon w-5 h-5 flex-shrink-0 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                            </svg>
+                            <span class="sidebar-nav-text font-medium whitespace-nowrap">My Analytics</span>
+                        </a>
                     {% elif request.user.account_type == 'company' %}
                         <!-- Company Navigation -->
                         <a href="{% url 'dashboard:company_dashboard' %}" 
@@ -520,6 +626,14 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
                         </svg>
                         <span class="sidebar-nav-text font-medium whitespace-nowrap">My Profile</span>
+                    </a>
+                    <a href="{% url 'accounts:edit_profile' %}" 
+                       class="sidebar-nav-link flex items-center px-4 py-3 text-gray-700 hover:bg-primary-light hover:text-primary transition-colors">
+                        <svg class="sidebar-nav-icon w-5 h-5 flex-shrink-0 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v5m0 0l-4-4m4 4l4-4"></path>
+                        </svg>
+                        <span class="sidebar-nav-text font-medium whitespace-nowrap">Edit Header</span>
                     </a>
                     <a href="{% url 'accounts:settings' %}" 
                        class="sidebar-nav-link flex items-center px-4 py-3 text-gray-700 hover:bg-primary-light hover:text-primary transition-colors">

@@ -11,6 +11,7 @@ from django.utils import timezone
 from django.db import transaction
 from django.views.decorators.http import require_POST
 
+from apps.accounts.models import UserProfile
 from .models import Resume, ResumeOptimization, ResumeRewriteDraft, ResumeSuggestion
 from .forms import (
     ResumeUploadForm,
@@ -21,6 +22,7 @@ from .forms import (
 )
 from .parsers import resume_parser
 from .rewriter import ResumeRewriter
+from utils.helpers import convert_markdown_to_html
 
 
 class UserResumeMixin:
@@ -29,6 +31,19 @@ class UserResumeMixin:
     def get_queryset(self):
         """Filter queryset to current user's resumes."""
         return Resume.objects.filter(user=self.request.user)
+
+
+def _get_or_create_header_profile(user):
+    """Return the UserProfile used for resume headers, creating it if missing."""
+    defaults = {'full_name': user.get_full_name() or user.email.split('@')[0]}
+    profile, _ = UserProfile.objects.get_or_create(user=user, defaults=defaults)
+    return profile
+
+
+def _build_header_text(user):
+    """Build the plain-text header that AI rewrites should begin with."""
+    profile = _get_or_create_header_profile(user)
+    return profile.get_header_text()
 
 
 class ResumeListView(LoginRequiredMixin, UserResumeMixin, ListView):
@@ -125,6 +140,7 @@ class ResumeDetailView(LoginRequiredMixin, UserResumeMixin, DetailView):
         context['parsed_skills'] = resume.get_parsed_skills_list()
         context['parsed_education'] = resume.get_education_list()
         context['parsed_contact'] = resume.get_contact_info_dict()
+        context['user_profile'] = _get_or_create_header_profile(self.request.user)
 
         return context
 
@@ -234,10 +250,11 @@ class ResumePreviewView(LoginRequiredMixin, UserResumeMixin, DetailView):
         context = super().get_context_data(**kwargs)
         resume = self.object
 
-        context['parsed_text'] = resume.parsed_text
+        context['parsed_html'] = resume.parsed_text_html
         context['parsed_skills'] = resume.get_parsed_skills_list()
         context['parsed_education'] = resume.get_education_list()
         context['parsed_contact'] = resume.get_contact_info_dict()
+        context['user_profile'] = _get_or_create_header_profile(self.request.user)
 
         return context
 
@@ -710,7 +727,13 @@ class ResumeSuggestionsView(LoginRequiredMixin, UserResumeMixin, DetailView):
         context = super().get_context_data(**kwargs)
         optimization = self.object.optimization
         if optimization:
-            context['suggestions'] = optimization.detailed_suggestions.all()
+            suggestions = list(optimization.detailed_suggestions.all())
+            for suggestion in suggestions:
+                suggestion.description_html = convert_markdown_to_html(suggestion.description)
+                suggestion.suggestion_html = convert_markdown_to_html(suggestion.suggestion)
+                suggestion.example_before_html = convert_markdown_to_html(suggestion.example_before)
+                suggestion.example_after_html = convert_markdown_to_html(suggestion.example_after)
+            context['suggestions'] = suggestions
         else:
             context['suggestions'] = []
         return context
@@ -730,6 +753,12 @@ class ResumeSuggestionDetailView(LoginRequiredMixin, TemplateView):
         )
         context['resume'] = resume
         context['suggestion'] = suggestion
+        context['suggestion_html'] = {
+            'description': convert_markdown_to_html(suggestion.description),
+            'suggestion': convert_markdown_to_html(suggestion.suggestion),
+            'example_before': convert_markdown_to_html(suggestion.example_before),
+            'example_after': convert_markdown_to_html(suggestion.example_after),
+        }
         return context
 
 
@@ -1093,6 +1122,7 @@ def resume_rewrite_preview(request, pk):
         'metrics_focus': form.cleaned_data.get('metrics_focus', ''),
         'job_description': form.cleaned_data.get('job_description', ''),
     }
+    header_text = _build_header_text(request.user)
 
     rewrite_result = rewriter.rewrite_resume(
         resume.parsed_text,
@@ -1100,7 +1130,8 @@ def resume_rewrite_preview(request, pk):
         industry=ctx['industry'],
         highlights=ctx['highlights'],
         metrics_focus=ctx['metrics_focus'],
-        job_description=ctx['job_description']
+        job_description=ctx['job_description'],
+        header_text=header_text
     )
 
     if not rewrite_result.get('success'):

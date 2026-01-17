@@ -43,6 +43,28 @@
         </div>
       </div>
     </div>
+    {% if user_profile %}
+    <section class="resume-header">
+      <h1>{{ user_profile.full_name }}</h1>
+      {% if user_profile.professional_title %}
+      <p class="title">{{ user_profile.professional_title }}</p>
+      {% endif %}
+      <div class="contact-info">
+        {% if user_profile.location %}<span>{{ user_profile.location }}</span>{% endif %}
+        {% if user_profile.phone %}<span>{{ user_profile.phone }}</span>{% endif %}
+        <span>{{ request.user.email }}</span>
+        {% if user_profile.linkedin_url %}
+        <a href="{{ user_profile.linkedin_url }}" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+        {% endif %}
+        {% if user_profile.portfolio_url %}
+        <a href="{{ user_profile.portfolio_url }}" target="_blank" rel="noopener noreferrer">Portfolio</a>
+        {% endif %}
+        {% if user_profile.github_url %}
+        <a href="{{ user_profile.github_url }}" target="_blank" rel="noopener noreferrer">GitHub</a>
+        {% endif %}
+      </div>
+    </section>
+    {% endif %}
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <!-- Left Column - Details & Actions -->
@@ -253,21 +275,13 @@
         {% endif %}
 
         <!-- Raw Text Preview -->
-        {% if object.parsed_text %}
+        {% if object.parsed_text_html %}
         <section class="rounded-3xl border border-gray-100 bg-white px-6 py-6 shadow-lg">
           <h3 class="text-lg font-display font-semibold text-gray-900 mb-4">Resume Text Preview</h3>
           <div class="rounded-2xl bg-gray-50 border border-gray-200 p-5 max-h-80 overflow-y-auto">
-            <pre class="text-sm text-gray-700 whitespace-pre-wrap font-mono leading-relaxed">{{ object.parsed_text|truncatechars:1000 }}</pre>
-            {% if object.parsed_text|length > 1000 %}
-            <div class="mt-4 pt-4 border-t border-gray-300">
-              <a href="{% url 'resumes:preview' object.pk %}" class="text-sm text-primary hover:text-primary/80 font-semibold flex items-center gap-2">
-                View full text
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                </svg>
-              </a>
+            <div class="resume-content text-sm" style="min-height: 180px;">
+              {{ object.parsed_text_html|safe }}
             </div>
-            {% endif %}
           </div>
         </section>
         {% endif %}

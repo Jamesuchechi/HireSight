@@ -2,7 +2,13 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm, PasswordResetForm, SetPasswordForm, PasswordChangeForm
 from django.contrib.auth import authenticate
 from django.core.exceptions import ValidationError
-from .models import User, PersonalProfile, CompanyProfile, EmailPreferences
+from .models import (
+    User,
+    PersonalProfile,
+    CompanyProfile,
+    EmailPreferences,
+    UserProfile,
+)
 import json
 
 class MultipleFileInput(forms.ClearableFileInput):
@@ -975,3 +981,60 @@ class CreateAPIKeyForm(forms.Form):
             raise forms.ValidationError('Key name must be at least 3 characters long.')
         
         return name
+
+
+class UserProfileForm(forms.ModelForm):
+    """Simple form for editing the resume header contact info."""
+
+    class Meta:
+        model = UserProfile
+        fields = [
+            'full_name',
+            'professional_title',
+            'phone',
+            'location',
+            'linkedin_url',
+            'portfolio_url',
+            'github_url'
+        ]
+        base_classes = 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue focus:border-blue transition'
+        widgets = {
+            'full_name': forms.TextInput(attrs={
+                'class': base_classes,
+                'placeholder': 'John Doe',
+                'required': True
+            }),
+            'professional_title': forms.TextInput(attrs={
+                'class': base_classes,
+                'placeholder': 'Senior Software Engineer'
+            }),
+            'phone': forms.TextInput(attrs={
+                'class': base_classes,
+                'placeholder': '+234 123 456 7890'
+            }),
+            'location': forms.TextInput(attrs={
+                'class': base_classes,
+                'placeholder': 'Lagos, Nigeria'
+            }),
+            'linkedin_url': forms.URLInput(attrs={
+                'class': base_classes,
+                'placeholder': 'https://linkedin.com/in/yourprofile'
+            }),
+            'portfolio_url': forms.URLInput(attrs={
+                'class': base_classes,
+                'placeholder': 'https://yourportfolio.com'
+            }),
+            'github_url': forms.URLInput(attrs={
+                'class': base_classes,
+                'placeholder': 'https://github.com/yourusername'
+            }),
+        }
+        labels = {
+            'full_name': 'Full Name *',
+            'professional_title': 'Professional Title',
+            'phone': 'Phone Number',
+            'location': 'Location',
+            'linkedin_url': 'LinkedIn URL',
+            'portfolio_url': 'Portfolio URL',
+            'github_url': 'GitHub URL',
+        }

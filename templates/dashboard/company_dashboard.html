@@ -147,6 +147,53 @@
             </div>
         </div>
 
+        {% if candidate_insights %}
+        <section class="bg-white rounded-2xl shadow-lg border border-gray-100 dark:border-slate-700 px-6 py-6 mb-8">
+            <div class="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                    <h2 class="font-display text-2xl font-bold text-gray-900 dark:text-white">Candidate Assessment Insights</h2>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Monitor skill badges, averages, and trending strengths across your talent pool.</p>
+                </div>
+                <span class="text-sm font-semibold text-primary">Powered by HireSight Assessments</span>
+            </div>
+            <div class="grid gap-6 mt-6 md:grid-cols-3">
+                <div class="bg-gradient-to-br from-primary-light to-white rounded-2xl p-5 border border-primary/10">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Badge holders</p>
+                    <p class="text-3xl font-bold text-gray-900 mt-2">{{ candidate_insights.total_candidates_with_badges|default:0 }}</p>
+                    <p class="text-sm text-gray-500 mt-1">Applicants with verified skill badges</p>
+                </div>
+                <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-gray-200 dark:border-slate-700 shadow-sm">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Skill distribution</p>
+                    <div class="mt-3 space-y-2">
+                        {% for skill in candidate_insights.skill_distribution|slice:":4" %}
+                        <div class="flex items-center justify-between text-sm text-gray-600 dark:text-gray-300">
+                            <div>
+                                <p class="font-semibold text-gray-900 dark:text-white">{{ skill.test__skill_name }}</p>
+                                <p>Avg score: {{ skill.avg_score|floatformat:1 }}%</p>
+                            </div>
+                            <span class="text-xs px-2 py-1 bg-gray-100 dark:bg-slate-800 rounded-full">{{ skill.count }} badges</span>
+                        </div>
+                        {% empty %}
+                        <p class="text-sm text-gray-500 dark:text-gray-400">No assessments data yet.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-gray-200 dark:border-slate-700 shadow-sm">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Top skills</p>
+                    <div class="mt-3 flex flex-wrap gap-2">
+                        {% for skill in candidate_insights.top_skills %}
+                        <span class="text-xs font-semibold px-3 py-1 rounded-full bg-gradient-to-r from-primary/20 to-secondary/20 text-primary dark:text-white">
+                            {{ skill.test__skill_name }}
+                        </span>
+                        {% empty %}
+                        <p class="text-sm text-gray-500 dark:text-gray-400">More candidates need badges to populate top skills.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </section>
+        {% endif %}
+
         <!-- Main Content Grid -->
         <div class="grid lg:grid-cols-3 gap-8">
             <!-- Left Column (2/3) -->

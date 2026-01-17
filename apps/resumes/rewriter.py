@@ -8,7 +8,8 @@ class ResumeRewriter:
         self.ai_advisor = MistralResumeAdvisor()
 
     def rewrite_resume(self, resume_text: str, job_title: str = '', industry: str = '',
-                       highlights: str = '', metrics_focus: str = '', job_description: str = ''):
+                       highlights: str = '', metrics_focus: str = '', job_description: str = '',
+                       header_text: str = None):
         """
         Generate a rewritten resume provided the original text and optional context.
         """
@@ -18,5 +19,6 @@ class ResumeRewriter:
             industry=industry,
             highlights=highlights,
             metrics_focus=metrics_focus,
-            job_description=job_description
+            job_description=job_description,
+            header_text=header_text
         )

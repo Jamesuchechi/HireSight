@@ -25,6 +25,7 @@ urlpatterns = [
     # Profile Management
     path('profile/', views.ProfileRedirectView.as_view(), name='profile'),
     path('settings/', views.SettingsView.as_view(), name='settings'),
+    path('profile/edit/', views.edit_profile, name='edit_profile'),
     path('profile/edit/personal/', views.EditPersonalProfileView.as_view(), name='edit_personal_profile'),
     path('profile/edit/company/', views.EditCompanyProfileView.as_view(), name='edit_company_profile'),
     path('profile/import-resume/', views.ResumeImportView.as_view(), name='import_resume'),

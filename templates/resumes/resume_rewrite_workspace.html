@@ -104,8 +104,8 @@
                 <span>{{ rewrite_preview.score_cards.original.keyword_score }}</span>
               </div>
             </div>
-            <div class="text-xs text-gray-500 max-h-60 overflow-y-auto whitespace-pre-wrap">
-              {{ resume.parsed_text|truncatechars:640|linebreaksbr }}
+            <div class="resume-content text-xs text-gray-500 max-h-60 overflow-y-auto space-y-1">
+              {{ resume.parsed_text_html|safe }}
             </div>
           </div>
 

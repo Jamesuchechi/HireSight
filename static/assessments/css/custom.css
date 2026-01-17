@@ -1,0 +1,7 @@
+.question-card {
+    border-left: 4px solid #0066FF;
+}
+
+.option-label:hover {
+    background-color: #E6F0FF;
+}

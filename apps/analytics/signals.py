@@ -10,9 +10,9 @@ from .utils import log_user_activity
 @receiver(post_save, sender='resumes.Resume')
 def track_resume_upload(sender, instance, created, **kwargs):
     """Track when a user uploads a resume."""
-    if created and instance.user:
+    if created and getattr(instance, 'applicant', None):
         log_user_activity(
-            user=instance.user,
+            user=instance.applicant,
             action_type='resume_upload',
             metadata={'resume_id': str(instance.id), 'filename': instance.original_filename}
         )
@@ -22,9 +22,10 @@ def track_resume_upload(sender, instance, created, **kwargs):
 @receiver(post_save, sender='applications.Application')
 def track_job_application(sender, instance, created, **kwargs):
     """Track when a user applies for a job."""
-    if created and instance.user:
+    applicant = getattr(instance, 'applicant', None)
+    if created and applicant:
         log_user_activity(
-            user=instance.user,
+            user=applicant,
             action_type='job_apply',
             metadata={
                 'application_id': str(instance.id),
@@ -38,9 +39,9 @@ def track_job_application(sender, instance, created, **kwargs):
 @receiver(post_save, sender='jobs.Job')
 def track_job_post(sender, instance, created, **kwargs):
     """Track when a company posts a job."""
-    if created and instance.company:
+    if created and instance.company and hasattr(instance.company, 'user'):
         log_user_activity(
-            user=instance.company,
+            user=instance.company.user,
             action_type='job_post',
             metadata={
                 'job_id': str(instance.id),

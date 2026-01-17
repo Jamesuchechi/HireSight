@@ -9,13 +9,15 @@ from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 
 from apps.accounts.decorators import personal_required, company_required
-
-# TODO: Uncomment when Application and Job models are implemented
 from apps.applications.models import Application, ApplicationStatus
+from apps.assessments.analytics_helpers import get_company_candidate_insights
+from apps.assessments.models import SkillBadge, SkillTest
+from apps.assessments.recommendations import TestRecommendationEngine
 from apps.jobs.models import Job, JobStatus
 from apps.jobs.recommendations import JobRecommendationEngine
 from apps.messaging.models import Message
 from apps.resumes.models import Resume
+from apps.interviews.models import Interview
 
 
 def landing(request):
@@ -51,6 +53,9 @@ def _get_personal_context(request):
             profile_completion = 100
     else:
         profile_completion = 0
+
+    engine = TestRecommendationEngine()
+    pending_recommendations = engine.recommend_for_user(user, limit=5)
 
     profile_views_last_30 = user.get_profile_views_count(days=30) if user.account_type == 'personal' else 0
     prev_period_start = now - timezone.timedelta(days=60)
@@ -112,6 +117,12 @@ def _get_personal_context(request):
             if len(recommendations) >= recommended_limit:
                 break
 
+    upcoming_interviews_qs = Interview.objects.filter(
+        application__applicant=user,
+        scheduled_date__gte=now,
+        status__in=[Interview.InterviewStatus.SCHEDULED, Interview.InterviewStatus.RESCHEDULED]
+    ).select_related('application__job__company')[:5]
+
     context = {
         'stats': stats,
         'stats_cards': stats_cards,
@@ -120,14 +131,19 @@ def _get_personal_context(request):
         'saved_jobs': saved_jobs,
         'saved_jobs_count': saved_jobs_count,
         'recommended_jobs': recommendations,
-        'upcoming_interviews': [],
+        'upcoming_interviews': upcoming_interviews_qs,
         'profile_completion': profile_completion,
         'profile_completion_score': profile_completion,
         'activities': apps_qs.order_by('-last_activity_at')[:5],
         'next_interview': upcoming_interview,
         'new_jobs_count': new_jobs_count,
         'unread_messages': unread_messages,
+        'skill_badges': request.user.skill_badges.select_related('test')[:4] if hasattr(request.user, 'skill_badges') else [],
     }
+    context['recent_badges'] = SkillBadge.objects.filter(
+        user=user
+    ).select_related('test', 'attempt').order_by('-issued_at')[:3]
+    context['pending_recommendations'] = pending_recommendations
     return context
 
 
@@ -244,6 +260,7 @@ def _get_company_context(request):
         'upcoming_interviews': [],  # TODO: Implement upcoming interviews
         'activities': recent_activity,
     }
+    context['candidate_insights'] = get_company_candidate_insights(request.user.company_profile) if request.user.company_profile else {}
     return context
 
 

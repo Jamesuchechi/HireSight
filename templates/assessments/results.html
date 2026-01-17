@@ -1,0 +1,169 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Assessment Results - {{ attempt.test.title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Result Header -->
+    <div class="bg-gradient-to-br {% if attempt.passed %}from-green-500 to-green-600{% else %}from-orange-500 to-red-600{% endif %} rounded-xl shadow-2xl p-8 text-white text-center mb-8">
+        {% if attempt.passed %}
+        <div class="w-20 h-20 bg-white bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"></path>
+            </svg>
+        </div>
+        <h1 class="text-4xl font-bold mb-2">🎉 Congratulations!</h1>
+        <p class="text-xl opacity-90">You passed the {{ attempt.test.title }} assessment</p>
+        {% else %}
+        <div class="w-20 h-20 bg-white bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+        </div>
+        <h1 class="text-4xl font-bold mb-2">Keep Learning!</h1>
+        <p class="text-xl opacity-90">You scored {{ attempt.score }}% on {{ attempt.test.title }}</p>
+        {% endif %}
+        
+        <!-- Score Circle -->
+        <div class="mt-6 inline-block">
+            <div class="relative">
+                <svg class="w-32 h-32 transform -rotate-90">
+                    <circle cx="64" cy="64" r="56" stroke="currentColor" stroke-width="8" fill="none" class="opacity-20"></circle>
+                    <circle cx="64" cy="64" r="56" stroke="currentColor" stroke-width="8" fill="none" stroke-dasharray="{{ attempt.score|mul:3.52 }} 352" class="opacity-100"></circle>
+                </svg>
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <span class="text-4xl font-bold">{{ attempt.score }}%</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Performance Metrics -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-white rounded-xl shadow-md p-6 text-center">
+            <div class="text-3xl font-bold text-green-600 mb-2">{{ correct_count }}</div>
+            <div class="text-sm text-gray-600">Correct Answers</div>
+        </div>
+        
+        <div class="bg-white rounded-xl shadow-md p-6 text-center">
+            <div class="text-3xl font-bold text-red-600 mb-2">{{ incorrect_count }}</div>
+            <div class="text-sm text-gray-600">Incorrect Answers</div>
+        </div>
+        
+        <div class="bg-white rounded-xl shadow-md p-6 text-center">
+            <div class="text-3xl font-bold text-primary mb-2">{{ attempt.time_taken_minutes }}m</div>
+            <div class="text-sm text-gray-600">Time Taken</div>
+        </div>
+    </div>
+
+    <!-- Additional Stats -->
+    <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+        <h2 class="text-xl font-bold text-gray-900 mb-4">Performance Summary</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <span class="text-gray-700">Points Earned</span>
+                <span class="font-bold text-gray-900">{{ attempt.points_earned }} / {{ attempt.points_possible }}</span>
+            </div>
+            
+            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <span class="text-gray-700">Passing Score</span>
+                <span class="font-bold text-gray-900">{{ attempt.test.passing_score }}%</span>
+            </div>
+            
+            {% if percentile %}
+            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <span class="text-gray-700">Percentile Ranking</span>
+                <span class="font-bold text-primary">Top {{ percentile }}%</span>
+            </div>
+            {% endif %}
+            
+            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <span class="text-gray-700">Test Difficulty</span>
+                <span class="font-bold text-gray-900">{{ attempt.test.get_difficulty_display }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Badge Section -->
+    {% if badge %}
+    <div class="bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-xl shadow-2xl p-8 text-center mb-8">
+        <div class="text-6xl mb-4">🏆</div>
+        <h3 class="text-2xl font-bold text-white mb-2">Badge Earned!</h3>
+        <p class="text-white opacity-90 mb-6">{{ badge.badge_name }}</p>
+        <div class="flex justify-center gap-4">
+            <a href="{% url 'assessments:certificate' attempt.id %}" 
+               class="px-6 py-3 bg-white text-yellow-600 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+                Download Certificate
+            </a>
+            <a href="{% url 'assessments:my_badges' %}" 
+               class="px-6 py-3 bg-yellow-700 text-white rounded-lg font-semibold hover:bg-yellow-800 transition-colors">
+                View All Badges
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Detailed Results -->
+    <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+        <h2 class="text-xl font-bold text-gray-900 mb-6">Detailed Results</h2>
+        <div class="space-y-4">
+            {% for question in attempt.frozen_questions %}
+            {% with result=attempt.question_results|get_item:question.id %}
+            <div class="border-l-4 {% if result.correct %}border-green-500{% else %}border-red-500{% endif %} bg-gray-50 p-4 rounded-r-lg">
+                <div class="flex items-start justify-between mb-2">
+                    <h4 class="font-semibold text-gray-900">Question {{ forloop.counter }}</h4>
+                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold {% if result.correct %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                        {% if result.correct %}✓ Correct{% else %}✗ Incorrect{% endif %}
+                    </span>
+                </div>
+                <p class="text-gray-700 mb-3">{{ question.question }}</p>
+                
+                {% if question.type == 'multiple_choice' %}
+                <div class="space-y-2">
+                    {% for option in question.options %}
+                    <div class="flex items-start p-2 rounded
+                        {% if forloop.counter0 == result.user_answer %}
+                            {% if result.correct %}bg-green-100{% else %}bg-red-100{% endif %}
+                        {% elif forloop.counter0 == result.correct_answer %}bg-green-50{% endif %}">
+                        <span class="mr-2">
+                            {% if forloop.counter0 == result.user_answer %}
+                                {% if result.correct %}✓{% else %}✗{% endif %}
+                            {% elif forloop.counter0 == result.correct_answer %}✓{% endif %}
+                        </span>
+                        <span class="{% if forloop.counter0 == result.correct_answer %}font-semibold{% endif %}">{{ option }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                {% if result.explanation %}
+                <div class="mt-3 p-3 bg-blue-50 border-l-2 border-blue-500 rounded">
+                    <p class="text-sm text-gray-700"><strong>Explanation:</strong> {{ result.explanation }}</p>
+                </div>
+                {% endif %}
+            </div>
+            {% endwith %}
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="flex flex-wrap justify-center gap-4 mb-8">
+        <a href="{% url 'assessments:browse' %}" 
+           class="px-8 py-3 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-colors">
+            Browse More Tests
+        </a>
+        {% if not attempt.passed %}
+        <a href="{% url 'assessments:test_detail' attempt.test.slug %}" 
+           class="px-8 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg font-semibold hover:shadow-lg transition-all">
+            Retake Test
+        </a>
+        {% endif %}
+        <a href="{% url 'dashboard:personal_dashboard' %}" 
+           class="px-8 py-3 bg-primary text-white rounded-lg font-semibold hover:bg-primary-dark transition-colors">
+            Back to Dashboard
+        </a>
+    </div>
+</div>
+{% endblock %}

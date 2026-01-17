@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Badge Earned | HireSight</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+      background-color: #0f172a;
+      color: #0f172a;
+    }
+    .email-body {
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: white;
+      border-radius: 24px;
+      overflow: hidden;
+    }
+    .hero {
+      padding: 36px 40px;
+      background: linear-gradient(135deg, #4338ca, #6366f1);
+      color: white;
+    }
+    .content {
+      padding: 32px 40px;
+    }
+    .button {
+      background: linear-gradient(135deg, #4338ca, #a855f7);
+      color: white;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      padding: 14px 28px;
+      font-weight: 600;
+    }
+    .badge-card {
+      border: 1px solid #e2e8f0;
+      border-radius: 20px;
+      padding: 20px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      background: #fafafa;
+    }
+    .badge-info p {
+      margin: 4px 0;
+      color: #475467;
+      font-size: 14px;
+    }
+    .footer {
+      padding: 20px 40px 28px;
+      font-size: 12px;
+      color: #94a3b8;
+      text-align: center;
+    }
+    @media (max-width: 640px) {
+      .hero, .content, .footer {
+        padding-left: 20px;
+        padding-right: 20px;
+      }
+      .badge-card {
+        flex-direction: column;
+        gap: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div style="background: #0f172a; padding: 40px 0;">
+    <div class="email-body">
+      <div class="hero">
+        <h1 style="margin:0; font-size: 32px;">Congratulations, {{ user_name }}!</h1>
+        <p style="margin-top: 8px; color: rgba(255,255,255,0.85);">You earned a verified HireSight skill badge.</p>
+      </div>
+      <div class="content">
+        <div class="badge-card">
+          <div class="badge-info">
+            <p class="text-xs" style="margin:0; letter-spacing:0.1em;">Badge</p>
+            <p class="text-lg" style="margin:4px 0 0; font-weight:bold; color:#0f172a;">{{ badge_name }}</p>
+            <p style="margin-top: 2px;">Skill: {{ skill_name }}</p>
+            <p style="margin-top: 2px;">Score: {{ score }}%</p>
+          </div>
+          <div style="text-align: right;">
+            <p style="margin:0; font-size: 12px; color:#94a3b8;">Issued on</p>
+            <p style="margin:4px 0 0; font-weight:600; color:#0f172a;">{{ issued_at|date:"F j, Y" }}</p>
+          </div>
+        </div>
+        <p style="margin:0 0 24px; color:#475467;">Your achievements are now verified and shareable with recruiters. Your badge reflects expert knowledge of {{ skill_name }} at a {{ badge_level|default:"target" }} level.</p>
+        <a class="button" href="{{ badge_url }}" target="_blank">View badge</a>
+      </div>
+      <div class="content" style="border-top:1px solid #e2e8f0;">
+        <h3 style="margin-top:0; font-size:16px;">Share it confidently</h3>
+        <p style="margin-bottom:12px;">Showcase your validated skill by adding the badge to your resume or profile.</p>
+        <div style="display:flex; flex-wrap:wrap; gap:12px;">
+          <a class="button" href="https://www.linkedin.com/sharing/share-offsite/?url={{ badge_url|urlencode }}" style="background:#0ea5e9;">Share on LinkedIn</a>
+          <a class="button" href="https://twitter.com/intent/tweet?text=I%20earned%20the%20{{ badge_name|urlencode }}%20badge%20on%20HireSight!&url={{ badge_url|urlencode }}" style="background:#0f172a; color:white;">Share on Twitter</a>
+        </div>
+      </div>
+      <div class="footer">
+        <p style="margin-bottom:4px;">Want fewer emails? <a href="{{ unsubscribe_url }}" style="color:#4338ca;">Unsubscribe</a></p>
+        <p style="margin:0;">HireSight • AI-powered assessments • support@hiresight.io</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

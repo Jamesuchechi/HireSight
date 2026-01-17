@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+
+{% block title %}Reschedule Interview{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto p-6">
+    <h1 class="text-3xl font-bold mb-6">Reschedule Interview</h1>
+    <form method="post" class="space-y-4 bg-white shadow rounded-lg p-6">
+        {% csrf_token %}
+        {{ form.new_scheduled_date.label_tag }}
+        {{ form.new_scheduled_date }}
+        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Save</button>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,7 @@
+<p>Hi {{ candidate.get_full_name|default:candidate.email }},</p>
+<p>You have been invited to interview for <strong>{{ interview.application.job.title }}</strong> at {{ company.company_name }}.</p>
+<p>When: {{ interview.scheduled_date|date:"M d, Y" }} at {{ interview.scheduled_date|time:"h:i A" }} ({{ interview.duration_minutes }} mins)</p>
+{% if interview.video_link %}<p>Join via: <a href="{{ interview.video_link }}">{{ interview.video_link }}</a></p>{% endif %}
+{% if interview.location %}<p>Location: {{ interview.location }}</p>{% endif %}
+<p>Instructions: {{ interview.candidate_instructions|default:'None' }}</p>
+<p>We look forward to speaking with you.</p>

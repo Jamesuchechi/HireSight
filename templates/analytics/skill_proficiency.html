@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Skill Proficiency{% endblock %}
+
+{% block extra_css %}
+<style>
+    .chart-card {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 16px;
+        padding: 1.5rem;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.1);
+    }
+
+    .metric-card {
+        background: #0f172a;
+        color: #ffffff;
+        border-radius: 12px;
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        min-height: 120px;
+    }
+
+    .metric-card .value {
+        font-size: 2rem;
+        font-weight: 700;
+    }
+
+    .badge-progress {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 1rem;
+        font-size: 0.95rem;
+        color: #1f2937;
+    }
+
+    .badge-progress span:nth-of-type(2) {
+        font-weight: 600;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="flex flex-wrap items-center justify-between gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900">Skill Proficiency</h1>
+            <p class="text-gray-600 mt-1">Insights powered by your completed assessments.</p>
+        </div>
+        <a href="{% url 'analytics:dashboard' %}" class="px-4 py-2 rounded-full border border-gray-300 hover:bg-gray-50">Back to Analytics</a>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
+        <div class="metric-card">
+            <div class="text-sm uppercase tracking-wide text-gray-200">Assessments</div>
+            <div class="value">{{ report.total_attempts|default:0 }}</div>
+            <div class="text-sm text-gray-200">Completed attempts</div>
+        </div>
+        <div class="metric-card">
+            <div class="text-sm uppercase tracking-wide text-gray-200">Pass Rate</div>
+            <div class="value">{{ report.pass_rate|default:0 }}%</div>
+            <div class="text-sm text-gray-200">Average score</div>
+        </div>
+        <div class="metric-card">
+            <div class="text-sm uppercase tracking-wide text-gray-200">Badges</div>
+            <div class="value">{{ report.total_badges|default:0 }}</div>
+            <div class="text-sm text-gray-200">Verified achievements</div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 gap-6 mt-8 lg:grid-cols-2">
+        <div class="chart-card">
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="text-xl font-semibold text-gray-900">Skill proficiency radar</h2>
+                <span class="text-sm text-gray-500">Last 90 days</span>
+            </div>
+            <canvas id="skillRadar" width="400" height="320"></canvas>
+        </div>
+        <div class="chart-card">
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="text-xl font-semibold text-gray-900">Assessment score trends</h2>
+                <span class="text-sm text-gray-500">Over time</span>
+            </div>
+            <canvas id="scoreTrends" width="400" height="320"></canvas>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 gap-6 mt-6 lg:grid-cols-2">
+        <div class="chart-card">
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="text-xl font-semibold text-gray-900">Time spent on assessments</h2>
+                <span class="text-sm text-gray-500">Minutes</span>
+            </div>
+            <canvas id="timeSpentChart" width="400" height="280"></canvas>
+            <div class="badge-progress">
+                <span>Total time logged</span>
+                <span>{{ report.total_time_spent|default:0 }} min</span>
+            </div>
+        </div>
+        <div class="chart-card">
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="text-xl font-semibold text-gray-900">Badge collection progress</h2>
+                <span class="text-sm text-gray-500">Verified awards</span>
+            </div>
+            <canvas id="badgeProgressChart" width="400" height="280"></canvas>
+            <div class="badge-progress">
+                <span>Badges</span>
+                <span>{{ report.total_badges|default:0 }}/{{ report.skills_tested|default:1 }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{ proficiency_data|json_script:"proficiency-data" }}
+{{ trends|json_script:"assessment-trends" }}
+{{ report|json_script:"assessment-report" }}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const proficiencyData = JSON.parse(document.getElementById('proficiency-data').textContent || '[]');
+    const trendData = JSON.parse(document.getElementById('assessment-trends').textContent || '[]');
+    const reportData = JSON.parse(document.getElementById('assessment-report').textContent || '{}');
+
+    const radarLabels = proficiencyData.map(item => item.skill);
+    const radarScores = proficiencyData.map(item => item.score);
+
+    const radarCtx = document.getElementById('skillRadar').getContext('2d');
+    new Chart(radarCtx, {
+        type: 'radar',
+        data: {
+            labels: radarLabels,
+            datasets: [{
+                label: 'Score',
+                data: radarScores,
+                borderColor: '#4338ca',
+                backgroundColor: 'rgba(67, 56, 202, 0.35)',
+                pointBackgroundColor: '#4338ca',
+                pointRadius: 5,
+            }]
+        },
+        options: {
+            scales: {
+                r: {
+                    beginAtZero: true,
+                    max: 100,
+                    ticks: {
+                        stepSize: 20
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            maintainAspectRatio: false
+        }
+    });
+
+    const trendCtx = document.getElementById('scoreTrends').getContext('2d');
+    new Chart(trendCtx, {
+        type: 'line',
+        data: {
+            labels: trendData.map(item => item.date),
+            datasets: [{
+                label: 'Score',
+                data: trendData.map(item => item.score),
+                borderColor: '#059669',
+                backgroundColor: 'rgba(5, 150, 105, 0.2)',
+                tension: 0.3,
+                fill: true,
+                pointRadius: 3,
+            }]
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            maintainAspectRatio: false
+        }
+    });
+
+    const totalTime = reportData.total_time_spent || 0;
+    const goalTime = Math.max((reportData.skills_tested || 1) * 60, 60);
+    const remainingTime = Math.max(goalTime - totalTime, 0);
+    const timeCtx = document.getElementById('timeSpentChart').getContext('2d');
+    new Chart(timeCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Logged', 'Remaining'],
+            datasets: [{
+                data: [totalTime, remainingTime],
+                backgroundColor: ['#6366f1', '#e5e7eb'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            cutout: '70%',
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            },
+            maintainAspectRatio: false
+        }
+    });
+
+    const badges = reportData.total_badges || 0;
+    const badgeGoal = Math.max(reportData.skills_tested || 1, 3);
+    const badgesRemaining = Math.max(badgeGoal - badges, 0);
+    const badgeCtx = document.getElementById('badgeProgressChart').getContext('2d');
+    new Chart(badgeCtx, {
+        type: 'bar',
+        data: {
+            labels: ['Earned', 'Target'],
+            datasets: [{
+                label: 'Badges',
+                data: [badges, badgeGoal],
+                backgroundColor: ['#f59e0b', '#c7d2fe'],
+                borderRadius: 8,
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    max: badgeGoal * 1.1
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            maintainAspectRatio: false
+        }
+    });
+</script>
+{% endblock %}

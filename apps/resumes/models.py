@@ -1,11 +1,14 @@
 import os
 import uuid
+from functools import cached_property
+
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
 from django.core.files.storage import default_storage
 from django.core.validators import FileExtensionValidator
 from django.db.models import Q
+from utils.helpers import convert_markdown_to_html
 
 
 def resume_upload_path(instance, filename):
@@ -180,6 +183,11 @@ class Resume(models.Model):
 
     def __str__(self):
         return f"{self.user.email} - {self.title}"
+
+    @cached_property
+    def parsed_text_html(self):
+        """Return the parsed resume text rendered as safe HTML."""
+        return convert_markdown_to_html(self.parsed_text or '')
 
     def save(self, *args, **kwargs):
         """Override save to handle primary resume logic."""

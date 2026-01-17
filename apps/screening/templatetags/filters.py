@@ -22,3 +22,15 @@ def attr(obj, attribute):
         return getattr(obj, attribute)
     except AttributeError:
         return None
+
+
+@register.filter
+def mul(value, multiplier):
+    """
+    Multiply a numeric value by another number.
+    Usage: {{ value|mul:factor }}
+    """
+    try:
+        return float(value) * float(multiplier)
+    except (TypeError, ValueError):
+        return ""

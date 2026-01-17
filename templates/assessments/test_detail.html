@@ -1,0 +1,218 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ test.title }} - Skill Assessment{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Main Content -->
+        <div class="lg:col-span-2">
+            <!-- Header -->
+            <div class="bg-white rounded-xl shadow-lg p-8 mb-6">
+                <div class="flex items-start justify-between mb-4">
+                    <div class="flex-1">
+                        <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ test.title }}</h1>
+                        <div class="flex items-center space-x-4 text-sm text-gray-600">
+                            <span class="inline-flex items-center">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                                </svg>
+                                {{ test.skill_name }}
+                            </span>
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold
+                                {% if test.difficulty == 'BEGINNER' %}bg-green-100 text-green-800
+                                {% elif test.difficulty == 'INTERMEDIATE' %}bg-yellow-100 text-yellow-800
+                                {% elif test.difficulty == 'ADVANCED' %}bg-orange-100 text-orange-800
+                                {% else %}bg-red-100 text-red-800{% endif %}">
+                                {{ test.get_difficulty_display }}
+                            </span>
+                        </div>
+                    </div>
+                    {% if has_badge %}
+                    <div class="flex-shrink-0">
+                        <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-bold bg-success text-white shadow-lg">
+                            ✓ Badge Earned
+                        </span>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <p class="text-gray-700 leading-relaxed mb-6">{{ test.description }}</p>
+
+                <!-- Test Info Grid -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-gray-50 rounded-lg p-4 text-center">
+                        <svg class="w-8 h-8 mx-auto mb-2 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <p class="text-2xl font-bold text-gray-900">{{ test.duration_minutes }}</p>
+                        <p class="text-xs text-gray-600">Minutes</p>
+                    </div>
+                    
+                    <div class="bg-gray-50 rounded-lg p-4 text-center">
+                        <svg class="w-8 h-8 mx-auto mb-2 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <p class="text-2xl font-bold text-gray-900">{{ test.get_question_count }}</p>
+                        <p class="text-xs text-gray-600">Questions</p>
+                    </div>
+                    
+                    <div class="bg-gray-50 rounded-lg p-4 text-center">
+                        <svg class="w-8 h-8 mx-auto mb-2 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                        <p class="text-2xl font-bold text-gray-900">{{ test.passing_score }}%</p>
+                        <p class="text-xs text-gray-600">To Pass</p>
+                    </div>
+                    
+                    <div class="bg-gray-50 rounded-lg p-4 text-center">
+                        <svg class="w-8 h-8 mx-auto mb-2 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        </svg>
+                        <p class="text-2xl font-bold text-gray-900">{{ test.total_attempts }}</p>
+                        <p class="text-xs text-gray-600">Attempts</p>
+                    </div>
+                </div>
+
+                <!-- Start Button -->
+                {% if in_progress_attempt %}
+                <a href="{% url 'assessments:take' in_progress_attempt.id %}"
+                   class="block w-full text-center px-8 py-4 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg font-bold text-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200">
+                    ▶️ Resume Assessment
+                </a>
+                {% else %}
+                <form method="post" action="{% url 'assessments:start' test.id %}">
+                    {% csrf_token %}
+                    <button type="submit"
+                            class="block w-full px-8 py-4 bg-gradient-to-r from-primary to-secondary text-white rounded-lg font-bold text-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200">
+                        {% if best_score %}🔄 Retake Assessment{% else %}🚀 Start Assessment{% endif %}
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+
+            <!-- Statistics -->
+            <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                <h2 class="text-xl font-bold text-gray-900 mb-4">Test Statistics</h2>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <p class="text-sm text-gray-600">Average Score</p>
+                        <p class="text-2xl font-bold text-primary">{{ test.average_score|floatformat:0 }}%</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">Pass Rate</p>
+                        <p class="text-2xl font-bold text-success">{{ test.get_pass_rate }}%</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">Average Time</p>
+                        <p class="text-2xl font-bold text-gray-900">{{ test.average_completion_time|floatformat:0 }}m</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">Test Type</p>
+                        <p class="text-2xl font-bold text-gray-900">{{ test.get_test_type_display }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Previous Attempts -->
+            {% if previous_attempts %}
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h2 class="text-xl font-bold text-gray-900 mb-4">Your Previous Attempts</h2>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead>
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Date</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Score</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Result</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Time</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            {% for attempt in previous_attempts %}
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-4 py-3 text-sm text-gray-900">{{ attempt.completed_at|date:"M d, Y" }}</td>
+                                <td class="px-4 py-3 text-sm font-bold {% if attempt.score >= 90 %}text-green-600{% elif attempt.score >= 70 %}text-blue-600{% else %}text-red-600{% endif %}">
+                                    {{ attempt.score }}%
+                                </td>
+                                <td class="px-4 py-3">
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold
+                                        {% if attempt.passed %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                                        {% if attempt.passed %}✓ Passed{% else %}✗ Failed{% endif %}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 text-sm text-gray-600">{{ attempt.time_taken_minutes }}m</td>
+                                <td class="px-4 py-3">
+                                    <a href="{% url 'assessments:results' attempt.id %}" 
+                                       class="text-primary hover:text-primary-dark font-semibold text-sm">
+                                        View Results →
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Sidebar -->
+        <div class="lg:col-span-1">
+            <!-- Your Best Score -->
+            {% if best_score %}
+            <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white mb-6">
+                <h3 class="text-lg font-bold mb-2">Your Best Score</h3>
+                <p class="text-5xl font-bold mb-2">{{ best_score }}%</p>
+                <p class="text-sm opacity-90">
+                    {% if best_score >= test.passing_score %}
+                        ✨ Above passing score!
+                    {% else %}
+                        You need {{ test.passing_score|add:"-best_score" }}% more to pass
+                    {% endif %}
+                </p>
+            </div>
+            {% endif %}
+
+            <!-- What You'll Learn -->
+            <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">What You'll Test</h3>
+                <ul class="space-y-3">
+                    <li class="flex items-start">
+                        <svg class="w-5 h-5 text-success mr-2 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span class="text-sm text-gray-700">Core {{ test.skill_name }} concepts</span>
+                    </li>
+                    <li class="flex items-start">
+                        <svg class="w-5 h-5 text-success mr-2 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span class="text-sm text-gray-700">Best practices and patterns</span>
+                    </li>
+                    <li class="flex items-start">
+                        <svg class="w-5 h-5 text-success mr-2 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span class="text-sm text-gray-700">Real-world problem solving</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Tips -->
+            <div class="bg-blue-50 border border-blue-200 rounded-xl p-6">
+                <h3 class="text-lg font-bold text-blue-900 mb-3">💡 Tips for Success</h3>
+                <ul class="space-y-2 text-sm text-blue-800">
+                    <li>• Read each question carefully</li>
+                    <li>• Answer all questions before submitting</li>
+                    <li>• Your progress auto-saves every 2 seconds</li>
+                    <li>• You can retake the test anytime</li>
+                    <li>• Earn a verified badge by passing!</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

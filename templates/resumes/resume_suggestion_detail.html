@@ -29,15 +29,15 @@
         <span class="text-xs text-gray-500">{{ suggestion.created_at|date:"M d, Y" }}</span>
       </div>
       <div class="space-y-4 text-sm text-gray-600">
-        <p>{{ suggestion.description }}</p>
+        <p>{{ suggestion_html.description|safe }}</p>
         <div>
           <p class="text-xs font-semibold text-gray-900">Suggested action</p>
-          <p>{{ suggestion.suggestion }}</p>
+          <p>{{ suggestion_html.suggestion|safe }}</p>
         </div>
         {% if suggestion.example_before or suggestion.example_after %}
         <div class="rounded-2xl border border-gray-200 bg-gray-50 p-4 space-y-2 text-xs text-gray-600">
-          {% if suggestion.example_before %}<p><strong class="text-danger">Before:</strong> {{ suggestion.example_before }}</p>{% endif %}
-          {% if suggestion.example_after %}<p><strong class="text-success">After:</strong> {{ suggestion.example_after }}</p>{% endif %}
+          {% if suggestion_html.example_before %}<p><strong class="text-danger">Before:</strong> {{ suggestion_html.example_before|safe }}</p>{% endif %}
+          {% if suggestion_html.example_after %}<p><strong class="text-success">After:</strong> {{ suggestion_html.example_after|safe }}</p>{% endif %}
         </div>
         {% endif %}
       </div>

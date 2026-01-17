@@ -38,6 +38,8 @@ urlpatterns += i18n_patterns(
     path('messaging/', include('apps.messaging.urls')),
     path('following/', include('apps.following.urls')),
     path('analytics/', include('apps.analytics.urls')),
+    path('interviews/', include('apps.interviews.urls')),
+    path('assessments/', include('apps.assessments.urls')),
 )
 
 if settings.DEBUG:
