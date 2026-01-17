@@ -1,4 +1,4 @@
-from django.views.generic import ListView, DetailView, CreateView, UpdateView
+from django.views.generic import ListView, DetailView, CreateView, UpdateView, FormView
 from django.views.generic.base import View
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.shortcuts import get_object_or_404, redirect
@@ -9,17 +9,63 @@ from django.db.models import Max, Q, Count, Avg, Prefetch
 from django.db import transaction
 from django.core.paginator import Paginator
 from django.urls import reverse_lazy, reverse
+from django.conf import settings
+from django.core.cache import cache
 import logging
 
 from .models import (
     SkillTest, SkillAssessmentAttempt, SkillBadge, 
     AssessmentCategory, QuestionPool
 )
-from .forms import TestFilterForm
+from .forms import TestFilterForm, QuestionGenerationForm
+from .ai_utils import QuestionGenerator
 from .utils import generate_certificate_pdf, get_client_ip
 
 logger = logging.getLogger(__name__)
 
+
+POOL_COUNT_CACHE_TIMEOUT = getattr(settings, 'QUESTION_POOL_COUNT_CACHE_TIMEOUT', 600)
+GENERATION_COOLDOWN_SECONDS = getattr(settings, 'ASSESSMENT_GENERATION_COOLDOWN_SECONDS', 300)
+
+def _question_types_key(question_types):
+    if not question_types:
+        return 'any'
+    return '-'.join(sorted(question_types))
+
+def get_pool_count_cache_key(skill_name, difficulty, question_types):
+    types_key = _question_types_key(question_types)
+    return f"assessments:pool_count:{skill_name.lower()}:{difficulty}:{types_key}"
+
+def get_cached_question_pool_count(skill_name, difficulty, question_types):
+    cache_key = get_pool_count_cache_key(skill_name, difficulty, question_types)
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+
+    count = QuestionPool.objects.filter(
+        skill_name__iexact=skill_name,
+        difficulty=difficulty,
+        question_type__in=question_types,
+        is_active=True
+    ).count()
+    cache.set(cache_key, count, POOL_COUNT_CACHE_TIMEOUT)
+    return count
+
+def refresh_question_pool_cache(skill_name, difficulty, question_types):
+    cache_key = get_pool_count_cache_key(skill_name, difficulty, question_types)
+    cache.delete(cache_key)
+    return get_cached_question_pool_count(skill_name, difficulty, question_types)
+
+def get_generation_cooldown_key(slug):
+    return f"assessments:generate_cooldown:{slug}"
+
+def get_generation_cooldown_remaining(slug):
+    timestamp = cache.get(get_generation_cooldown_key(slug))
+    if not timestamp:
+        return 0
+    elapsed = timezone.now().timestamp() - float(timestamp)
+    remaining = GENERATION_COOLDOWN_SECONDS - elapsed
+    return int(remaining) if remaining > 0 else 0
 
 class PersonalAccountRequiredMixin(UserPassesTestMixin):
     """Mixin to ensure only personal accounts can access"""
@@ -104,11 +150,18 @@ class BrowseTestsView(LoginRequiredMixin, PersonalAccountRequiredMixin, ListView
         # Prepare test data with user's best score and badge status
         tests_data = []
         for test in context['tests']:
+            filters = test.question_pool_filters or {}
+            difficulty = filters.get('difficulty', test.difficulty)
+            question_types = filters.get('types', ['MULTIPLE_CHOICE', 'TRUE_FALSE'])
+            pool_count = get_cached_question_pool_count(test.skill_name, difficulty, question_types)
+            cooldown_remaining = get_generation_cooldown_remaining(test.slug)
             tests_data.append({
                 'test': test,
                 'best_score': best_scores.get(str(test.id)),
                 'has_badge': test.id in user_badges,
-                'matches_skills': test.matches_user_skills(self.request.user)
+                'matches_skills': test.matches_user_skills(self.request.user),
+                'pool_count': pool_count,
+                'cooldown_remaining': cooldown_remaining
             })
         
         context['tests_data'] = tests_data
@@ -123,6 +176,75 @@ class BrowseTestsView(LoginRequiredMixin, PersonalAccountRequiredMixin, ListView
         ).values_list('skill_name', flat=True).distinct().order_by('skill_name')
         
         return context
+
+
+class GenerateQuestionsPageView(LoginRequiredMixin, PersonalAccountRequiredMixin, FormView):
+    """Page where a user can request AI-generated questions for any skill"""
+
+    template_name = 'assessments/generate_questions.html'
+    form_class = QuestionGenerationForm
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Generate AI Questions'
+        context.setdefault('form_submitted', False)
+        return context
+
+    def form_valid(self, form):
+        skill_name = form.cleaned_data['skill_name']
+        difficulty = form.cleaned_data['difficulty']
+        question_type = form.cleaned_data['question_type']
+        question_count = form.cleaned_data['question_count']
+
+        try:
+            generator = QuestionGenerator()
+        except (ValueError, ImportError) as exc:
+            form.add_error(None, str(exc))
+            return self.form_invalid(form)
+
+        generated = generator.generate_questions(
+            skill_name=skill_name,
+            difficulty=difficulty,
+            count=question_count,
+            question_type=question_type
+        )
+
+        created_count = 0
+        question_status = []
+        for q_data in generated:
+            question, created = QuestionPool.objects.get_or_create(
+                skill_name=skill_name,
+                difficulty=difficulty,
+                question_type=question_type,
+                question=q_data['question'],
+                defaults={
+                    'options': q_data.get('options', []),
+                    'correct_answer': q_data.get('correct_answer'),
+                    'explanation': q_data.get('explanation', ''),
+                    'points': q_data.get('points', 10),
+                    'estimated_time_seconds': q_data.get('estimated_time_seconds', 60),
+                    'is_verified': False
+                }
+            )
+            if created:
+                created_count += 1
+            question_status.append({
+                'payload': q_data,
+                'created': created
+            })
+
+        context = self.get_context_data(form=form)
+        context.update({
+            'question_status': question_status,
+            'created_count': created_count,
+            'generation_message': (
+                f"Generated {len(generated)} questions for {skill_name} "
+                f"({created_count} new entries stored)."
+                if generated else "No questions were generated."
+            ),
+            'form_submitted': True
+        })
+        return self.render_to_response(context)
 
 
 class TestDetailView(LoginRequiredMixin, PersonalAccountRequiredMixin, DetailView):
@@ -311,6 +433,54 @@ class TakeTestView(LoginRequiredMixin, PersonalAccountRequiredMixin, DetailView)
         context['progress_percentage'] = int((context['answered_questions'] / context['total_questions']) * 100) if context['total_questions'] > 0 else 0
         
         return context
+
+
+class GenerateQuestionsView(LoginRequiredMixin, PersonalAccountRequiredMixin, View):
+    """Personal-user endpoint to bulk generate questions for a test"""
+
+    def post(self, request, slug):
+        test = get_object_or_404(SkillTest, slug=slug, is_active=True)
+        filters = test.question_pool_filters or {}
+        difficulty = filters.get('difficulty', test.difficulty)
+        question_types = filters.get('types', ['MULTIPLE_CHOICE', 'TRUE_FALSE'])
+        cooldown_remaining = get_generation_cooldown_remaining(test.slug)
+        cooldown_key = get_generation_cooldown_key(test.slug)
+
+        if cooldown_remaining:
+            return JsonResponse({
+                'success': False,
+                'error': f'Please wait {cooldown_remaining}s before generating again.',
+                'cooldown': cooldown_remaining
+            }, status=429)
+        
+        try:
+            generator = QuestionGenerator()
+        except (ValueError, ImportError) as exc:
+            logger.warning(f"Question generation skipped for {test.title}: {exc}")
+            return JsonResponse({'success': False, 'error': str(exc)}, status=400)
+
+        try:
+            created_count = generator.bulk_generate_for_test(test)
+            if created_count:
+                message = f"Generated {created_count} new questions for {test.title}."
+            else:
+                message = f"No new questions were generated for {test.title}."
+            logger.info(f"{request.user.email} triggered question generation for {test.title}")
+            cache.set(cooldown_key, timezone.now().timestamp(), GENERATION_COOLDOWN_SECONDS)
+            latest_pool_count = refresh_question_pool_cache(test.skill_name, difficulty, question_types)
+            return JsonResponse({
+                'success': True,
+                'created_count': created_count,
+                'message': message,
+                'cooldown': GENERATION_COOLDOWN_SECONDS,
+                'pool_count': latest_pool_count
+            })
+        except Exception as exc:
+            logger.error(f"Error generating questions for {test.title}: {exc}")
+            return JsonResponse(
+                {'success': False, 'error': 'Failed to generate questions. Check logs for details.'},
+                status=500
+            )
 
 
 class SaveProgressView(LoginRequiredMixin, PersonalAccountRequiredMixin, View):

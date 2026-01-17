@@ -6,6 +6,8 @@ app_name = 'assessments'
 urlpatterns = [
     # Browse and discover tests
     path('browse/', views.BrowseTestsView.as_view(), name='browse'),
+    path('generate/', views.GenerateQuestionsPageView.as_view(), name='generate_questions_page'),
+    path('test/<slug:slug>/generate/', views.GenerateQuestionsView.as_view(), name='generate_questions'),
     path('test/<slug:slug>/', views.TestDetailView.as_view(), name='test_detail'),
     
     # Take assessments

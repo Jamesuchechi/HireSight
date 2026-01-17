@@ -76,6 +76,61 @@ class Command(BaseCommand):
                 'points': 20,
                 'estimated_time_seconds': 60
             },
+            {
+                'skill_name': 'Python',
+                'difficulty': 'BEGINNER',
+                'question_type': 'MULTIPLE_CHOICE',
+                'question': 'What does len([1, 2, 3]) return?',
+                'options': ['1', '2', '3', 'Error'],
+                'correct_answer': 2,
+                'explanation': 'len() returns the number of items, so this list has three elements.',
+                'points': 10,
+                'estimated_time_seconds': 25
+            },
+            {
+                'skill_name': 'Python',
+                'difficulty': 'BEGINNER',
+                'question_type': 'MULTIPLE_CHOICE',
+                'question': 'Which keyword starts a try/except block?',
+                'options': ['try', 'catch', 'handle', 'except'],
+                'correct_answer': 0,
+                'explanation': 'A try block is needed before except handlers.',
+                'points': 10,
+                'estimated_time_seconds': 40
+            },
+            {
+                'skill_name': 'Python',
+                'difficulty': 'BEGINNER',
+                'question_type': 'MULTIPLE_CHOICE',
+                'question': 'How do you import the datetime module?',
+                'options': ['include datetime', 'import datetime', 'require datetime', 'using datetime'],
+                'correct_answer': 1,
+                'explanation': 'Python uses the import statement to bring in modules.',
+                'points': 10,
+                'estimated_time_seconds': 35
+            },
+            {
+                'skill_name': 'Python',
+                'difficulty': 'BEGINNER',
+                'question_type': 'MULTIPLE_CHOICE',
+                'question': 'Which data type stores key-value pairs?',
+                'options': ['list', 'tuple', 'dictionary', 'set'],
+                'correct_answer': 2,
+                'explanation': 'Dictionaries are unordered mappings between keys and values.',
+                'points': 10,
+                'estimated_time_seconds': 35
+            },
+            {
+                'skill_name': 'Python',
+                'difficulty': 'BEGINNER',
+                'question_type': 'MULTIPLE_CHOICE',
+                'question': 'Which method adds a new value to the end of a list?',
+                'options': ['push()', 'append()', 'add()', 'insert()'],
+                'correct_answer': 1,
+                'explanation': 'append() adds an item to the end of a list.',
+                'points': 10,
+                'estimated_time_seconds': 30
+            },
         ]
         
         # Create JavaScript questions
@@ -118,6 +173,105 @@ class Command(BaseCommand):
                 'points': 15,
                 'estimated_time_seconds': 45
             },
+            {
+                'skill_name': 'JavaScript',
+                'difficulty': 'BEGINNER',
+                'question_type': 'MULTIPLE_CHOICE',
+                'question': 'Which function converts a JSON string to an object?',
+                'options': ['JSON.stringify', 'JSON.parse', 'JSON.convert', 'JSON.decode'],
+                'correct_answer': 1,
+                'explanation': 'JSON.parse() converts JSON text into a JavaScript value.',
+                'points': 10,
+                'estimated_time_seconds': 35
+            },
+            {
+                'skill_name': 'JavaScript',
+                'difficulty': 'BEGINNER',
+                'question_type': 'MULTIPLE_CHOICE',
+                'question': 'Which method adds an item to the end of an array?',
+                'options': ['push', 'pop', 'shift', 'splice'],
+                'correct_answer': 0,
+                'explanation': 'push() appends one or more elements to the end of an array.',
+                'points': 10,
+                'estimated_time_seconds': 30
+            },
+            {
+                'skill_name': 'JavaScript',
+                'difficulty': 'BEGINNER',
+                'question_type': 'MULTIPLE_CHOICE',
+                'question': 'What is the default value of an uninitialized variable?',
+                'options': ['null', 'undefined', '0', '""'],
+                'correct_answer': 1,
+                'explanation': 'Variables declared without assignment are undefined.',
+                'points': 10,
+                'estimated_time_seconds': 30
+            },
+            {
+                'skill_name': 'JavaScript',
+                'difficulty': 'BEGINNER',
+                'question_type': 'MULTIPLE_CHOICE',
+                'question': 'Which keyword declares a block-scoped variable that can be reassigned?',
+                'options': ['var', 'const', 'let', 'static'],
+                'correct_answer': 2,
+                'explanation': 'let creates block-scoped bindings whose value can change.',
+                'points': 10,
+                'estimated_time_seconds': 30
+            },
+            {
+                'skill_name': 'JavaScript',
+                'difficulty': 'BEGINNER',
+                'question_type': 'MULTIPLE_CHOICE',
+                'question': 'What does document.getElementById do?',
+                'options': ['Creates a new DOM element', 'Selects an element by ID', 'Deletes an element', 'Sets styles directly'],
+                'correct_answer': 1,
+                'explanation': 'getElementById retrieves the element with the provided ID.',
+                'points': 10,
+                'estimated_time_seconds': 40
+            },
+            {
+                'skill_name': 'JavaScript',
+                'difficulty': 'BEGINNER',
+                'question_type': 'MULTIPLE_CHOICE',
+                'question': 'Which event fires when a form is submitted?',
+                'options': ['click', 'load', 'submit', 'change'],
+                'correct_answer': 2,
+                'explanation': 'The submit event triggers before the form is sent to the server.',
+                'points': 10,
+                'estimated_time_seconds': 40
+            },
+            {
+                'skill_name': 'JavaScript',
+                'difficulty': 'BEGINNER',
+                'question_type': 'MULTIPLE_CHOICE',
+                'question': 'What is the result of typeof NaN?',
+                'options': ['number', 'NaN', 'undefined', 'object'],
+                'correct_answer': 0,
+                'explanation': 'NaN is considered a numeric value, so typeof NaN is "number".',
+                'points': 10,
+                'estimated_time_seconds': 30
+            },
+            {
+                'skill_name': 'JavaScript',
+                'difficulty': 'BEGINNER',
+                'question_type': 'MULTIPLE_CHOICE',
+                'question': 'Which of the following is how you write a single line comment?',
+                'options': ['/* comment */', '// comment', '<!-- comment -->', '# comment'],
+                'correct_answer': 1,
+                'explanation': 'JavaScript uses // for single-line comments.',
+                'points': 10,
+                'estimated_time_seconds': 25
+            },
+            {
+                'skill_name': 'JavaScript',
+                'difficulty': 'BEGINNER',
+                'question_type': 'MULTIPLE_CHOICE',
+                'question': 'Which operator checks for both type and value equality?',
+                'options': ['==', '===', '=', '!=='],
+                'correct_answer': 1,
+                'explanation': '=== performs strict equality comparison.',
+                'points': 10,
+                'estimated_time_seconds': 35
+            },
         ]
         
         # Create React questions
@@ -148,6 +302,72 @@ class Command(BaseCommand):
                 'explanation': 'useState is the primary hook for managing state in functional React components.',
                 'points': 15,
                 'estimated_time_seconds': 45
+            },
+            {
+                'skill_name': 'React',
+                'difficulty': 'BEGINNER',
+                'question_type': 'MULTIPLE_CHOICE',
+                'question': 'What does React use to pass data into components?',
+                'options': ['state', 'props', 'context', 'hooks'],
+                'correct_answer': 1,
+                'explanation': 'Props are the primary way to pass data from parents to children.',
+                'points': 10,
+                'estimated_time_seconds': 35
+            },
+            {
+                'skill_name': 'React',
+                'difficulty': 'BEGINNER',
+                'question_type': 'MULTIPLE_CHOICE',
+                'question': 'Which hook is ideal for running side effects after rendering?',
+                'options': ['useState', 'useEffect', 'useMemo', 'useRef'],
+                'correct_answer': 1,
+                'explanation': 'useEffect runs after render and is used for side effects.',
+                'points': 10,
+                'estimated_time_seconds': 40
+            },
+            {
+                'skill_name': 'React',
+                'difficulty': 'BEGINNER',
+                'question_type': 'MULTIPLE_CHOICE',
+                'question': 'Which attribute should be provided when rendering lists of elements?',
+                'options': ['id', 'className', 'key', 'style'],
+                'correct_answer': 2,
+                'explanation': 'key helps React identify which items changed, preventing re-renders.',
+                'points': 10,
+                'estimated_time_seconds': 30
+            },
+            {
+                'skill_name': 'React',
+                'difficulty': 'BEGINNER',
+                'question_type': 'MULTIPLE_CHOICE',
+                'question': 'What is the function component signature?',
+                'options': ['function Component() {}', 'class Component extends React', 'React.createComponent()', 'Component => {}'],
+                'correct_answer': 0,
+                'explanation': 'Function components are simple functions that return JSX.',
+                'points': 10,
+                'estimated_time_seconds': 35
+            },
+            {
+                'skill_name': 'React',
+                'difficulty': 'BEGINNER',
+                'question_type': 'MULTIPLE_CHOICE',
+                'question': 'Where should you put reusable logic that depends on state?',
+                'options': ['render()', 'hooks', 'props', 'context'],
+                'correct_answer': 1,
+                'explanation': 'Custom hooks (or built-in hooks) keep stateful logic reusable.',
+                'points': 10,
+                'estimated_time_seconds': 45
+            },
+            {
+                'skill_name': 'React',
+                'difficulty': 'BEGINNER',
+                'question_type': 'MULTIPLE_CHOICE',
+                'question': 'Which method allows you to render multiple elements without extra DOM nodes?',
+                'options': ['React.Fragment', 'React.Div', 'React.Fragment()', 'React.timeout'],
+                'correct_answer': 0,
+                'explanation': 'React.Fragment wraps children without adding nodes to the DOM.',
+                'points': 10,
+                'estimated_time_seconds': 40
             },
         ]
         

@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Generate AI Questions{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div class="bg-white rounded-xl shadow-lg p-6 space-y-4">
+        <h1 class="text-3xl font-bold text-gray-900">Generate questions with AI</h1>
+        <p class="text-sm text-gray-600">
+            Provide the skill, difficulty level, and question type you want to seed. The AI generator will
+            produce question_count questions, each with explanations and answer data that can be reviewed
+            and verified before being used in live assessments.
+        </p>
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    {{ form.skill_name.label_tag }}
+                    {{ form.skill_name }}
+                    {{ form.skill_name.errors }}
+                </div>
+                <div>
+                    {{ form.difficulty.label_tag }}
+                    {{ form.difficulty }}
+                    {{ form.difficulty.errors }}
+                </div>
+                <div>
+                    {{ form.question_type.label_tag }}
+                    {{ form.question_type }}
+                    {{ form.question_type.errors }}
+                </div>
+                <div>
+                    {{ form.question_count.label_tag }}
+                    {{ form.question_count }}
+                    {{ form.question_count.errors }}
+                </div>
+            </div>
+            {% if form.non_field_errors %}
+            <div class="text-sm text-red-600">
+                {{ form.non_field_errors }}
+            </div>
+            {% endif %}
+            <button type="submit"
+                    class="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg font-semibold shadow-lg hover:shadow-2xl transition">
+                Generate questions
+            </button>
+        </form>
+    </div>
+
+    {% if form_submitted %}
+    <div class="bg-white rounded-xl shadow-lg p-6 space-y-4">
+        <p class="text-sm font-semibold text-gray-700">{{ generation_message }}</p>
+
+        {% if question_status %}
+        <div class="space-y-4">
+            {% for item in question_status %}
+            <div class="border border-gray-200 rounded-lg p-4">
+                <p class="font-semibold text-gray-800">{{ forloop.counter }}. {{ item.payload.question }}</p>
+                <ul class="list-disc list-inside text-sm text-gray-600 mt-2">
+                    {% if item.payload.options %}
+                        {% for option in item.payload.options %}
+                        <li>{{ option }}</li>
+                        {% endfor %}
+                    {% else %}
+                    <li>No options provided (code/essay question)</li>
+                    {% endif %}
+                </ul>
+                <p class="mt-2 text-xs text-gray-500">Points: {{ item.payload.points }} | Estimated time: {{ item.payload.estimated_time_seconds }}s</p>
+                <p class="mt-2 text-sm text-gray-600"><strong>Explanation:</strong> {{ item.payload.explanation }}</p>
+                <p class="mt-1 text-xs {{ item.created|yesno:'text-green-600,text-gray-500' }}">
+                    {% if item.created %}
+                    New pool entry created.
+                    {% else %}
+                    Question already existed.
+                    {% endif %}
+                </p>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

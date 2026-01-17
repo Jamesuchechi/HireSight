@@ -540,6 +540,16 @@ This TODO is organized by Django app to make implementation clearer and more log
 - [ ] Assessment badges
 - [ ] Generate PDF certificate
 - [ ] Share assessment results with companies
+- [ ] Ensure each dynamic test can pull `question_count` items by keeping the `QuestionPool` seeded per skill/  difficulty (review `apps/assessments/models.py::SkillTest.generate_questions`)
+
+### Skill Assessment Enhancements (In Review)
+- [ ] Add a “Generate questions” button on the browse/detail views that POSTs to a protected endpoint (admin/staff-only) and triggers `QuestionGenerator.bulk_generate_for_test(test)` (AJAX-friendly UI with progress/feedback)
+- [ ] Cache the current pool size per skill+difficulty (e.g., `skill:React:BEGINNER:pool_size`) so the browse page can show “12/8 questions available” without hitting the DB each render; expire every 5–10 minutes or on pool update
+- [ ] Implement rate limiting/cooldown for generation (e.g., one request per test every 5 minutes, tracked per user/IP) and surface cooldown status on the UI
+- [ ] Queue AI generation via Celery to avoid blocking the request and update the cache + `QuestionPool` with new entries (keep `is_verified=False` for review); optionally record history entry for auditing
+- [ ] Build an assessment history page showing users’ attempts, question-by-question results, pass/fail status, badges earned, and per-question stats (fail/pass) so they can review performance
+- [ ] Create a lightweight log/history model for generation attempts (timestamp, initiator, test, result count) and expose it on the history page for admins
+- [ ] After generation, refresh the cached counts and notify admins (email/slack) that new questions are ready for review; include a “mark as verified” toggle if desired
 
 ### Job Recommendations (Personal Only)
 - [ ] AI-powered job matching algorithm:

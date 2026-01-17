@@ -199,6 +199,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Custom user model
 AUTH_USER_MODEL = 'accounts.User'
 
+QUESTION_POOL_COUNT_CACHE_TIMEOUT = 600  # seconds
+ASSESSMENT_GENERATION_COOLDOWN_SECONDS = 300  # seconds
+
 # Security Settings
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True

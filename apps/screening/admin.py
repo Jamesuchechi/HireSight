@@ -120,13 +120,14 @@ class ScreeningSessionAdmin(admin.ModelAdmin):
     status_badge.short_description = 'Status'
     
     def progress_display(self, obj):
-        percentage = obj.progress_percentage
-        color = '#10b981' if percentage == 100 else '#3b82f6'
+        percentage_value = float(obj.progress_percentage or 0)
+        display_value = f"{percentage_value:.0f}"
+        color = '#10b981' if percentage_value == 100 else '#3b82f6'
         return format_html(
             '<div style="width: 100px; background: #e5e7eb; border-radius: 4px; overflow: hidden;">'
-            '<div style="width: {}%; background: {}; color: white; text-align: center; padding: 2px; font-size: 11px;">{:.0f}%</div>'
+            '<div style="width: {}%; background: {}; color: white; text-align: center; padding: 2px; font-size: 11px;">{}%</div>'
             '</div>',
-            percentage, color, percentage
+            display_value, color, display_value
         )
     progress_display.short_description = 'Progress'
     
@@ -134,19 +135,20 @@ class ScreeningSessionAdmin(admin.ModelAdmin):
         if obj.average_match_score is None:
             return '-'
         
-        score = obj.average_match_score
-        if score >= 90:
+        score_value = float(obj.average_match_score)
+        if score_value >= 90:
             color = '#059669'
-        elif score >= 80:
+        elif score_value >= 80:
             color = '#10b981'
-        elif score >= 70:
+        elif score_value >= 70:
             color = '#fbbf24'
         else:
             color = '#ef4444'
         
+        rounded = f"{score_value:.0f}%"
         return format_html(
-            '<span style="color: {}; font-weight: bold;">{:.0f}%</span>',
-            color, score
+            '<span style="color: {}; font-weight: bold;">{}</span>',
+            color, rounded
         )
     average_score_display.short_description = 'Avg Score'
 
@@ -199,18 +201,20 @@ class ScreeningResultAdmin(admin.ModelAdmin):
     session_link.short_description = 'Session'
     
     def match_score_display(self, obj):
-        if obj.match_score >= 90:
+        score = float(obj.match_score or 0)
+        if score >= 90:
             color = '#059669'
-        elif obj.match_score >= 80:
+        elif score >= 80:
             color = '#10b981'
-        elif obj.match_score >= 70:
+        elif score >= 70:
             color = '#fbbf24'
         else:
             color = '#ef4444'
         
+        rounded = f"{score:.0f}%"
         return format_html(
-            '<span style="color: {}; font-weight: bold;">{:.0f}%</span>',
-            color, obj.match_score
+            '<span style="color: {}; font-weight: bold;">{}</span>',
+            color, rounded
         )
     match_score_display.short_description = 'Match'
     
@@ -745,4 +749,3 @@ class InsightFeedbackAdmin(admin.ModelAdmin):
     
     def has_add_permission(self, request):
         return False
-

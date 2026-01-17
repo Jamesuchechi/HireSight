@@ -55,7 +55,8 @@ class QuestionPoolAdmin(admin.ModelAdmin):
     def success_rate_display(self, obj):
         rate = obj.get_success_rate()
         color = 'green' if rate >= 70 else 'orange' if rate >= 50 else 'red'
-        return format_html('<span style="color: {};">{:.1f}%</span>', color, rate)
+        formatted = f"{rate:.1f}%"
+        return format_html('<span style="color: {};">{}</span>', color, formatted)
     success_rate_display.short_description = 'Success Rate'
     
     actions = ['mark_verified', 'mark_unverified', 'activate', 'deactivate', 'verify_unverified']
@@ -132,7 +133,8 @@ class SkillTestAdmin(admin.ModelAdmin):
     def pass_rate_display(self, obj):
         rate = obj.get_pass_rate()
         color = 'green' if rate >= 70 else 'orange' if rate >= 50 else 'red'
-        return format_html('<span style="color: {};">{:.1f}%</span>', color, rate)
+        formatted = f"{rate:.1f}%"
+        return format_html('<span style="color: {};">{}</span>', color, formatted)
     pass_rate_display.short_description = 'Pass Rate'
     
     actions = [

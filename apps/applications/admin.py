@@ -178,22 +178,23 @@ class ApplicationAdmin(admin.ModelAdmin):
         """Display match score with color coding."""
         if obj.match_score is None:
             return '-'
-        
-        if obj.match_score >= 90:
+        score = float(obj.match_score)
+        if score >= 90:
             color = '#059669'  # green
-        elif obj.match_score >= 80:
+        elif score >= 80:
             color = '#10b981'  # light green
-        elif obj.match_score >= 70:
+        elif score >= 70:
             color = '#fbbf24'  # yellow
-        elif obj.match_score >= 60:
+        elif score >= 60:
             color = '#f97316'  # orange
         else:
             color = '#ef4444'  # red
         
+        rounded = f"{score:.0f}%"
         return format_html(
-            '<span style="color: {}; font-weight: bold;">{:.0f}%</span>',
+            '<span style="color: {}; font-weight: bold;">{}</span>',
             color,
-            obj.match_score
+            rounded
         )
     match_score_display.short_description = 'Match'
     

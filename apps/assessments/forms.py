@@ -1,6 +1,6 @@
 from django import forms
 from django.core.exceptions import ValidationError
-from .models import SkillAssessmentAttempt, SkillTest
+from .models import SkillAssessmentAttempt, SkillTest, QuestionPool
 
 
 class TestFilterForm(forms.Form):
@@ -18,6 +18,36 @@ class TestFilterForm(forms.Form):
         required=False,
         choices=[('', 'All Difficulties')] + list(SkillTest.DIFFICULTY_LEVELS),
         widget=forms.Select(attrs={
+            'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary'
+        })
+    )
+
+
+class QuestionGenerationForm(forms.Form):
+    skill_name = forms.CharField(
+        label='Skill / Topic',
+        widget=forms.TextInput(attrs={
+            'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary',
+            'placeholder': 'e.g. Rust, Leadership, UI/UX'
+        })
+    )
+    difficulty = forms.ChoiceField(
+        choices=SkillTest.DIFFICULTY_LEVELS,
+        widget=forms.Select(attrs={
+            'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary'
+        })
+    )
+    question_type = forms.ChoiceField(
+        choices=QuestionPool.QUESTION_TYPES,
+        widget=forms.Select(attrs={
+            'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary'
+        })
+    )
+    question_count = forms.IntegerField(
+        min_value=1,
+        max_value=50,
+        initial=10,
+        widget=forms.NumberInput(attrs={
             'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary'
         })
     )

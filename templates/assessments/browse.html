@@ -75,12 +75,18 @@
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Sort By</label>
                 {{ form.sort_by }}
             </div>
-            <div class="md:col-span-4 flex gap-3">
-                <button type="submit" class="px-6 py-2 bg-primary text-white rounded-lg font-semibold hover:bg-primary-dark transition-colors">
-                    Apply Filters
-                </button>
-                <a href="{% url 'assessments:browse' %}" class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-colors">
-                    Clear
+            <div class="md:col-span-4 flex flex-wrap items-center gap-3">
+                <div class="flex gap-3">
+                    <button type="submit" class="px-6 py-2 bg-primary text-white rounded-lg font-semibold hover:bg-primary-dark transition-colors">
+                        Apply Filters
+                    </button>
+                    <a href="{% url 'assessments:browse' %}" class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-colors">
+                        Clear
+                    </a>
+                </div>
+                <a href="{% url 'assessments:generate_questions_page' %}"
+                   class="ml-auto inline-flex items-center justify-center rounded-lg border border-dashed border-primary px-4 py-2 text-sm font-semibold text-primary transition hover:border-primary-dark hover:text-primary-dark">
+                    Generate Questions
                 </a>
             </div>
         </form>
@@ -166,6 +172,21 @@
                    class="block w-full text-center px-4 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg font-semibold hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200">
                     {% if best_score %}Retake Test{% else %}Start Test{% endif %}
                 </a>
+                {% if request.user.account_type == 'personal' %}
+                <div class="mt-4 space-y-2 text-center" data-generate-wrapper data-cooldown-remaining="{{ entry.cooldown_remaining }}">
+                    <button type="button"
+                            class="generate-questions-btn w-full px-4 py-3 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 bg-white hover:border-primary hover:text-primary transition-colors"
+                            data-generate-url="{% url 'assessments:generate_questions' test.slug %}"
+                            {% if entry.cooldown_remaining %}disabled{% endif %}>
+                        Generate Questions (admin)
+                    </button>
+                    <p class="text-xs text-gray-600" data-pool-info data-total-questions="{{ test.question_count }}">
+                        Pool: {{ entry.pool_count }} / {{ test.question_count }}
+                    </p>
+                    <p class="text-xs text-red-500 hidden" data-cooldown-message></p>
+                    <p data-generation-feedback class="text-xs text-gray-500 hidden"></p>
+                </div>
+                {% endif %}
             </div>
         </div>
         {% endwith %}
@@ -205,4 +226,141 @@
     </div>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_js %}
+{% if request.user.is_staff %}
+<script>
+(function () {
+    const wrappers = document.querySelectorAll('[data-generate-wrapper]');
+    if (!wrappers.length) return;
+
+    const csrfToken = (function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) {
+            return parts.pop().split(';').shift();
+        }
+        return '';
+    })('csrftoken');
+
+    const formatDuration = (seconds) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        if (mins > 0) {
+            return `${mins}m ${secs}s`;
+        }
+        return `${secs}s`;
+    };
+
+    wrappers.forEach((wrapper) => {
+        const button = wrapper.querySelector('[data-generate-questions-btn]');
+        if (!button) return;
+        const feedback = wrapper.querySelector('[data-generation-feedback]');
+        const cooldownMessage = wrapper.querySelector('[data-cooldown-message]');
+        const poolInfo = wrapper.querySelector('[data-pool-info]');
+        const originalText = button.textContent;
+        let cooldownRemaining = parseInt(wrapper.dataset.cooldownRemaining || '0', 10);
+        let cooldownTimer;
+
+        const updateCooldownDisplay = (seconds) => {
+            if (!cooldownMessage) return;
+            if (seconds > 0) {
+                cooldownMessage.textContent = `Cooldown active — ready in ${formatDuration(seconds)}`;
+                cooldownMessage.classList.remove('hidden');
+            } else {
+                cooldownMessage.textContent = '';
+                cooldownMessage.classList.add('hidden');
+            }
+        };
+
+        const startCooldown = (seconds) => {
+            clearInterval(cooldownTimer);
+            cooldownRemaining = seconds;
+            wrapper.dataset.cooldownRemaining = seconds;
+            if (seconds <= 0) {
+                button.disabled = false;
+                updateCooldownDisplay(0);
+                return;
+            }
+            button.disabled = true;
+            updateCooldownDisplay(seconds);
+            cooldownTimer = setInterval(() => {
+                cooldownRemaining -= 1;
+                if (cooldownRemaining <= 0) {
+                    clearInterval(cooldownTimer);
+                    button.disabled = false;
+                    wrapper.dataset.cooldownRemaining = 0;
+                    updateCooldownDisplay(0);
+                    return;
+                }
+                wrapper.dataset.cooldownRemaining = cooldownRemaining;
+                updateCooldownDisplay(cooldownRemaining);
+            }, 1000);
+        };
+
+        if (cooldownRemaining > 0) {
+            startCooldown(cooldownRemaining);
+        }
+
+        button.addEventListener('click', async () => {
+            const url = button.dataset.generateUrl;
+            if (!url) return;
+
+            button.disabled = true;
+            button.textContent = 'Generating…';
+            if (feedback) {
+                feedback.classList.add('hidden');
+                feedback.classList.remove('text-green-600', 'text-red-500');
+            }
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    credentials: 'same-origin'
+                });
+                const data = await response.json();
+                const serverCooldown = Number(data?.cooldown) || 0;
+
+                if (response.ok && data.success) {
+                    if (feedback) {
+                        feedback.textContent = data.message || 'Questions generated successfully.';
+                        feedback.classList.remove('hidden', 'text-red-500');
+                        feedback.classList.add('text-green-600');
+                    }
+                    if (poolInfo && typeof data.pool_count === 'number') {
+                        const total = poolInfo.dataset.totalQuestions || '';
+                        poolInfo.textContent = `Pool: ${data.pool_count} / ${total}`;
+                    }
+                } else {
+                    const errorMessage = data?.error || 'Failed to generate questions.';
+                    if (feedback) {
+                        feedback.textContent = errorMessage;
+                        feedback.classList.remove('hidden', 'text-green-600');
+                        feedback.classList.add('text-red-500');
+                    }
+                }
+
+                if (serverCooldown > 0) {
+                    startCooldown(serverCooldown);
+                }
+            } catch (error) {
+                if (feedback) {
+                    feedback.textContent = 'Network error. Please try again.';
+                    feedback.classList.remove('hidden', 'text-green-600');
+                    feedback.classList.add('text-red-500');
+                }
+            } finally {
+                button.disabled = cooldownRemaining > 0;
+                button.textContent = originalText;
+            }
+        });
+    });
+})();
+</script>
+{% endif %}
 {% endblock %}
