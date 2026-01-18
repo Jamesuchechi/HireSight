@@ -28,145 +28,217 @@
     .modal-hidden {
         display: none !important;
     }
+
+    @media (max-width: 768px) {
+        #confirm-modal {
+            align-items: flex-end;
+        }
+        #confirm-modal .modal-card {
+            border-radius: 20px 20px 0 0;
+            width: 100%;
+            max-width: none;
+            padding-bottom: 4rem;
+        }
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    {% url 'assessments:test_detail' attempt.test.slug as test_detail_url %}
-    {% include 'components/back_button.html' with fallback_url=test_detail_url label='Back to Test Details' %}
-    <!-- Header with Timer -->
-    <div class="bg-white rounded-xl shadow-lg p-6 mb-6 sticky top-20 z-10">
-        <div class="flex items-center justify-between flex-wrap gap-4">
-            <div>
-                <h1 class="text-2xl font-bold text-gray-900">{{ attempt.test.title }}</h1>
-                <p class="text-sm text-gray-600 mt-1">{{ attempt.test.skill_name }} - {{ attempt.test.get_difficulty_display }}</p>
+<div class="min-h-screen bg-gray-50 pb-20">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {% url 'assessments:test_detail' attempt.test.slug as test_detail_url %}
+        {% include 'components/back_button.html' with fallback_url=test_detail_url label='Back to Test Details' %}
+        
+        <!-- Header with Timer -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-6 sticky top-0 sm:top-20 z-10 sticky-mobile">
+            {% if practice_mode %}
+            <div class="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 flex items-center gap-2">
+                <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                Practice Mode is active · Untimed · Answers & explanations unlocked
+            </div>
+            {% endif %}
+            <div class="flex items-center justify-between flex-wrap gap-4">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">{{ attempt.test.title }}</h1>
+                    <p class="text-sm text-gray-600 mt-1">{{ attempt.test.skill_name }} - {{ attempt.test.get_difficulty_display }}</p>
+                </div>
+                
+                <!-- Timer & Progress -->
+                <div class="flex items-center space-x-6">
+                    {% if not practice_mode %}
+                    <div class="text-right" role="status" aria-live="polite" aria-label="Time remaining">
+                        <p class="text-sm text-gray-600">Time Remaining</p>
+                        <p class="text-2xl font-bold" id="timer-display">
+                            <span id="time-remaining"></span>
+                        </p>
+                        <p id="timer-warning" role="alert" aria-live="assertive" class="text-xs text-red-600 mt-1 hidden">
+                            <strong>Warning:</strong> Less than 5 minutes remaining.
+                        </p>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="text-right">
+                        <p class="text-sm text-gray-600">Progress</p>
+                        <p class="text-2xl font-bold text-primary">
+                            <span id="answered-count">{{ answered_questions }}</span> / <span id="total-questions">{{ total_questions }}</span>
+                        </p>
+                    </div>
+                </div>
             </div>
             
-            <!-- Timer -->
-            <div class="flex items-center space-x-4">
-                <div class="text-right">
-                    <p class="text-sm text-gray-600">Time Remaining</p>
-                    <p class="text-2xl font-bold" id="timer-display">
-                        <span id="time-remaining"></span>
-                    </p>
-                </div>
-                
-                <!-- Progress -->
-                <div class="text-right">
-                    <p class="text-sm text-gray-600">Progress</p>
-                    <p class="text-2xl font-bold text-primary">
-                        <span id="answered-count">{{ answered_questions }}</span> / <span id="total-questions">{{ total_questions }}</span>
-                    </p>
-                </div>
+            <!-- Progress Bar -->
+            <div class="mt-4 w-full bg-gray-200 rounded-full h-2.5">
+                <div id="progress-bar" class="bg-gradient-to-r from-primary to-secondary h-2.5 rounded-full transition-all duration-300" 
+                     style="width: {{ progress_percentage }}%"></div>
             </div>
         </div>
-        
-        <!-- Progress Bar -->
-        <div class="mt-4 w-full bg-gray-200 rounded-full h-2.5">
-            <div id="progress-bar" class="bg-gradient-to-r from-primary to-secondary h-2.5 rounded-full transition-all duration-300" 
-                 style="width: {{ answered_questions|floatformat:0|default:'0' }}%"></div>
-        </div>
-    </div>
 
-    <!-- Test Form -->
-    <form method="post" id="test-form">
-        {% csrf_token %}
-        
-        <div class="space-y-6">
-            {% for question in attempt.frozen_questions %}
-            <div class="bg-white rounded-xl shadow-md p-6 question-card" 
-                 data-question-id="{{ question.id }}"
-                 style="animation-delay: {{ forloop.counter0|floatformat:1 }}s">
-                
-                <!-- Question Number & Points -->
-                <div class="flex items-center justify-between mb-4">
-                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-primary-light text-primary">
-                        Question {{ forloop.counter }}
-                    </span>
-                    <span class="text-sm text-gray-600">{{ question.points }} points</span>
-                </div>
-                
-                <!-- Question Text -->
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">{{ question.question }}</h3>
-                
-                <!-- Options -->
-                <div class="space-y-3">
-                    {% if question.type == 'multiple_choice' or question.type == 'true_false' %}
-                        {% for option in question.options %}
-                        <label class="option-label flex items-start p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-primary hover:bg-primary-light transition-all">
-                            <input type="radio" 
-                                   name="question_{{ question.id }}" 
-                                   value="{{ forloop.counter0 }}"
-                                   class="mt-1 h-4 w-4 text-primary focus:ring-primary question-input"
-                                   data-question-id="{{ question.id }}"
-                                   {% if attempt.answers|get_item:question.id == forloop.counter0|stringformat:"s" %}checked{% endif %}>
-                            <span class="ml-3 text-gray-900">{{ option }}</span>
-                        </label>
-                        {% endfor %}
-                    {% elif question.type == 'essay' %}
-                        <textarea name="question_{{ question.id }}"
-                                  rows="6"
-                                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary question-input"
-                                  data-question-id="{{ question.id }}"
-                                  placeholder="Enter your answer here...">{{ attempt.answers|get_item:question.id }}</textarea>
-                    {% elif question.type == 'code' %}
-                        <textarea name="question_{{ question.id }}"
-                                  rows="10"
-                                  class="w-full px-4 py-3 font-mono text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-gray-50 question-input"
-                                  data-question-id="{{ question.id }}"
-                                  placeholder="# Enter your code here">{{ attempt.answers|get_item:question.id }}</textarea>
+        <!-- Test Form -->
+        <form method="post" id="test-form">
+            {% csrf_token %}
+            
+            <nav aria-label="Test navigation" class="space-y-6" id="question-nav">
+                {% for question in questions %}
+                <div class="bg-white rounded-xl shadow-md p-6 question-card focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                     tabindex="0"
+                     aria-label="Question {{ forloop.counter }} of {{ total_questions }}"
+                     aria-describedby="question-text-{{ question.id }}"
+                     data-question-id="{{ question.id }}"
+                     style="animation-delay: {{ forloop.counter0|floatformat:1 }}s">
+                    
+                    <!-- Question Number & Points -->
+                    <div class="flex items-center justify-between mb-4">
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-primary-light text-primary">
+                            Question {{ forloop.counter }}
+                        </span>
+                        <span class="text-sm text-gray-600">{{ question.points }} points</span>
+                    </div>
+                    <div class="flex items-center justify-between mb-3 space-x-3">
+                        <div class="text-xs uppercase tracking-wide text-gray-500">{{ question.skill_name|default:'Focused question' }}</div>
+                        <button type="button" 
+                                class="bookmark-btn touch-button inline-flex items-center gap-1 text-xs font-semibold px-3 py-1 rounded-full border border-primary text-primary hover:bg-primary-light focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 transition"
+                                data-bookmark-url="{% url 'assessments:bookmark_question' question.id %}"
+                                data-question-id="{{ question.id }}"
+                                data-attempt-id="{{ attempt.id }}"
+                                aria-label="Bookmark question {{ forloop.counter }}">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5v16l7-5 7 5V5z" />
+                            </svg>
+                            Bookmark
+                        </button>
+                    </div>
+                    
+                    <!-- Question Text -->
+                    <p id="question-text-{{ question.id }}" class="text-lg font-semibold text-gray-900 mb-4" role="heading" aria-level="3">{{ question.question }}</p>
+                    <span class="sr-only">Question {{ forloop.counter }} of {{ total_questions }}.</span>
+                    
+                    <!-- Options -->
+                    <div class="space-y-3" role="group" aria-label="Answer choices for question {{ forloop.counter }}">
+                        {% if question.type == 'multiple_choice' or question.type == 'true_false' %}
+                            {% for option in question.options %}
+                            {% with option_id="option-{{ question.id }}-{{ forloop.counter0 }}" %}
+                            <label class="option-label flex items-start p-4 border-2 border-gray-200 rounded-lg cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 hover:border-primary hover:bg-primary-light transition-all"
+                                   for="{{ option_id }}">
+                                <input id="{{ option_id }}"
+                                       type="radio" 
+                                       name="question_{{ question.id }}" 
+                                       value="{{ forloop.counter0 }}"
+                                       class="mt-1 h-4 w-4 text-primary question-input"
+                                       aria-labelledby="option-label-{{ option_id }}"
+                                       data-question-id="{{ question.id }}"
+                                       {% if attempt.answers|get_item:question.id == forloop.counter0|stringformat:"s" %}checked{% endif %}>
+                                <span id="option-label-{{ option_id }}" class="ml-3 text-gray-900">{{ option }}</span>
+                            </label>
+                            {% endwith %}
+                            {% endfor %}
+                        {% elif question.type == 'essay' %}
+                            <textarea name="question_{{ question.id }}"
+                                      rows="6"
+                                      class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary question-input"
+                                      data-question-id="{{ question.id }}"
+                                      placeholder="Enter your answer here...">{{ attempt.answers|get_item:question.id }}</textarea>
+                        {% elif question.type == 'code' %}
+                            <textarea name="question_{{ question.id }}"
+                                      rows="10"
+                                      class="w-full px-4 py-3 font-mono text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-gray-50 question-input"
+                                      data-question-id="{{ question.id }}"
+                                      placeholder="# Enter your code here">{{ attempt.answers|get_item:question.id }}</textarea>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Estimated Time -->
+                    {% if question.estimated_time %}
+                    <p class="mt-3 text-xs text-gray-500">
+                        ⏱️ Estimated time: {{ question.estimated_time }} seconds
+                    </p>
+                    {% endif %}
+
+                    {% if practice_mode %}
+                    <div class="mt-4 space-y-3">
+                        <button type="button" 
+                                class="show-answer-btn inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm font-semibold hover:bg-emerald-100 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 transition"
+                                aria-controls="answer-panel-{{ question.id }}"
+                                aria-expanded="false">
+                            Show Answer
+                        </button>
+                        <div id="answer-panel-{{ question.id }}" class="answer-panel hidden rounded-xl border border-dashed border-emerald-100 bg-emerald-50/40 p-4 text-sm text-gray-700" role="region" aria-live="polite">
+                            <p class="font-semibold text-emerald-900">Correct answer:</p>
+                            <p class="text-base font-semibold text-gray-900">
+                                {{ question.display_answer_text|default:question.correct_answer }}
+                            </p>
+                            {% if question.explanation %}
+                            <p class="mt-2 text-gray-600">{{ question.explanation }}</p>
+                            {% else %}
+                            <p class="mt-2 text-gray-500 italic">Explanation not provided for this question.</p>
+                            {% endif %}
+                        </div>
+                    </div>
                     {% endif %}
                 </div>
-                
-                <!-- Estimated Time -->
-                {% if question.estimated_time %}
-                <p class="mt-3 text-xs text-gray-500">
-                    ⏱️ Estimated time: {{ question.estimated_time }} seconds
-                </p>
-                {% endif %}
-            </div>
-            {% endfor %}
-        </div>
+                {% endfor %}
+            </nav>
 
-        <!-- Submit Button -->
-        <div class="mt-8 bg-white rounded-xl shadow-md p-6">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm text-gray-600">Ready to submit?</p>
-                    <p class="text-xs text-gray-500 mt-1">Make sure you've answered all questions before submitting.</p>
+            <!-- Submit Button -->
+            <div class="mt-8 bg-white rounded-xl shadow-md p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-600 font-medium">Ready to submit?</p>
+                        <p class="text-xs text-gray-500 mt-1">Make sure you've answered all questions before submitting.</p>
+                    </div>
+                    <button type="button" 
+                            id="submit-btn"
+                            class="touch-button px-8 py-3 bg-gradient-to-r from-success to-green-600 text-white rounded-lg font-bold text-lg hover:shadow-lg transform hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-success focus-visible:ring-offset-2 transition-all duration-200">
+                        Submit Assessment
+                    </button>
                 </div>
-                <button type="button" 
-                        id="submit-btn"
-                        class="px-8 py-3 bg-gradient-to-r from-success to-green-600 text-white rounded-lg font-bold text-lg hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200">
-                    Submit Assessment
-                </button>
             </div>
-        </div>
-    </form>
+        </form>
+    </div>
+</div>
 
-    <!-- Confirmation Modal -->
-    <div id="confirm-modal" 
-         class="modal-hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
-            <h3 class="text-xl font-bold text-gray-900 mb-4">Submit Assessment?</h3>
-            <p class="text-gray-600 mb-6">
-                You've answered <span class="font-bold text-primary" id="modal-answered-count"></span> out of 
-                <span class="font-bold" id="modal-total-questions"></span> questions.
-                Are you sure you want to submit?
-            </p>
-            <div class="flex gap-3">
-                <button type="button" 
-                        id="review-btn"
-                        class="flex-1 px-4 py-3 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-colors">
-                    Review Answers
-                </button>
-                <button type="button" 
-                        id="confirm-submit-btn"
-                        class="flex-1 px-4 py-3 bg-gradient-to-r from-success to-green-600 text-white rounded-lg font-semibold hover:shadow-lg transition-all">
-                    Confirm Submit
-                </button>
-            </div>
+<!-- Confirmation Modal -->
+<div id="confirm-modal" 
+     class="modal-hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div class="modal-card bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+        <h3 class="text-xl font-bold text-gray-900 mb-4">Submit Assessment?</h3>
+        <p class="text-gray-600 mb-6">
+            You've answered <span class="font-bold text-primary" id="modal-answered-count"></span> out of 
+            <span class="font-bold" id="modal-total-questions"></span> questions.
+            Are you sure you want to submit?
+        </p>
+        <div class="flex gap-3">
+            <button type="button" 
+                    id="review-btn"
+                    class="flex-1 px-4 py-3 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 transition-colors">
+                Review Answers
+            </button>
+            <button type="button" 
+                    id="confirm-submit-btn"
+                    class="flex-1 px-4 py-3 bg-gradient-to-r from-success to-green-600 text-white rounded-lg font-semibold hover:shadow-lg focus-visible:ring-2 focus-visible:ring-success focus-visible:ring-offset-2 transition-all">
+                Confirm Submit
+            </button>
         </div>
     </div>
 </div>
@@ -180,10 +252,13 @@
     const totalQuestions = {{ total_questions }};
     let answeredCount = {{ answered_questions }};
     let autoSaveTimeout = null;
+    const practiceMode = {{ practice_mode|yesno:"true,false" }};
+    const csrfToken = '{{ csrf_token }}';
     
     // DOM elements
-    const timerDisplay = document.getElementById('timer-display');
-    const timeRemainingSpan = document.getElementById('time-remaining');
+    const timerDisplay = practiceMode ? null : document.getElementById('timer-display');
+    const timeRemainingSpan = practiceMode ? null : document.getElementById('time-remaining');
+    const timerWarning = practiceMode ? null : document.getElementById('timer-warning');
     const answeredCountSpan = document.getElementById('answered-count');
     const progressBar = document.getElementById('progress-bar');
     const submitBtn = document.getElementById('submit-btn');
@@ -206,27 +281,44 @@
     
     // Update timer display
     function updateTimerDisplay() {
+        if (!timeRemainingSpan || !timerDisplay) {
+            return;
+        }
         timeRemainingSpan.textContent = formatTime(timeRemaining);
         
         // Update color based on time
         if (timeRemaining <= 5) {
             timerDisplay.className = 'text-2xl font-bold text-red-600 timer-warning';
+            if (timerWarning) {
+                timerWarning.textContent = `Warning: ${timeRemaining} minute${timeRemaining === 1 ? '' : 's'} remaining.`;
+                timerWarning.classList.remove('hidden');
+            }
         } else if (timeRemaining <= 10) {
             timerDisplay.className = 'text-2xl font-bold text-orange-600';
+            if (timerWarning) {
+                timerWarning.classList.add('hidden');
+            }
         } else {
             timerDisplay.className = 'text-2xl font-bold text-green-600';
+            if (timerWarning) {
+                timerWarning.classList.add('hidden');
+            }
         }
     }
     
     // Update progress
     function updateProgress() {
         answeredCountSpan.textContent = answeredCount;
-        const progressPercent = (answeredCount / totalQuestions * 100);
+        const progressPercent = totalQuestions > 0 ? (answeredCount / totalQuestions * 100) : 0;
         progressBar.style.width = progressPercent + '%';
     }
     
     // Start timer
     function startTimer() {
+        if (!timerDisplay || !timeRemainingSpan) {
+            return;
+        }
+
         setInterval(function() {
             if (timeRemaining > 0) {
                 timeRemaining--;
@@ -234,13 +326,11 @@
                 
                 // Auto-submit when time runs out
                 if (timeRemaining === 0) {
-                    alert('Time is up! Submitting your assessment...');
+                    if (timerWarning) {
+                        timerWarning.textContent = 'Time is up! Submitting your assessment...';
+                        timerWarning.classList.remove('hidden');
+                    }
                     testForm.submit();
-                }
-                
-                // Warning at 5 minutes
-                if (timeRemaining === 300) {
-                    alert('5 minutes remaining!');
                 }
             }
         }, 60000); // Update every minute
@@ -259,7 +349,7 @@
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
-                    'X-CSRFToken': '{{ csrf_token }}'
+                    'X-CSRFToken': csrfToken
                 },
                 body: 'question_id=' + questionId + '&answer=' + encodeURIComponent(answer)
             })
@@ -297,17 +387,18 @@
         updateTimerDisplay();
         updateProgress();
         
-        // Start timer
-        startTimer();
-        
-        // Warn before leaving
-        window.addEventListener('beforeunload', function(e) {
-            if (timeRemaining > 0) {
-                e.preventDefault();
-                e.returnValue = 'Are you sure you want to leave? Your progress will be lost.';
-                return e.returnValue;
-            }
-        });
+        // Start timer if needed
+        if (!practiceMode) {
+            startTimer();
+            // Warn before leaving
+            window.addEventListener('beforeunload', function(e) {
+                if (timeRemaining > 0) {
+                    e.preventDefault();
+                    e.returnValue = 'Are you sure you want to leave? Your progress will be lost.';
+                    return e.returnValue;
+                }
+            });
+        }
         
         // Add event listeners to all question inputs
         const questionInputs = document.querySelectorAll('.question-input');
@@ -346,6 +437,137 @@
             if (e.target === confirmModal) {
                 hideModal();
             }
+        });
+
+        // Bookmark handlers
+        const bookmarkButtons = document.querySelectorAll('.bookmark-btn');
+        bookmarkButtons.forEach(function(button) {
+            button.addEventListener('click', async function() {
+                const originalLabel = button.dataset.origHtml || button.innerHTML;
+                button.dataset.origHtml = originalLabel;
+                const note = prompt('Add a note to this bookmark (optional)', '');
+                const attemptId = button.dataset.attemptId;
+                const params = new URLSearchParams();
+                params.append('notes', note || '');
+                if (attemptId) {
+                    params.append('attempt_id', attemptId);
+                }
+
+                try {
+                    const response = await fetch(button.dataset.bookmarkUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: params.toString()
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        button.classList.add('bg-primary', 'text-white');
+                        button.classList.remove('border-primary', 'text-primary');
+                        button.innerHTML = 'Bookmarked';
+                        setTimeout(() => {
+                            button.innerHTML = button.dataset.origHtml || originalLabel;
+                            button.classList.remove('bg-primary', 'text-white');
+                            button.classList.add('border-primary', 'text-primary');
+                        }, 2000);
+                    }
+                } catch (err) {
+                    console.error('Bookmark failed', err);
+                }
+            });
+        });
+
+        const questionCards = Array.from(document.querySelectorAll('.question-card'));
+        let currentQuestionIndex = 0;
+
+        function scrollToQuestion(index) {
+            currentQuestionIndex = Math.max(0, Math.min(index, questionCards.length - 1));
+            const card = questionCards[currentQuestionIndex];
+            if (card) {
+                card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+
+        function nextQuestion() {
+            scrollToQuestion(currentQuestionIndex + 1);
+        }
+
+        function previousQuestion() {
+            scrollToQuestion(currentQuestionIndex - 1);
+        }
+
+        let touchStartX = 0;
+        let touchEndX = 0;
+        const SWIPE_THRESHOLD = 40;
+
+        document.addEventListener('touchstart', function(e) {
+            touchStartX = e.changedTouches[0].screenX;
+        });
+
+        document.addEventListener('touchend', function(e) {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        });
+
+        function handleSwipe() {
+            const delta = touchEndX - touchStartX;
+            if (Math.abs(delta) < SWIPE_THRESHOLD) {
+                return;
+            }
+            if (delta < 0) {
+                nextQuestion();
+            } else {
+                previousQuestion();
+            }
+        }
+
+        function selectAnswer() {
+            const active = document.activeElement;
+            if (active && active.classList.contains('question-input')) {
+                active.click();
+                return;
+            }
+            const focusedCard = active ? active.closest('.question-card') : null;
+            if (focusedCard) {
+                const firstInput = focusedCard.querySelector('.question-input');
+                if (firstInput) {
+                    firstInput.focus();
+                }
+            }
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                nextQuestion();
+            } else if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                previousQuestion();
+            } else if (e.key === ' ' || e.key === 'Enter') {
+                if (document.activeElement && document.activeElement.matches('input, button')) {
+                    return;
+                }
+                e.preventDefault();
+                selectAnswer();
+            } else if (e.key === 'Escape') {
+                if (!confirmModal.classList.contains('modal-hidden')) {
+                    e.preventDefault();
+                    hideModal();
+                }
+            }
+        });
+
+        // Practice mode answer toggles
+        const answerToggles = document.querySelectorAll('.show-answer-btn');
+        answerToggles.forEach(function(button) {
+            const panel = button.closest('.question-card').querySelector('.answer-panel');
+            button.addEventListener('click', function() {
+                if (!panel) return;
+                panel.classList.toggle('hidden');
+                button.textContent = panel.classList.contains('hidden') ? 'Show Answer' : 'Hide Answer';
+            });
         });
     }
     

@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Rate Limit Exceeded{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-white px-4 py-20">
+    <div class="bg-white border border-red-100 shadow-xl rounded-3xl p-10 max-w-md text-center space-y-6">
+        <div class="text-4xl">🚫</div>
+        <h1 class="text-3xl font-bold text-gray-900">Rate Limit Reached</h1>
+        <p class="text-sm text-gray-600">
+            You have exceeded the allowed <strong>{{ rate }}</strong>.
+            Please wait {{ wait_message }} before retrying.
+        </p>
+        <a href="{% url 'assessments:browse' %}" class="inline-flex items-center justify-center px-6 py-3 bg-primary text-white rounded-2xl font-semibold hover:bg-primary-dark transition">
+            Back to Assessments
+        </a>
+    </div>
+</div>
+{% endblock %}

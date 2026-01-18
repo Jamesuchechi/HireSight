@@ -1,164 +1,227 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Company Analytics Dashboard{% endblock %}
-
-{% block extra_css %}
-<style>
-    .metric-card {
-        @apply bg-white rounded-lg shadow p-6 border border-gray-200;
-    }
-    .metric-value {
-        @apply text-3xl font-bold text-gray-900;
-    }
-    .metric-label {
-        @apply text-sm text-gray-600 mt-1;
-    }
-    .chart-container {
-        @apply bg-white rounded-lg shadow p-6 border border-gray-200;
-    }
-</style>
-{% endblock %}
+{% block title %}Company Analytics Dashboard - HireSight{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <!-- Header -->
-    <div class="flex justify-between items-center mb-8">
+    <div class="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-            <h1 class="text-3xl font-bold text-gray-900">Analytics Dashboard</h1>
-            <p class="text-gray-600 mt-1">Company hiring metrics and insights</p>
+            <h1 class="text-4xl font-display font-bold text-gray-900 mb-2">Company Analytics</h1>
+            <p class="text-lg text-gray-600">Hiring metrics and insights for your organization</p>
         </div>
-        <div class="flex gap-3">
+        <div class="flex flex-wrap gap-3 items-center" role="group" aria-label="Analytics actions">
             <a href="{% url 'analytics:export' %}?type=overview&format=csv" 
-               class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-                <i class="fas fa-download mr-2"></i>Export CSV
+               class="inline-flex items-center justify-center rounded-lg px-5 py-3 border border-primary text-primary font-semibold shadow-sm hover:bg-primary-light focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 transition"
+               aria-label="Export analytics as CSV">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                </svg>
+                Export CSV
             </a>
             <a href="{% url 'analytics:export' %}?type=overview&format=pdf" 
-               class="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition">
-                <i class="fas fa-file-pdf mr-2"></i>Download PDF
+               class="inline-flex items-center justify-center rounded-lg px-5 py-3 border border-gray-700 text-gray-700 font-semibold shadow-sm hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-gray-700 focus-visible:ring-offset-2 transition"
+               aria-label="Download analytics as PDF">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                </svg>
+                PDF Report
             </a>
             <a href="{% url 'analytics:report_builder' %}?days=30" 
-               class="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:opacity-90 transition text-sm">
-                <i class="fas fa-layer-group mr-2"></i>Custom Report
+               class="inline-flex items-center justify-center rounded-lg px-5 py-3 bg-gradient-to-r from-primary to-secondary text-white font-semibold shadow-sm hover:opacity-90 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 transition"
+               aria-label="Build custom report">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                </svg>
+                Custom Report
             </a>
         </div>
     </div>
 
     <!-- Overview Metrics -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div class="metric-card">
-            <div class="metric-value">{{ overview.total_jobs|default:0 }}</div>
-            <div class="metric-label">Total Jobs Posted</div>
-            <div class="text-xs text-gray-500 mt-2">
-                <span class="text-green-600">{{ overview.active_jobs|default:0 }} Active</span> · 
-                <span class="text-gray-400">{{ overview.closed_jobs|default:0 }} Closed</span>
+        <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-primary">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Total Jobs Posted</p>
+                    <p class="text-3xl font-bold text-gray-900 mt-1">{{ overview.total_jobs|default:0 }}</p>
+                    <div class="text-xs text-gray-500 mt-2">
+                        <span class="text-green-600 font-semibold">{{ overview.active_jobs|default:0 }} Active</span> · 
+                        <span class="text-gray-400">{{ overview.closed_jobs|default:0 }} Closed</span>
+                    </div>
+                </div>
+                <div class="w-12 h-12 bg-primary-light rounded-lg flex items-center justify-center">
+                    <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                    </svg>
+                </div>
             </div>
         </div>
 
-        <div class="metric-card">
-            <div class="metric-value">{{ overview.total_applications|default:0 }}</div>
-            <div class="metric-label">Total Applications</div>
-            {% if overview.followers_count %}
-            <div class="text-xs text-gray-500 mt-2">
-                <i class="fas fa-users mr-1"></i>{{ overview.followers_count }} Followers
+        <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-blue-500">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Total Applications</p>
+                    <p class="text-3xl font-bold text-gray-900 mt-1">{{ overview.total_applications|default:0 }}</p>
+                    {% if overview.followers_count %}
+                    <p class="text-xs text-gray-500 mt-2">
+                        <svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        </svg>
+                        {{ overview.followers_count }} Followers
+                    </p>
+                    {% endif %}
+                </div>
+                <div class="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center">
+                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                </div>
             </div>
-            {% endif %}
         </div>
 
-        <div class="metric-card">
-            <div class="metric-value">{{ overview.total_hires|default:0 }}</div>
-            <div class="metric-label">Total Hires</div>
-            <div class="text-xs text-gray-500 mt-2">Success Rate</div>
+        <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-success">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Total Hires</p>
+                    <p class="text-3xl font-bold text-gray-900 mt-1">{{ overview.total_hires|default:0 }}</p>
+                    <p class="text-xs text-gray-500 mt-2">Success rate</p>
+                </div>
+                <div class="w-12 h-12 bg-green-50 rounded-lg flex items-center justify-center">
+                    <svg class="w-6 h-6 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+            </div>
         </div>
 
-        <div class="metric-card">
-            <div class="metric-value">
-                {% if overview.avg_time_to_hire %}
-                    {{ overview.avg_time_to_hire|floatformat:0 }}d
-                {% else %}
-                    N/A
-                {% endif %}
+        <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-secondary">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Avg Time to Hire</p>
+                    <p class="text-3xl font-bold text-gray-900 mt-1">
+                        {% if overview.avg_time_to_hire %}
+                            {{ overview.avg_time_to_hire|floatformat:0 }}d
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </p>
+                    <p class="text-xs text-gray-500 mt-2">In days</p>
+                </div>
+                <div class="w-12 h-12 bg-secondary-light rounded-lg flex items-center justify-center">
+                    <svg class="w-6 h-6 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
             </div>
-            <div class="metric-label">Avg Time to Hire</div>
-            <div class="text-xs text-gray-500 mt-2">In days</div>
         </div>
     </div>
 
+    <!-- Additional Metrics -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        <div class="metric-card">
-            <div class="metric-value">
-                {% if overview.cost_per_hire %}
-                    ${{ overview.cost_per_hire|floatformat:2 }}
-                {% else %}
-                    N/A
-                {% endif %}
+        <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-purple-500">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Avg. Cost per Hire</p>
+                    <p class="text-3xl font-bold text-gray-900 mt-1">
+                        {% if overview.cost_per_hire %}
+                            ${{ overview.cost_per_hire|floatformat:2 }}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </p>
+                    <p class="text-xs text-gray-500 mt-2">Updated with each snapshot</p>
+                </div>
+                <div class="w-12 h-12 bg-purple-50 rounded-lg flex items-center justify-center">
+                    <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
             </div>
-            <div class="metric-label">Avg. Cost per Hire</div>
-            <div class="text-xs text-gray-500 mt-2">Updated with each snapshot</div>
         </div>
-        <div class="metric-card">
-            <div class="metric-value">{{ resumes_screened|default:0 }}</div>
-            <div class="metric-label">Resumes Screened</div>
-            <div class="text-xs text-gray-500 mt-2">Tracked via analytics</div>
+
+        <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-yellow-500">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Resumes Screened</p>
+                    <p class="text-3xl font-bold text-gray-900 mt-1">{{ resumes_screened|default:0 }}</p>
+                    <p class="text-xs text-gray-500 mt-2">Tracked via analytics</p>
+                </div>
+                <div class="w-12 h-12 bg-yellow-50 rounded-lg flex items-center justify-center">
+                    <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+                    </svg>
+                </div>
+            </div>
         </div>
     </div>
 
+    <!-- Predictive Insight -->
     {% if predictive %}
-    <div class="chart-container mb-8">
-        <h2 class="text-xl font-semibold mb-4">Predictive Insight</h2>
+    <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">Predictive Insights</h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div class="bg-emerald-50 rounded-lg p-4">
-                <p class="text-sm text-gray-500">Likelihood to Hire</p>
-                <p class="text-3xl font-bold text-emerald-700">{{ predictive.likelihood|default:0 }}%</p>
+            <div class="text-center p-6 bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl">
+                <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-2">Likelihood to Hire</p>
+                <p class="text-4xl font-bold text-emerald-700">{{ predictive.likelihood|default:0 }}%</p>
             </div>
-            <div class="bg-blue-50 rounded-lg p-4">
-                <p class="text-sm text-gray-500">Confidence</p>
-                <p class="text-3xl font-bold text-blue-700">{{ predictive.confidence|default:0 }}%</p>
+            <div class="text-center p-6 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-xl">
+                <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-2">Confidence Level</p>
+                <p class="text-4xl font-bold text-blue-700">{{ predictive.confidence|default:0 }}%</p>
             </div>
-            <div class="bg-white rounded-lg p-4 border border-gray-100">
-                <p class="text-sm text-gray-500">Key Drivers</p>
-                <ul class="text-sm text-gray-700 mt-2 space-y-1">
+            <div class="p-6 bg-white border border-gray-200 rounded-xl">
+                <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3">Key Drivers</p>
+                <ul class="space-y-2">
                     {% for driver in predictive.key_drivers %}
-                    <li>
-                        <span class="font-semibold">{{ driver.label }}</span>:
-                        {{ driver.value|floatformat:2 }}
+                    <li class="flex justify-between items-center text-sm">
+                        <span class="font-semibold text-gray-700">{{ driver.label }}</span>
+                        <span class="text-gray-900">{{ driver.value|floatformat:2 }}</span>
                     </li>
                     {% empty %}
-                    <li class="text-gray-400">No driver data available.</li>
+                    <li class="text-sm text-gray-400">No driver data available</li>
                     {% endfor %}
                 </ul>
             </div>
         </div>
         {% if predictive.notes %}
-        <p class="text-xs text-gray-500 mt-4">{{ predictive.notes }}</p>
+        <p class="text-sm text-gray-500 mt-4 p-3 bg-gray-50 rounded-lg">{{ predictive.notes }}</p>
         {% endif %}
     </div>
     {% endif %}
 
     <!-- Application Funnel -->
-    <div class="chart-container mb-8">
-        <h2 class="text-xl font-semibold mb-4">Application Funnel</h2>
+    <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">Application Funnel</h2>
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             {% for status, data in application_funnel.items %}
-            <div class="text-center p-4 border rounded-lg hover:shadow-lg transition">
-                <div class="text-2xl font-bold text-blue-600">{{ data.count }}</div>
-                <div class="text-sm text-gray-600 capitalize mt-1">{{ status }}</div>
-                <div class="text-xs text-gray-500 mt-1">{{ data.rate }}%</div>
+            <div class="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100/50 border border-blue-200 rounded-xl hover:shadow-lg transition-shadow duration-300">
+                <div class="text-3xl font-bold text-blue-600 mb-1">{{ data.count }}</div>
+                <div class="text-sm font-semibold text-gray-700 capitalize mb-1">{{ status }}</div>
+                <div class="text-xs text-gray-500">{{ data.rate }}%</div>
             </div>
             {% endfor %}
         </div>
     </div>
 
     <!-- Job Performance Table -->
-    <div class="chart-container mb-8">
-        <div class="flex justify-between items-center mb-4">
-            <h2 class="text-xl font-semibold">Job Performance</h2>
-            <div class="flex items-center gap-4 text-sm">
-                <a href="{% url 'analytics:export' %}?type=jobs&format=csv" class="text-blue-600 hover:underline">
-                    <i class="fas fa-download mr-1"></i>Export CSV
+    <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+            <h2 class="text-2xl font-bold text-gray-900">Job Performance</h2>
+            <div class="flex items-center gap-3">
+                <a href="{% url 'analytics:export' %}?type=jobs&format=csv" 
+                   class="inline-flex items-center px-4 py-2 rounded-lg border border-primary text-primary font-semibold hover:bg-primary-light transition text-sm">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                    </svg>
+                    Export CSV
                 </a>
-                <a href="{% url 'analytics:export' %}?type=jobs&format=pdf" class="text-gray-600 hover:underline">
-                    <i class="fas fa-file-pdf mr-1"></i>Download PDF
+                <a href="{% url 'analytics:export' %}?type=jobs&format=pdf" 
+                   class="inline-flex items-center px-4 py-2 rounded-lg border border-gray-700 text-gray-700 font-semibold hover:bg-gray-50 transition text-sm">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                    </svg>
+                    PDF
                 </a>
             </div>
         </div>
@@ -168,54 +231,54 @@
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                             Job Title
                         </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                             Applications
                         </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                             Views
                         </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                             App. Rate
                         </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                             Avg Match Score
                         </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                             Actions
                         </th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                     {% for item in job_analytics %}
-                    <tr class="hover:bg-gray-50">
+                    <tr class="hover:bg-gray-50 transition-colors">
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm font-medium text-gray-900">{{ item.job.title }}</div>
+                            <div class="text-sm font-semibold text-gray-900">{{ item.job.title }}</div>
                             <div class="text-xs text-gray-500">{{ item.job.location }}</div>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {{ item.applications }}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {{ item.views }}
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="text-sm font-semibold text-gray-900">{{ item.applications }}</span>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                            <span class="text-sm font-semibold text-gray-900">{{ item.views }}</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold
                                 {% if item.application_rate > 10 %}bg-green-100 text-green-800
                                 {% elif item.application_rate > 5 %}bg-yellow-100 text-yellow-800
                                 {% else %}bg-red-100 text-red-800{% endif %}">
                                 {{ item.application_rate }}%
                             </span>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {{ item.avg_match_score }}
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="text-sm font-semibold text-gray-900">{{ item.avg_match_score }}</span>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                        <td class="px-6 py-4 whitespace-nowrap">
                             <a href="{% url 'analytics:job_detail' item.job.id %}" 
-                               class="text-blue-600 hover:underline">
-                                View Details
+                               class="text-sm font-semibold text-primary hover:text-primary-dark transition">
+                                View Details →
                             </a>
                         </td>
                     </tr>
@@ -224,70 +287,80 @@
             </table>
         </div>
         {% else %}
-        <div class="text-center py-12 text-gray-500">
-            <i class="fas fa-chart-bar text-4xl mb-3 text-gray-300"></i>
-            <p>No job data available yet</p>
+        <div class="text-center py-12">
+            <svg class="w-16 h-16 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+            </svg>
+            <p class="text-gray-500">No job data available yet</p>
         </div>
         {% endif %}
     </div>
 
     <!-- Screening Analytics -->
-    <div class="chart-container mb-8">
-        <h2 class="text-xl font-semibold mb-4">Screening Analytics</h2>
-        <div class="grid grid-cols-2 gap-6">
-            <div>
-                <div class="text-3xl font-bold text-gray-900">
-                    {{ screening_analytics.total_screened|default:0 }}
-                </div>
-                <div class="text-sm text-gray-600 mt-1">Total Resumes Screened</div>
+    <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">Screening Analytics</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="p-6 bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-xl border border-blue-200">
+                <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-2">Total Resumes Screened</p>
+                <p class="text-4xl font-bold text-gray-900">{{ screening_analytics.total_screened|default:0 }}</p>
             </div>
-            <div>
-                <div class="text-3xl font-bold text-gray-900">
-                    {{ screening_analytics.avg_match_score|default:0 }}
-                </div>
-                <div class="text-sm text-gray-600 mt-1">Average Match Score</div>
+            <div class="p-6 bg-gradient-to-br from-purple-50 to-purple-100/50 rounded-xl border border-purple-200">
+                <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-2">Average Match Score</p>
+                <p class="text-4xl font-bold text-gray-900">{{ screening_analytics.avg_match_score|default:0 }}</p>
             </div>
         </div>
     </div>
 
+    <!-- Sources and Skills Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <div class="chart-container">
-            <h2 class="text-xl font-semibold mb-4">Applicant Sources</h2>
+        <!-- Applicant Sources -->
+        <div class="bg-white rounded-xl shadow-md p-6">
+            <h2 class="text-xl font-bold text-gray-900 mb-4">Applicant Sources</h2>
             <div class="space-y-3">
                 {% for source, count in source_breakdown.items %}
-                <div class="flex justify-between items-center text-sm">
-                    <div class="capitalize text-gray-700">{{ source|default:'unspecified' }}</div>
-                    <div class="font-semibold text-gray-900">{{ count }}</div>
+                <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-100 hover:shadow-md transition-shadow">
+                    <div class="capitalize font-semibold text-gray-700">{{ source|default:'Unspecified' }}</div>
+                    <div class="text-lg font-bold text-gray-900">{{ count }}</div>
                 </div>
                 {% empty %}
-                <p class="text-gray-500 text-sm">No source data available yet.</p>
+                <div class="text-center py-8">
+                    <p class="text-sm text-gray-500">No source data available yet</p>
+                </div>
                 {% endfor %}
             </div>
         </div>
-        <div class="chart-container">
-            <h2 class="text-xl font-semibold mb-4">Skill Insights</h2>
-            <div class="space-y-4">
+
+        <!-- Skill Insights -->
+        <div class="bg-white rounded-xl shadow-md p-6">
+            <h2 class="text-xl font-bold text-gray-900 mb-4">Skill Insights</h2>
+            <div class="space-y-5">
                 <div>
-                    <p class="text-sm text-gray-500">Top Skills</p>
-                    <div class="flex flex-wrap gap-2 mt-2">
+                    <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3">Top Skills</p>
+                    <div class="flex flex-wrap gap-2">
                         {% for item in top_skills %}
-                        <span class="px-3 py-1 rounded-full bg-green-50 text-sm text-green-700 border border-green-100">
+                        <span class="inline-flex items-center px-3 py-2 rounded-lg text-sm font-semibold bg-green-50 text-green-700 border border-green-200">
+                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
                             {{ item.skill }} ({{ item.count }})
                         </span>
                         {% empty %}
-                        <span class="text-gray-500 text-sm">No skill data yet.</span>
+                        <span class="text-sm text-gray-500">No skill data yet</span>
                         {% endfor %}
                     </div>
                 </div>
                 <div>
-                    <p class="text-sm text-gray-500">Skill Gaps</p>
-                    <div class="flex flex-wrap gap-2 mt-2">
+                    <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3">Skill Gaps</p>
+                    <div class="flex flex-wrap gap-2">
                         {% for item in skill_gaps %}
-                        <span class="px-3 py-1 rounded-full bg-red-50 text-sm text-red-700 border border-red-100">
+                        <span class="inline-flex items-center px-3 py-2 rounded-lg text-sm font-semibold bg-red-50 text-red-700 border border-red-200">
+                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                            </svg>
                             {{ item.skill }} ({{ item.count }})
                         </span>
                         {% empty %}
-                        <span class="text-gray-500 text-sm">No skill gap data yet.</span>
+                        <span class="text-sm text-gray-500">No skill gap data yet</span>
                         {% endfor %}
                     </div>
                 </div>
@@ -295,19 +368,22 @@
         </div>
     </div>
 
-    <!-- Trends Chart -->
-    <div class="chart-container">
-        <h2 class="text-xl font-semibold mb-4">Applications Trend (Last 30 Days)</h2>
+    <!-- Trends Charts -->
+    <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">Applications Trend (Last 30 Days)</h2>
         <canvas id="applicationsChart" height="80"></canvas>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
-        <div class="chart-container">
-            <h2 class="text-xl font-semibold mb-4">Hires per Month</h2>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Hires per Month -->
+        <div class="bg-white rounded-xl shadow-md p-6">
+            <h2 class="text-xl font-bold text-gray-900 mb-4">Hires per Month</h2>
             <canvas id="hiresChart" height="80"></canvas>
         </div>
-        <div class="chart-container">
-            <h2 class="text-xl font-semibold mb-4">Average Time to Hire</h2>
+
+        <!-- Average Time to Hire -->
+        <div class="bg-white rounded-xl shadow-md p-6">
+            <h2 class="text-xl font-bold text-gray-900 mb-4">Average Time to Hire</h2>
             <canvas id="timeToHireChart" height="80"></canvas>
         </div>
     </div>
@@ -328,8 +404,8 @@
             datasets: [{
                 label: 'Applications',
                 data: trendsData.map(item => item.count),
-                borderColor: 'rgb(59, 130, 246)',
-                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                borderColor: 'rgb(99, 102, 241)',
+                backgroundColor: 'rgba(99, 102, 241, 0.1)',
                 tension: 0.3,
                 fill: true
             }]
@@ -353,6 +429,7 @@
         }
     });
 
+    // Hires per month chart
     const hiresCtx = document.getElementById('hiresChart').getContext('2d');
     const hiresData = {{ trends.hires_per_month|default:"[]"|safe }};
     new Chart(hiresCtx, {
@@ -362,9 +439,10 @@
             datasets: [{
                 label: 'Hires',
                 data: hiresData.map(item => item.count),
-                backgroundColor: 'rgba(16, 185, 129, 0.4)',
-                borderColor: 'rgb(16, 185, 129)',
-                borderWidth: 1
+                backgroundColor: 'rgba(34, 197, 94, 0.8)',
+                borderColor: 'rgb(34, 197, 94)',
+                borderWidth: 1,
+                borderRadius: 6
             }]
         },
         options: {
@@ -377,6 +455,7 @@
         }
     });
 
+    // Time to hire chart
     const timeCtx = document.getElementById('timeToHireChart').getContext('2d');
     const timeData = {{ trends.avg_time_to_hire|default:"[]"|safe }};
     new Chart(timeCtx, {
@@ -386,8 +465,8 @@
             datasets: [{
                 label: 'Avg Days',
                 data: timeData.map(item => item.avg_days),
-                borderColor: 'rgb(248, 113, 113)',
-                backgroundColor: 'rgba(248, 113, 113, 0.1)',
+                borderColor: 'rgb(239, 68, 68)',
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
                 tension: 0.3,
                 fill: true
             }]

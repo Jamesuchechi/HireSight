@@ -360,6 +360,14 @@ EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='noreply@hiresight.com')
 SITE_URL = config('SITE_URL', default='http://localhost:8000')
 
+ADMIN_CONTACTS = config('ADMIN_CONTACTS', default='')
+ADMINS = tuple(
+    tuple(contact.split(':', 1))
+    for contact in ADMIN_CONTACTS.split(',')
+    if ':' in contact and contact.strip()
+)
+MANAGERS = ADMINS
+
 # Mistral API Settings
 MISTRAL_AI_API_KEY = config('MISTRAL_AI_API_KEY', default='')
 MISTRAL_AI_BASE_URL = config('MISTRAL_AI_BASE_URL', default='https://api.mistral.ai/v1')

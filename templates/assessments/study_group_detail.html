@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ group.name }} - Study Group{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+    {% url 'assessments:study_groups' as groups_url %}
+    {% include 'components/back_button.html' with fallback_url=groups_url label='Back to Study Groups' %}
+    {% include 'assessments/nav_panel.html' %}
+    <section class="bg-white rounded-2xl shadow-lg p-6">
+        <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+                <p class="text-sm uppercase tracking-widest text-gray-500">Study Group · {{ group.skill_focus }}</p>
+                <h1 class="text-4xl font-bold text-gray-900">{{ group.name }}</h1>
+                <p class="text-gray-600 mt-2">{{ group.description }}</p>
+                <p class="text-xs text-gray-500 mt-1">Created {{ group.created_at|date:"M d, Y" }}</p>
+            </div>
+            <div class="flex flex-wrap gap-3">
+                {% if is_member %}
+                <form method="post" action="{% url 'assessments:leave_study_group' group.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="px-5 py-3 rounded-full bg-red-500 text-white font-semibold hover:bg-red-600 transition">
+                        Leave group
+                    </button>
+                </form>
+                {% else %}
+                <form method="post" action="{% url 'assessments:join_study_group' group.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="px-5 py-3 rounded-full bg-primary text-white font-semibold hover:bg-primary-dark transition">
+                        Join group
+                    </button>
+                </form>
+                {% endif %}
+                <a href="{% url 'assessments:group_leaderboard' group.id %}" class="px-5 py-3 rounded-full border border-gray-200 text-gray-700 font-semibold hover:border-primary hover:text-primary transition">
+                    View challenges
+                </a>
+            </div>
+        </div>
+        <div class="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm text-gray-600">
+            <div class="p-4 rounded-2xl bg-gray-50">
+                <p class="font-semibold text-gray-900 text-lg">{{ member_count }}</p>
+                <p>Active members</p>
+            </div>
+            <div class="p-4 rounded-2xl bg-gray-50">
+                <p class="font-semibold text-gray-900 text-lg">{{ challenges.count }}</p>
+                <p>Challenges hosted</p>
+            </div>
+            <div class="p-4 rounded-2xl bg-gray-50">
+                <p class="font-semibold text-gray-900 text-lg">{{ discussions.count }}</p>
+                <p>Recent discussions</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="grid gap-6 lg:grid-cols-2">
+        <div class="bg-white rounded-2xl shadow-lg p-6 space-y-6">
+            <div class="flex items-center justify-between">
+                <h2 class="text-2xl font-semibold text-gray-900">Members</h2>
+                <span class="text-sm text-gray-500">{{ members.count }} total</span>
+            </div>
+            <div class="grid gap-3">
+                {% for member in members %}
+                <div class="flex items-center justify-between border border-gray-100 rounded-xl px-4 py-3">
+                    <div>
+                        <p class="font-semibold text-gray-900">{{ member.get_full_name|default:member.email }}</p>
+                        <p class="text-xs text-gray-500">Joined {{ member.date_joined|date:"M d, Y" }}</p>
+                    </div>
+                    <span class="px-3 py-1 text-xs rounded-full border border-gray-200 text-gray-600">
+                        {{ member.username }}
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-lg p-6 space-y-6">
+            <div class="flex items-center justify-between">
+                <h2 class="text-2xl font-semibold text-gray-900">Active discussion</h2>
+                <a href="{% url 'assessments:group_leaderboard' group.id %}" class="text-sm text-primary font-semibold hover:underline">View leaderboard</a>
+            </div>
+            <div class="space-y-4">
+                {% if discussions %}
+                    {% for discussion in discussions %}
+                    <article class="border border-gray-100 rounded-xl p-4 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-sm font-semibold text-gray-900">{{ discussion.question.skill_name }}</h3>
+                            <span class="text-xs text-gray-500">{{ discussion.created_at|timesince }} ago</span>
+                        </div>
+                        <p class="text-sm text-gray-600">{{ discussion.comment }}</p>
+                        <div class="flex items-center justify-between text-xs text-gray-500">
+                            <span>{{ discussion.user.get_full_name|default:discussion.user.email }}</span>
+                            <span>{{ discussion.get_upvote_count }} upvotes</span>
+                        </div>
+                    </article>
+                    {% endfor %}
+                {% else %}
+                <p class="text-sm text-gray-500">No discussions yet. Start one from the question bank.</p>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+
+    <section class="bg-white rounded-2xl shadow-lg p-6 space-y-4">
+        <div class="flex items-center justify-between">
+            <h2 class="text-2xl font-semibold text-gray-900">Challenges</h2>
+            {% if is_admin %}
+            <span class="text-xs uppercase tracking-wide text-primary font-semibold">Admin access</span>
+            {% endif %}
+        </div>
+        {% if challenges %}
+        <div class="grid gap-4">
+            {% for challenge in challenges %}
+            <div class="border border-gray-100 rounded-2xl p-4 flex flex-col gap-2">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xl font-semibold">{{ challenge.title }}</h3>
+                    <span class="px-3 py-1 rounded-full text-xs bg-primary/10 text-primary">
+                        {{ challenge.start_date|date:"M d" }} - {{ challenge.end_date|date:"M d" }}
+                    </span>
+                </div>
+                <p class="text-sm text-gray-600">{{ challenge.description }}</p>
+                <p class="text-xs text-gray-500">Prize: {{ challenge.prize_description|default:"Community kudos" }}</p>
+                <a href="{% url 'assessments:group_leaderboard' group.id %}?challenge={{ challenge.id }}"
+                   class="text-sm font-semibold text-primary hover:underline">View leaderboard</a>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-sm text-gray-500">No challenges scheduled yet.</p>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

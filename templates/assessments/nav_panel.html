@@ -1,0 +1,31 @@
+{% comment %}Navigation pill cluster for assessment-related journeys{% endcomment %}
+<div class="flex flex-wrap gap-3 mb-6 text-sm">
+    <a href="{% url 'assessments:browse' %}"
+       class="px-3 py-1 rounded-full border border-gray-200 hover:border-primary hover:text-primary transition font-semibold">
+        Browse Tests
+    </a>
+    <a href="{% url 'assessments:history' %}"
+       class="px-3 py-1 rounded-full border border-gray-200 hover:border-green-500 hover:text-green-600 transition font-semibold">
+        History
+    </a>
+    <a href="{% url 'assessments:analytics' %}"
+       class="px-3 py-1 rounded-full border border-gray-200 hover:border-indigo-500 hover:text-indigo-600 transition font-semibold">
+        Analytics
+    </a>
+    <a href="{% url 'assessments:learning_path' %}"
+       class="px-3 py-1 rounded-full border border-gray-200 hover:border-purple-500 hover:text-purple-600 transition font-semibold">
+        Learning Path
+    </a>
+    <a href="{% url 'assessments:study_groups' %}"
+       class="px-3 py-1 rounded-full border border-gray-200 hover:border-emerald-500 hover:text-emerald-600 transition font-semibold">
+        Study Groups
+    </a>
+    <a href="{% url 'assessments:my_bookmarks' %}"
+       class="px-3 py-1 rounded-full border border-gray-200 hover:border-yellow-500 hover:text-yellow-600 transition font-semibold">
+        Bookmarks
+    </a>
+    <a href="{% url 'assessments:leaderboard' %}"
+       class="px-3 py-1 rounded-full border border-gray-200 hover:border-red-500 hover:text-red-600 transition font-semibold">
+        Leaderboard
+    </a>
+</div>

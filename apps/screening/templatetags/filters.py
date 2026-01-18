@@ -34,3 +34,24 @@ def mul(value, multiplier):
         return float(value) * float(multiplier)
     except (TypeError, ValueError):
         return ""
+
+
+@register.filter
+def get_index(sequence, index):
+    """
+    Get an item from a list/tuple by index or fall back to dict lookup.
+    Usage: {{ sequence|get_index:index }}
+    """
+    try:
+        idx = int(index)
+    except (TypeError, ValueError):
+        idx = None
+
+    if isinstance(sequence, (list, tuple)) and idx is not None:
+        try:
+            return sequence[idx]
+        except IndexError:
+            return None
+    if isinstance(sequence, dict):
+        return sequence.get(index)
+    return None

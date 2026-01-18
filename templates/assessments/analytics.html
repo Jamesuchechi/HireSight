@@ -1,0 +1,253 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Assessment Analytics - HireSight{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    {% url 'assessments:browse' as browse_url %}
+    {% include 'components/back_button.html' with fallback_url=browse_url label='Back to Browse Tests' %}
+    {% include 'assessments/nav_panel.html' %}
+    <header class="flex flex-col gap-3">
+        <p class="text-sm uppercase tracking-wide text-gray-500">Insights</p>
+        <h1 class="text-4xl font-bold text-gray-900">Advanced Analytics Dashboard</h1>
+        <p class="text-base text-gray-600">
+            Dynamic visualizations covering your performance across time, skills, difficulties, and question types.
+        </p>
+    </header>
+
+    <section class="grid gap-6 lg:grid-cols-3">
+        <div class="lg:col-span-2 bg-white rounded-2xl shadow-lg p-6">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <p class="text-sm text-gray-500 uppercase tracking-wide">Skill Radar</p>
+                    <h2 class="text-2xl font-semibold text-gray-900">Top Skills</h2>
+                </div>
+                <span class="text-xs text-gray-500">{{ total_attempts }} completed attempts</span>
+            </div>
+            <canvas id="skillRadar" height="230"></canvas>
+        </div>
+
+        <div class="space-y-4">
+            <div class="bg-white rounded-2xl shadow-lg p-6 flex flex-col items-center gap-3 text-center">
+                <p class="text-sm text-gray-500">Consistency Score</p>
+                <div class="w-32 h-32 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center">
+                    <div class="w-24 h-24 bg-white rounded-full flex items-center justify-center text-3xl font-bold text-primary">
+                        {{ consistency_score }}%
+                    </div>
+                </div>
+                <p class="text-sm text-gray-600">Lower variance in scores yields higher reliability.</p>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-lg p-6 space-y-3">
+                <p class="text-sm text-gray-500 uppercase tracking-wide">Improvement Rate</p>
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-lg font-semibold text-gray-900">{{ improvement_rate.last_avg }}% avg</p>
+                        <p class="text-xs text-gray-500">Most recent 10 attempts</p>
+                    </div>
+                <div class="text-right">
+                    <p class="text-lg font-semibold {% if improvement_rate.change >= 0 %}text-emerald-600{% else %}text-red-600{% endif %}">
+                        {{ improvement_rate.change }}%
+                    </p>
+                        <p class="text-xs text-gray-500">vs first 10 ({{ improvement_rate.first_avg }}%)</p>
+                    </div>
+                </div>
+                <p class="text-xs text-gray-500 border-t border-dashed pt-3">
+                    Best time of day: <strong>{{ best_time_bucket.bucket }}</strong> ({{ best_time_bucket.pass_rate }}% pass rate)
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <section class="grid gap-6 lg:grid-cols-3">
+        <div class="bg-white rounded-2xl shadow-lg p-6">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <p class="text-sm text-gray-500 uppercase tracking-wide">Time of Day</p>
+                    <h2 class="text-xl font-semibold text-gray-900">Performance by Shift</h2>
+                </div>
+            </div>
+            <canvas id="timeOfDayChart" height="220"></canvas>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-lg p-6">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <p class="text-sm text-gray-500 uppercase tracking-wide">Difficulty</p>
+                    <h2 class="text-xl font-semibold text-gray-900">Progression</h2>
+                </div>
+            </div>
+            <canvas id="difficultyChart" height="220"></canvas>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-lg p-6">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <p class="text-sm text-gray-500 uppercase tracking-wide">Question Types</p>
+                    <h2 class="text-xl font-semibold text-gray-900">Success Rates</h2>
+                </div>
+            </div>
+            <canvas id="questionTypeChart" height="220"></canvas>
+        </div>
+    </section>
+
+    <section class="space-y-4">
+        <h2 class="text-2xl font-semibold text-gray-900">Insight Cards</h2>
+        <div class="grid gap-4 md:grid-cols-2">
+            {% for insight in insights %}
+            <div class="bg-white rounded-2xl shadow-lg p-5 border {% if insight.tone == 'warning' %}border-yellow-200{% elif insight.tone == 'success' %}border-emerald-200{% else %}border-gray-100{% endif %}">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-gray-900">{{ insight.title }}</h3>
+                    <span class="text-xs uppercase tracking-wide text-gray-500">
+                        {{ insight.tone|title }}
+                    </span>
+                </div>
+                <p class="text-sm text-gray-600 mt-2">{{ insight.message }}</p>
+            </div>
+            {% empty %}
+            <p class="text-sm text-gray-500">No insights available yet. Complete more assessments to unlock recommendations.</p>
+            {% endfor %}
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+const radarPayload = {{ radar_payload|safe }};
+const timePayload = {{ time_payload|safe }};
+const difficultyPayload = {{ difficulty_payload|safe }};
+const questionTypePayload = {{ question_type_payload|safe }};
+
+const radarCtx = document.getElementById('skillRadar');
+if (radarCtx && radarPayload.labels.length) {
+    new Chart(radarCtx.getContext('2d'), {
+        type: 'radar',
+        data: {
+            labels: radarPayload.labels,
+            datasets: [
+                {
+                    label: 'Avg Score',
+                    data: radarPayload.avg_scores,
+                    borderColor: 'rgba(59, 130, 246, 0.9)',
+                    backgroundColor: 'rgba(59, 130, 246, 0.3)',
+                    borderWidth: 2,
+                    pointBackgroundColor: '#3b82f6'
+                },
+                {
+                    label: 'Pass Rate',
+                    data: radarPayload.pass_rates,
+                    borderColor: 'rgba(16, 185, 129, 0.9)',
+                    backgroundColor: 'rgba(16, 185, 129, 0.3)',
+                    borderWidth: 2,
+                    pointBackgroundColor: '#10b981'
+                }
+            ]
+        },
+        options: {
+            scales: {
+                r: {
+                    suggestedMin: 0,
+                    suggestedMax: 100,
+                    ticks: { stepSize: 20 }
+                }
+            },
+            plugins: {
+                legend: { position: 'top' }
+            }
+        }
+    });
+}
+
+const timeCtx = document.getElementById('timeOfDayChart');
+if (timeCtx && timePayload.labels.length) {
+    new Chart(timeCtx.getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: timePayload.labels,
+            datasets: [
+                {
+                    label: 'Avg Score',
+                    data: timePayload.avg_scores,
+                    backgroundColor: 'rgba(59, 130, 246, 0.7)'
+                },
+                {
+                    label: 'Pass Rate',
+                    data: timePayload.pass_rates,
+                    backgroundColor: 'rgba(16, 185, 129, 0.7)'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: { beginAtZero: true, max: 100 }
+            }
+        }
+    });
+}
+
+const difficultyCtx = document.getElementById('difficultyChart');
+if (difficultyCtx && difficultyPayload.labels.length) {
+    new Chart(difficultyCtx.getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: difficultyPayload.labels,
+            datasets: [
+                {
+                    label: 'Avg Score',
+                    data: difficultyPayload.avg_scores,
+                    borderColor: 'rgba(59, 130, 246, 0.9)',
+                    backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                    tension: 0.35
+                },
+                {
+                    label: 'Pass Rate',
+                    data: difficultyPayload.pass_rates,
+                    borderColor: 'rgba(239, 68, 68, 0.9)',
+                    backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                    tension: 0.35
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100
+                }
+            }
+        }
+    });
+}
+
+const questionCtx = document.getElementById('questionTypeChart');
+if (questionCtx && questionTypePayload.labels.length) {
+    new Chart(questionCtx.getContext('2d'), {
+        type: 'doughnut',
+        data: {
+            labels: questionTypePayload.labels,
+            datasets: [{
+                data: questionTypePayload.pass_rates,
+                backgroundColor: [
+                    '#22c55e',
+                    '#ec4899',
+                    '#3b82f6',
+                    '#fb923c',
+                    '#a855f7'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom' }
+            }
+        }
+    });
+}
+</script>
+{% endblock %}

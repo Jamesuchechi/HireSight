@@ -28,6 +28,8 @@ from .models import (
 )
 from .pdf_export import AnalyticsPDFExporter
 from .utils import get_industry_benchmarks
+from apps.assessments.analytics import AssessmentAnalytics
+from apps.assessments.utils import LearningPathGenerator
 
 # Import models from other apps
 try:
@@ -382,6 +384,56 @@ class AnalyticsDashboardView(LoginRequiredMixin, TemplateView):
             'taken': snapshot.skill_assessments_taken if snapshot else assessments.count(),
             'avg_score': snapshot.avg_skill_assessment_score if snapshot else (assessments.aggregate(avg=Avg('score'))['avg'] or 0),
         }
+
+        analytics_helper = AssessmentAnalytics(user)
+        radar_payload = analytics_helper.get_skill_radar_data()
+        time_analysis = analytics_helper.get_time_analysis()
+        difficulty_progression = analytics_helper.get_difficulty_progression()
+        question_type_stats = analytics_helper.get_question_type_performance()
+
+        context['radar_payload'] = radar_payload
+        context['time_payload'] = {
+            'labels': [entry['bucket'] for entry in time_analysis],
+            'avg_scores': [entry['avg_score'] for entry in time_analysis],
+            'pass_rates': [entry['pass_rate'] for entry in time_analysis],
+        }
+        context['difficulty_payload'] = {
+            'labels': [entry['label'] for entry in difficulty_progression],
+            'avg_scores': [entry['avg_score'] for entry in difficulty_progression],
+            'pass_rates': [entry['pass_rate'] for entry in difficulty_progression],
+        }
+        context['question_type_payload'] = {
+            'labels': [entry['label'] for entry in question_type_stats],
+            'pass_rates': [entry['pass_rate'] for entry in question_type_stats],
+        }
+        best_time_bucket = max(time_analysis, key=lambda x: x['pass_rate']) if time_analysis else None
+        context['best_time_bucket'] = best_time_bucket or {'bucket': 'N/A', 'pass_rate': 0}
+        context['assessment_insights'] = analytics_helper.generate_insights()
+        context['consistency_score'] = analytics_helper.get_consistency_score()
+        context['improvement_rate'] = analytics_helper.get_improvement_rate()
+
+        if snapshot:
+            context['skill_summary'] = snapshot.skill_summary
+            context['assessment_trends'] = snapshot.assessment_trends
+            context['time_of_day'] = snapshot.time_of_day_performance
+            context['weak_skills'] = snapshot.weak_skills
+        else:
+            radar = radar_payload
+            context['skill_summary'] = [
+                {
+                    'skill': radar['labels'][idx],
+                    'avg_score': radar['avg_scores'][idx],
+                    'pass_rate': radar['pass_rates'][idx],
+                }
+                for idx in range(len(radar.get('labels', [])))
+            ] if radar.get('labels') else []
+            context['assessment_trends'] = get_assessment_trends(user, days=30)
+            context['time_of_day'] = time_analysis
+            try:
+                weak_paths = LearningPathGenerator(user).generate_path()
+                context['weak_skills'] = [area['skill'] for area in weak_paths.get('weak_areas', [])]
+            except Exception:
+                context['weak_skills'] = []
 
         return context
 

@@ -245,6 +245,10 @@ class PersonalAnalyticsSnapshot(models.Model):
     skill_assessments_taken = models.IntegerField(default=0)
     avg_skill_assessment_score = models.FloatField(null=True, blank=True)
     badges_earned = JSONField(default=list, blank=True)
+    skill_summary = JSONField(default=list, blank=True)
+    assessment_trends = JSONField(default=list, blank=True)
+    time_of_day_performance = JSONField(default=dict, blank=True)
+    weak_skills = JSONField(default=list, blank=True)
     
     created_at = models.DateTimeField(auto_now_add=True)
     
@@ -274,6 +278,7 @@ class SkillAssessmentResult(models.Model):
     passed = models.BooleanField(default=False)
     badge_awarded = models.CharField(max_length=100, blank=True, null=True)
     metadata = JSONField(default=dict, blank=True)
+    attempt_id = models.UUIDField(null=True, blank=True, db_index=True)
     taken_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

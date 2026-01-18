@@ -1,62 +1,101 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Job Analytics - {{ job.title }}{% endblock %}
-
-{% block extra_css %}
-<style>
-    .stat-card {
-        @apply bg-white rounded-lg shadow p-6 border border-gray-200;
-    }
-    .chart-container {
-        @apply bg-white rounded-lg shadow p-6 border border-gray-200;
-    }
-</style>
-{% endblock %}
+{% block title %}Job Analytics - {{ job.title }} - HireSight{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Back Button -->
+    <div class="mb-6">
+        <a href="{% url 'analytics:dashboard' %}" 
+           class="inline-flex items-center text-primary hover:text-primary-dark font-semibold transition">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+            </svg>
+            Back to Dashboard
+        </a>
+    </div>
+
     <!-- Header -->
     <div class="mb-8">
-        <a href="{% url 'analytics:dashboard' %}" class="text-blue-600 hover:underline mb-4 inline-block">
-            <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
-        </a>
-        <h1 class="text-3xl font-bold text-gray-900">{{ job.title }}</h1>
-        <p class="text-gray-600 mt-1">Detailed analytics for this job posting</p>
+        <h1 class="text-4xl font-display font-bold text-gray-900 mb-2">{{ job.title }}</h1>
+        <p class="text-lg text-gray-600">Detailed analytics for this job posting</p>
     </div>
 
     <!-- Key Metrics -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div class="stat-card">
-            <div class="text-3xl font-bold text-gray-900">{{ total_applications }}</div>
-            <div class="text-sm text-gray-600 mt-1">Total Applications</div>
-        </div>
-        
-        <div class="stat-card">
-            <div class="text-3xl font-bold text-gray-900">{{ total_views }}</div>
-            <div class="text-sm text-gray-600 mt-1">Total Views</div>
-        </div>
-        
-        <div class="stat-card">
-            <div class="text-3xl font-bold text-blue-600">{{ application_rate|floatformat:1 }}%</div>
-            <div class="text-sm text-gray-600 mt-1">Application Rate</div>
-        </div>
-        
-        <div class="stat-card">
-            <div class="text-3xl font-bold text-gray-900">
-                {{ job.status|upper }}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-primary">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Total Applications</p>
+                    <p class="text-3xl font-bold text-gray-900 mt-1">{{ total_applications }}</p>
+                </div>
+                <div class="w-12 h-12 bg-primary-light rounded-lg flex items-center justify-center">
+                    <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                </div>
             </div>
-            <div class="text-sm text-gray-600 mt-1">Job Status</div>
+        </div>
+        
+        <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-blue-500">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Total Views</p>
+                    <p class="text-3xl font-bold text-gray-900 mt-1">{{ total_views }}</p>
+                </div>
+                <div class="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center">
+                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                    </svg>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-success">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Application Rate</p>
+                    <p class="text-3xl font-bold text-gray-900 mt-1">{{ application_rate|floatformat:1 }}%</p>
+                </div>
+                <div class="w-12 h-12 bg-green-50 rounded-lg flex items-center justify-center">
+                    <svg class="w-6 h-6 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                    </svg>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-secondary">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Job Status</p>
+                    <p class="text-3xl font-bold text-gray-900 mt-1">{{ job.status|upper }}</p>
+                </div>
+                <div class="w-12 h-12 bg-secondary-light rounded-lg flex items-center justify-center">
+                    <svg class="w-6 h-6 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+            </div>
         </div>
     </div>
 
     <!-- Application Pipeline -->
-    <div class="chart-container mb-8">
-        <h2 class="text-xl font-semibold mb-4">Application Pipeline</h2>
+    <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">Application Pipeline</h2>
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             {% for status, count in status_breakdown.items %}
-            <div class="text-center p-4 border rounded-lg hover:shadow-lg transition">
-                <div class="text-2xl font-bold 
+            <div class="text-center p-4 rounded-xl border-2 hover:shadow-lg transition-shadow duration-300
+                {% if status == 'pending' %}border-yellow-300 bg-yellow-50
+                {% elif status == 'screening' %}border-blue-300 bg-blue-50
+                {% elif status == 'interview' %}border-purple-300 bg-purple-50
+                {% elif status == 'offer' %}border-green-300 bg-green-50
+                {% elif status == 'hired' %}border-emerald-300 bg-emerald-50
+                {% elif status == 'rejected' %}border-red-300 bg-red-50
+                {% endif %}">
+                <div class="text-3xl font-bold mb-1
                     {% if status == 'pending' %}text-yellow-600
                     {% elif status == 'screening' %}text-blue-600
                     {% elif status == 'interview' %}text-purple-600
@@ -66,37 +105,61 @@
                     {% endif %}">
                     {{ count }}
                 </div>
-                <div class="text-sm text-gray-600 capitalize mt-1">{{ status }}</div>
+                <div class="text-sm font-semibold text-gray-700 capitalize">{{ status }}</div>
             </div>
             {% endfor %}
         </div>
     </div>
 
     <!-- Match Score Distribution -->
-    <div class="chart-container mb-8">
-        <h2 class="text-xl font-semibold mb-4">Match Score Distribution</h2>
+    <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">Match Score Distribution</h2>
         <canvas id="scoreChart" height="80"></canvas>
     </div>
 
     <!-- Job Details -->
-    <div class="chart-container">
-        <h2 class="text-xl font-semibold mb-4">Job Details</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-                <div class="text-sm text-gray-600 mb-1">Location</div>
-                <div class="font-medium text-gray-900">{{ job.location }}</div>
+    <div class="bg-white rounded-xl shadow-md p-6">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">Job Details</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div class="flex items-center gap-3 mb-2">
+                    <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                    <div class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Location</div>
+                </div>
+                <div class="font-semibold text-gray-900">{{ job.location }}</div>
             </div>
-            <div>
-                <div class="text-sm text-gray-600 mb-1">Employment Type</div>
-                <div class="font-medium text-gray-900">{{ job.employment_type|title }}</div>
+
+            <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div class="flex items-center gap-3 mb-2">
+                    <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                    </svg>
+                    <div class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Employment Type</div>
+                </div>
+                <div class="font-semibold text-gray-900">{{ job.employment_type|title }}</div>
             </div>
-            <div>
-                <div class="text-sm text-gray-600 mb-1">Remote Type</div>
-                <div class="font-medium text-gray-900">{{ job.remote_type|title }}</div>
+
+            <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div class="flex items-center gap-3 mb-2">
+                    <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <div class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Remote Type</div>
+                </div>
+                <div class="font-semibold text-gray-900">{{ job.remote_type|title }}</div>
             </div>
-            <div>
-                <div class="text-sm text-gray-600 mb-1">Posted Date</div>
-                <div class="font-medium text-gray-900">{{ job.created_at|date:"M d, Y" }}</div>
+
+            <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div class="flex items-center gap-3 mb-2">
+                    <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                    <div class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Posted Date</div>
+                </div>
+                <div class="font-semibold text-gray-900">{{ job.created_at|date:"M d, Y" }}</div>
             </div>
         </div>
     </div>
@@ -118,9 +181,10 @@
             datasets: [{
                 label: 'Number of Applications',
                 data: Object.values(scoreData),
-                backgroundColor: 'rgba(59, 130, 246, 0.5)',
-                borderColor: 'rgb(59, 130, 246)',
-                borderWidth: 1
+                backgroundColor: 'rgba(99, 102, 241, 0.8)',
+                borderColor: 'rgb(99, 102, 241)',
+                borderWidth: 1,
+                borderRadius: 6
             }]
         },
         options: {

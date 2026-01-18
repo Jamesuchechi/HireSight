@@ -129,7 +129,12 @@ class JobCreateForm(forms.ModelForm):
                 'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all',
                 'placeholder': "e.g., Bachelor's degree in Computer Science"
             }),
-        }
+    }
+
+    screening_questions = forms.CharField(
+        required=False,
+        widget=forms.HiddenInput()
+    )
 
     is_remote = forms.BooleanField(
         required=False,
@@ -181,6 +186,11 @@ class JobCreateForm(forms.ModelForm):
             if self.instance.tags:
                 if isinstance(self.instance.tags, list):
                     self.initial['tags_text'] = ', '.join(self.instance.tags)
+            if self.instance.screening_questions:
+                try:
+                    self.initial['screening_questions'] = json.dumps(self.instance.screening_questions)
+                except (TypeError, ValueError):
+                    self.initial['screening_questions'] = '[]'
 
     def clean_title(self):
         """Validate job title."""
@@ -285,6 +295,23 @@ class JobCreateForm(forms.ModelForm):
         tags = [tag.strip() for tag in tags_text.split(',') if tag.strip()]
         return tags
 
+    def clean_screening_questions(self):
+        """Parse screening questions JSON from the hidden textarea."""
+        data = self.cleaned_data.get('screening_questions', '').strip()
+
+        if not data:
+            return []
+
+        try:
+            parsed = json.loads(data)
+        except json.JSONDecodeError:
+            raise ValidationError('Invalid screening questions data.')
+
+        if not isinstance(parsed, list):
+            raise ValidationError('Screening questions must be submitted as a list.')
+
+        return parsed
+
     def save(self, commit=True):
         """Save job with company and converted JSON fields."""
         instance = super().save(commit=False)
@@ -296,6 +323,7 @@ class JobCreateForm(forms.ModelForm):
         # Convert text fields to JSON
         instance.requirements = self.cleaned_data.get('requirements_text') or {}
         instance.tags = self.cleaned_data.get('tags_text') or []
+        instance.screening_questions = self.cleaned_data.get('screening_questions') or []
         
         if commit:
             instance.save()

@@ -10,11 +10,15 @@ from django.core.mail import send_mail
 from django.http import HttpResponse
 from django.urls import reverse
 from django.utils.html import format_html
+from django.utils import timezone
 
 from .ai_utils import QuestionGenerator
 from .models import (
     QuestionPool, SkillTest, SkillAssessmentAttempt, 
-    SkillBadge, AssessmentCategory
+    SkillBadge, AssessmentCategory, StudyGroup,
+    StudyGroupMembership, GroupChallenge,
+    QuestionDiscussion, BookmarkedQuestion, Achievement,
+    UserAchievement
 )
 
 logger = logging.getLogger(__name__)
@@ -22,8 +26,8 @@ logger = logging.getLogger(__name__)
 
 @admin.register(QuestionPool)
 class QuestionPoolAdmin(admin.ModelAdmin):
-    list_display = ['question_preview', 'skill_name', 'difficulty', 'question_type', 'points', 'success_rate_display', 'times_used', 'is_active', 'is_verified']
-    list_filter = ['skill_name', 'difficulty', 'question_type', 'is_active', 'is_verified', 'created_at']
+    list_display = ['question_preview', 'skill_name', 'difficulty', 'question_type', 'points', 'success_rate_display', 'times_used', 'is_active', 'is_verified', 'flag_count']
+    list_filter = ['skill_name', 'difficulty', 'question_type', 'is_active', 'is_verified', 'is_flagged', 'created_at']
     search_fields = ['skill_name', 'question', 'explanation']
     ordering = ['-created_at']
     readonly_fields = ['id', 'times_used', 'times_correct', 'average_time_taken', 'created_at', 'updated_at', 'success_rate_display']
@@ -36,7 +40,11 @@ class QuestionPoolAdmin(admin.ModelAdmin):
             'fields': ('points', 'estimated_time_seconds')
         }),
         ('Status', {
-            'fields': ('is_active', 'is_verified')
+            'fields': ('is_active', 'is_verified', 'is_flagged')
+        }),
+        ('Moderation', {
+            'fields': ('flag_count', 'explanation_upvotes'),
+            'classes': ('collapse',)
         }),
         ('Statistics', {
             'fields': ('times_used', 'times_correct', 'average_time_taken', 'success_rate_display'),
@@ -404,3 +412,158 @@ class AssessmentCategoryAdmin(admin.ModelAdmin):
     def test_count(self, obj):
         return obj.tests.count()
     test_count.short_description = 'Tests'
+
+
+class StudyGroupMembershipInline(admin.TabularInline):
+    model = StudyGroupMembership
+    extra = 0
+    verbose_name = "Membership"
+    verbose_name_plural = "Memberships"
+
+
+@admin.register(StudyGroup)
+class StudyGroupAdmin(admin.ModelAdmin):
+    list_display = [
+        'name', 'skill_focus', 'creator_email', 'member_count',
+        'is_public', 'max_members', 'created_at'
+    ]
+    list_filter = ['is_public', 'skill_focus']
+    search_fields = ['name', 'description', 'skill_focus', 'creator__email']
+    inlines = [StudyGroupMembershipInline]
+    readonly_fields = ['member_count', 'created_at']
+
+    fieldsets = (
+        (None, {
+            'fields': ('name', 'description', 'skill_focus')
+        }),
+        ('Settings', {
+            'fields': ('creator', 'is_public', 'max_members')
+        }),
+        ('Stats', {
+            'fields': ('member_count', 'created_at')
+        }),
+    )
+
+    def member_count(self, obj):
+        return obj.members.count()
+    member_count.short_description = 'Members'
+
+    def creator_email(self, obj):
+        return obj.creator.email
+    creator_email.short_description = 'Creator'
+
+
+@admin.register(StudyGroupMembership)
+class StudyGroupMembershipAdmin(admin.ModelAdmin):
+    list_display = ['user_email', 'group', 'role', 'joined_at']
+    list_filter = ['role', 'joined_at']
+    search_fields = ['user__email', 'group__name']
+    readonly_fields = ['joined_at']
+
+    def user_email(self, obj):
+        return obj.user.email
+    user_email.short_description = 'User'
+
+
+@admin.register(GroupChallenge)
+class GroupChallengeAdmin(admin.ModelAdmin):
+    list_display = ['title', 'group', 'test', 'status_label', 'start_date', 'end_date', 'leaderboard_link']
+    list_filter = ['group', 'test', 'start_date', 'end_date']
+    search_fields = ['title', 'description', 'group__name', 'test__title']
+    readonly_fields = ['created_at']
+
+    fieldsets = (
+        (None, {
+            'fields': ('group', 'test', 'title', 'description', 'prize_description')
+        }),
+        ('Scheduling', {
+            'fields': ('start_date', 'end_date')
+        }),
+        ('Metadata', {
+            'fields': ('created_at',)
+        }),
+    )
+
+    def status_label(self, obj):
+        now = timezone.now()
+        if obj.start_date <= now <= obj.end_date:
+            return format_html('<span style="color: green;">Active</span>')
+        if now < obj.start_date:
+            return format_html('<span style="color: blue;">Upcoming</span>')
+        return format_html('<span style="color: red;">Closed</span>')
+    status_label.short_description = 'Status'
+
+    def leaderboard_link(self, obj):
+        url = reverse('assessments:group_leaderboard', kwargs={'group_id': obj.group.id})
+        return format_html('<a href="{}" target="_blank">Leaderboard</a>', url)
+    leaderboard_link.short_description = 'Leaderboard'
+
+
+@admin.register(QuestionDiscussion)
+class QuestionDiscussionAdmin(admin.ModelAdmin):
+    list_display = ['question_preview', 'user', 'upvote_count', 'created_at']
+    list_filter = ['question__skill_name', 'user']
+    search_fields = ['question__question', 'user__email', 'comment']
+    readonly_fields = ['created_at', 'updated_at']
+    ordering = ['-created_at']
+
+    def question_preview(self, obj):
+        return f"{obj.question.skill_name}: {obj.question.question[:60]}..."
+    question_preview.short_description = 'Question'
+
+    def upvote_count(self, obj):
+        return obj.upvotes.count()
+    upvote_count.short_description = 'Upvotes'
+
+
+@admin.register(BookmarkedQuestion)
+class BookmarkedQuestionAdmin(admin.ModelAdmin):
+    list_display = ['user_email', 'question_preview', 'notes_summary', 'created_at']
+    list_filter = ['question__skill_name', 'created_at']
+    search_fields = ['user__email', 'question__question', 'notes']
+    readonly_fields = ['created_at']
+
+    def user_email(self, obj):
+        return obj.user.email
+    user_email.short_description = 'User'
+
+    def question_preview(self, obj):
+        return f"{obj.question.skill_name}: {obj.question.question[:60]}..."
+    question_preview.short_description = 'Question'
+
+    def notes_summary(self, obj):
+        if obj.notes:
+            return obj.notes[:60] + ('…' if len(obj.notes) > 60 else '')
+        return '-'
+    notes_summary.short_description = 'Notes'
+
+
+@admin.register(Achievement)
+class AchievementAdmin(admin.ModelAdmin):
+    list_display = ['name', 'code', 'type', 'icon']
+    search_fields = ['name', 'code', 'description']
+    fieldsets = (
+        (None, {
+            'fields': ('code', 'name', 'description', 'icon', 'type')
+        }),
+        ('Criteria', {
+            'fields': ('criteria',)
+        }),
+    )
+    readonly_fields = ['code']
+
+
+@admin.register(UserAchievement)
+class UserAchievementAdmin(admin.ModelAdmin):
+    list_display = ['user_email', 'achievement_name', 'earned_at']
+    list_filter = ['achievement', 'earned_at']
+    search_fields = ['user__email', 'achievement__name']
+    readonly_fields = ['earned_at']
+
+    def user_email(self, obj):
+        return obj.user.email
+    user_email.short_description = 'User'
+
+    def achievement_name(self, obj):
+        return obj.achievement.name
+    achievement_name.short_description = 'Achievement'

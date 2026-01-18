@@ -1,0 +1,56 @@
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+    <div class="chart-container">
+        <h2 class="text-xl font-semibold mb-4">Skill Summary</h2>
+        {% if skill_summary %}
+        <div class="space-y-3">
+            {% for skill in skill_summary %}
+            <div class="bg-gray-50 rounded-lg border border-gray-100 p-3 flex justify-between">
+                <div>
+                    <p class="font-semibold text-gray-900">{{ skill.skill }}</p>
+                    <p class="text-xs text-gray-500">Pass rate {{ skill.pass_rate }}%</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-lg font-bold">{{ skill.avg_score }}%</p>
+                    <p class="text-xs text-gray-500">Avg Score</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-sm text-gray-500">Complete assessments to unlock skill details.</p>
+        {% endif %}
+    </div>
+    <div class="chart-container">
+        <h2 class="text-xl font-semibold mb-4">Weak Skills</h2>
+        {% if weak_skills %}
+        <div class="flex flex-wrap gap-2">
+            {% for skill in weak_skills %}
+            <span class="px-3 py-1 text-sm rounded-full bg-red-50 text-red-700 border border-red-100">{{ skill }}</span>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-sm text-gray-500">No weak areas detected right now.</p>
+        {% endif %}
+    </div>
+    <div class="chart-container">
+        <h2 class="text-xl font-semibold mb-4">Score Trends</h2>
+        <canvas id="assessmentTrendChart" height="220"></canvas>
+    </div>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+    <div class="chart-container">
+        <h2 class="text-xl font-semibold mb-4">Skill Radar</h2>
+        <canvas id="skillRadarChart" height="200"></canvas>
+    </div>
+    <div class="chart-container">
+        <h2 class="text-xl font-semibold mb-4">Time of Day</h2>
+        <canvas id="timeOfDayChart" height="200"></canvas>
+    </div>
+    <div class="chart-container">
+        <h2 class="text-xl font-semibold mb-4">Latest Summary</h2>
+        <p class="text-sm text-gray-500">Avg. score across the last 30 days.</p>
+        <p class="text-3xl font-bold text-gray-900">
+            {{ overview.avg_match_score|default:0 }}%
+        </p>
+    </div>
+</div>

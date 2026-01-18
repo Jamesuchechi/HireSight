@@ -85,6 +85,31 @@ class PersonalAnalyticsSnapshotAdmin(admin.ModelAdmin):
     search_fields = ['user__email']
     readonly_fields = ['created_at']
     date_hierarchy = 'date'
+    fieldsets = (
+        (None, {
+            'fields': ('user', 'date')
+        }),
+        ('Metrics', {
+            'fields': (
+                'total_applications', 'applications_pending', 'applications_screening',
+                'applications_interview', 'applications_offer', 'applications_hired',
+                'applications_rejected'
+            )
+        }),
+        ('Engagement', {
+            'fields': (
+                'profile_views_count', 'jobs_viewed_count', 'jobs_saved_count',
+                'searches_performed'
+            )
+        }),
+        ('Assessment Insights', {
+            'fields': (
+                'skill_assessments_taken', 'avg_skill_assessment_score',
+                'skill_summary', 'assessment_trends',
+                'time_of_day_performance', 'weak_skills', 'badges_earned'
+            )
+        }),
+    )
 
 
 @admin.register(SkillAssessmentResult)
@@ -93,7 +118,7 @@ class SkillAssessmentResultAdmin(admin.ModelAdmin):
         'user', 'test_name', 'score',
         'max_score', 'passed', 'badge_awarded', 'taken_at'
     ]
+    readonly_fields = ['attempt_id', 'taken_at']
     list_filter = ['passed', 'badge_awarded']
     search_fields = ['user__email', 'test_name']
-    readonly_fields = ['taken_at']
     date_hierarchy = 'taken_at'

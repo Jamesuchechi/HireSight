@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ group.name }} Challenges - HireSight{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+    {% url 'assessments:study_groups' as groups_url %}
+    {% include 'components/back_button.html' with fallback_url=groups_url label='Back to Study Groups' %}
+    {% include 'assessments/nav_panel.html' %}
+    <section class="bg-white rounded-2xl shadow-lg p-6">
+        <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <div>
+                <p class="text-sm uppercase tracking-widest text-gray-500">{{ group.skill_focus }} · Challenges</p>
+                <h1 class="text-3xl font-bold text-gray-900">{{ group.name }} Leaderboard</h1>
+            </div>
+            <div class="flex items-center gap-3">
+                <form method="get" class="flex gap-2 items-center">
+                    <label class="text-sm text-gray-500">View challenge</label>
+                    <select name="challenge" onchange="this.form.submit()"
+                            class="px-3 py-2 border border-gray-300 rounded-md">
+                        {% for challenge in challenges %}
+                        <option value="{{ challenge.id }}"
+                            {% if challenge == selected_challenge %}selected{% endif %}>
+                            {{ challenge.title }} ({{ challenge.start_date|date:"M d" }} – {{ challenge.end_date|date:"M d" }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </form>
+                {% if is_admin %}
+                <a href="#create-challenge" class="px-4 py-2 rounded-full bg-primary text-white font-semibold hover:bg-primary-dark transition">
+                    Create challenge
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% if selected_challenge %}
+        <p class="text-gray-600 mt-3">{{ selected_challenge.description }}</p>
+        <p class="text-xs text-gray-500 mt-1">Prize: {{ selected_challenge.prize_description|default:"Recognition in group feed" }}</p>
+        {% else %}
+        <p class="text-gray-500 mt-3">No challenge selected yet.</p>
+        {% endif %}
+    </section>
+
+    <section class="bg-white rounded-2xl shadow-lg p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-2xl font-semibold text-gray-900">Leaderboard</h2>
+            <p class="text-sm text-gray-500">Top 10 best scores</p>
+        </div>
+        {% if leaderboard %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-gray-700">
+                <thead class="text-xs uppercase tracking-wide text-gray-500">
+                    <tr>
+                        <th class="px-4 py-3">Rank</th>
+                        <th class="px-4 py-3">Member</th>
+                        <th class="px-4 py-3">Best Score</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for entry in leaderboard %}
+                    <tr>
+                        <td class="px-4 py-3 font-semibold text-gray-900">{{ forloop.counter }}</td>
+                        <td class="px-4 py-3">
+                            {{ entry.user__personal_profile__full_name|default:entry.user__email|default:"Anonymous" }}
+                        </td>
+                        <td class="px-4 py-3 text-gray-900">{{ entry.best_score }}%</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-sm text-gray-500">No submissions for this challenge yet.</p>
+        {% endif %}
+    </section>
+
+    {% if is_admin %}
+    <section id="create-challenge" class="bg-white rounded-2xl shadow-lg p-6 space-y-4">
+        <div class="flex items-center justify-between">
+            <h2 class="text-2xl font-semibold text-gray-900">Create a new challenge</h2>
+            <span class="text-xs uppercase tracking-wide text-primary">Admin only</span>
+        </div>
+        <form method="post" action="{% url 'assessments:create_group_challenge' group.id %}" class="grid gap-4 md:grid-cols-2">
+            {% csrf_token %}
+            <div class="md:col-span-2 space-y-2">
+                <label class="text-sm font-semibold text-gray-700">Test</label>
+                {{ challenge_form.test }}
+            </div>
+            <div>
+                <label class="text-sm font-semibold text-gray-700">Title</label>
+                {{ challenge_form.title }}
+            </div>
+            <div>
+                <label class="text-sm font-semibold text-gray-700">Prize</label>
+                {{ challenge_form.prize_description }}
+            </div>
+            <div class="md:col-span-2">
+                <label class="text-sm font-semibold text-gray-700">Description</label>
+                {{ challenge_form.description }}
+            </div>
+            <div>
+                <label class="text-sm font-semibold text-gray-700">Start date</label>
+                {{ challenge_form.start_date }}
+            </div>
+            <div>
+                <label class="text-sm font-semibold text-gray-700">End date</label>
+                {{ challenge_form.end_date }}
+            </div>
+            <div class="md:col-span-2">
+                <button type="submit" class="w-full px-4 py-3 rounded-xl bg-primary text-white font-semibold hover:bg-primary-dark transition">
+                    Launch challenge
+                </button>
+            </div>
+        </form>
+    </section>
+    {% endif %}
+</div>
+{% endblock %}

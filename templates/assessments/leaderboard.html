@@ -1,0 +1,204 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Leaderboards & Achievements - HireSight{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+    {% url 'assessments:browse' as browse_url %}
+    {% include 'components/back_button.html' with fallback_url=browse_url label='Back to Browse Tests' %}
+    {% include 'assessments/nav_panel.html' %}
+    <div>
+        <p class="text-sm uppercase tracking-wide text-gray-500">Leaderboards</p>
+        <h1 class="text-4xl font-bold text-gray-900">Competition & Achievements</h1>
+        <p class="text-gray-600 mt-2">See how you stack up against the community and unlock achievements for your dedication.</p>
+    </div>
+
+    <div class="bg-white rounded-3xl shadow-lg p-6 space-y-6">
+        <div class="flex flex-wrap gap-3">
+            <button class="tab-control px-5 py-2 rounded-full border text-sm font-semibold" data-tab="global">Global</button>
+            <button class="tab-control px-5 py-2 rounded-full border text-sm font-semibold" data-tab="skill">Per Skill</button>
+            <button class="tab-control px-5 py-2 rounded-full border text-sm font-semibold" data-tab="achievements">Achievements</button>
+        </div>
+
+        <!-- Global leaderboard -->
+        <section class="tab-panel" data-panel="global">
+            <div class="flex flex-wrap gap-2 mt-4">
+                {% for timeframe in leaderboard_tabs %}
+                <button class="time-control px-4 py-2 rounded-full text-xs font-semibold border" data-timeframe-target="{{ timeframe }}">
+                    {{ leaderboard_labels|get_item:timeframe }}
+                </button>
+                {% endfor %}
+            </div>
+
+            {% for timeframe in leaderboard_tabs %}
+            <div class="leaderboard-frame mt-6 {% if not forloop.first %}hidden{% endif %}" data-timeframe="{{ timeframe }}">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-xl font-semibold text-gray-900">{{ leaderboard_labels|get_item:timeframe }} Global Rankings</h2>
+                    <span class="text-xs text-gray-500">{{ global_leaderboards|get_item:timeframe|length }} contestants</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="text-xs uppercase text-gray-500 border-b">
+                            <tr>
+                                <th class="py-3">#</th>
+                                <th>Name</th>
+                                <th>Avg Score</th>
+                                <th>Best</th>
+                                <th>Attempts</th>
+                                <th>Streak</th>
+                                <th>Badges</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for entry in global_leaderboards|get_item:timeframe %}
+                            <tr class="border-b last:border-b-0">
+                                <td class="py-3 font-semibold text-gray-700">{{ entry.rank }}</td>
+                                <td class="py-3 font-medium text-gray-900">{{ entry.name }}</td>
+                                <td class="py-3 text-gray-600">{{ entry.avg_score }}%</td>
+                                <td class="py-3 text-gray-600">{{ entry.best_score }}%</td>
+                                <td class="py-3 text-gray-600">{{ entry.attempts }}</td>
+                                <td class="py-3 text-gray-600">{{ entry.streak }}</td>
+                                <td class="py-3 text-gray-600">{{ entry.badges }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" class="py-6 text-center text-gray-500">No data yet for this timeframe.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endfor %}
+        </section>
+
+        <!-- Per-skill leaderboard -->
+        <section class="tab-panel hidden" data-panel="skill">
+            <div class="flex flex-wrap gap-2">
+                {% for timeframe in leaderboard_tabs %}
+                <button class="time-control px-4 py-2 rounded-full text-xs font-semibold border" data-timeframe-target="{{ timeframe }}">
+                    {{ leaderboard_labels|get_item:timeframe }}
+                </button>
+                {% endfor %}
+            </div>
+
+            {% for timeframe in leaderboard_tabs %}
+            <div class="leaderboard-frame mt-6 {% if not forloop.first %}hidden{% endif %}" data-timeframe="{{ timeframe }}">
+                {% for skill_block in skill_leaderboards|get_item:timeframe %}
+                <div class="border border-gray-100 rounded-2xl p-4 mb-4">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-gray-900">{{ skill_block.skill }}</h3>
+                        <span class="text-xs uppercase tracking-wide text-gray-500">Top players</span>
+                    </div>
+                    <div class="space-y-3">
+                        <div class="grid grid-cols-6 text-xs uppercase text-gray-500">
+                            <div>#</div><div class="col-span-3">Name</div><div>Avg</div><div>Best</div><div>Streak</div>
+                        </div>
+                        {% for entry in skill_block.entries %}
+                        <div class="grid grid-cols-6 text-sm text-gray-700 border-b pb-2 last:border-b-0">
+                            <div>#{{ entry.rank }}</div>
+                            <div class="col-span-3 font-medium">{{ entry.name }}</div>
+                            <div>{{ entry.avg_score }}%</div>
+                            <div>{{ entry.best_score }}%</div>
+                            <div>{{ entry.streak }}</div>
+                        </div>
+                        {% empty %}
+                        <p class="text-gray-500 text-sm">No performers yet.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% empty %}
+                <p class="text-gray-500 text-sm">Bookmark assessments to surface skill leaderboards.</p>
+                {% endfor %}
+            </div>
+            {% endfor %}
+        </section>
+
+        <!-- Achievements -->
+        <section class="tab-panel hidden" data-panel="achievements">
+            <div class="grid md:grid-cols-2 gap-4">
+                {% for achievement in achievements %}
+                <article class="bg-gray-50 rounded-2xl p-4 border {% if achievement.earned %}border-emerald-200 bg-emerald-50{% else %}border-gray-200{% endif %}">
+                    <div class="flex items-center justify-between">
+                        <div class="text-2xl">{{ achievement.icon }}</div>
+                        <span class="text-xs font-semibold uppercase tracking-wide {% if achievement.earned %}text-emerald-700{% else %}text-gray-500{% endif %}">
+                            {% if achievement.earned %}Earned{% else %}Locked{% endif %}
+                        </span>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-900 mt-3">{{ achievement.name }}</h3>
+                    <p class="text-sm text-gray-600">{{ achievement.description }}</p>
+                    <div class="mt-4">
+                        <div class="h-2 bg-gray-200 rounded-full overflow-hidden">
+                            <div class="h-full bg-gradient-to-r from-primary to-secondary transition-all" style="width: {{ achievement.progress }}%;"></div>
+                        </div>
+                        {% if achievement.earned_at %}
+                        <p class="mt-1 text-xs text-gray-500">Unlocked {{ achievement.earned_at|date:"M d, Y" }}</p>
+                        {% endif %}
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+
+            {% if recent_achievements %}
+            <div class="mt-6 bg-white rounded-2xl shadow-md p-6 space-y-3">
+                <h3 class="text-lg font-semibold text-gray-900">Recent Achievements</h3>
+                <div class="grid gap-3">
+                    {% for earned in recent_achievements %}
+                    <div class="flex items-center justify-between border border-gray-100 rounded-xl p-3">
+                        <div>
+                            <p class="text-sm font-semibold">{{ earned.achievement.name }}</p>
+                            <p class="text-xs text-gray-500">Earned {{ earned.earned_at|date:"M d, Y" }}</p>
+                        </div>
+                        <span class="text-xl">{{ earned.achievement.icon }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </section>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(() => {
+    const tabButtons = document.querySelectorAll('.tab-control');
+    const panels = document.querySelectorAll('.tab-panel');
+    const timeframeButtons = document.querySelectorAll('[data-timeframe-target]');
+
+    function setActiveTab(target) {
+        tabButtons.forEach(btn => btn.classList.toggle('border-primary bg-primary/5', btn.dataset.tab === target));
+        panels.forEach(panel => panel.classList.toggle('hidden', panel.dataset.panel !== target));
+    }
+
+    function setTimeframe(button) {
+        const parent = button.closest('section');
+        const timeframe = button.dataset.timeframeTarget;
+        const frames = parent.querySelectorAll('.leaderboard-frame');
+        frames.forEach(frame => frame.classList.toggle('hidden', frame.dataset.timeframe !== timeframe));
+        parent.querySelectorAll('[data-timeframe-target]').forEach(ctrl => ctrl.classList.toggle('border-primary bg-primary/10', ctrl === button));
+    }
+
+    tabButtons.forEach(btn => {
+        btn.addEventListener('click', () => setActiveTab(btn.dataset.tab));
+    });
+    timeframeButtons.forEach(btn => {
+        btn.addEventListener('click', () => setTimeframe(btn));
+    });
+
+    if (tabButtons.length) {
+        setActiveTab(tabButtons[0].dataset.tab);
+    }
+    const sections = [...new Set(Array.from(timeframeButtons).map(button => button.closest('section')))];
+    sections.forEach(section => {
+        if (!section) return;
+        const firstButton = section.querySelector('[data-timeframe-target]');
+        if (firstButton) {
+            setTimeframe(firstButton);
+        }
+    });
+})();
+</script>
+{% endblock %}

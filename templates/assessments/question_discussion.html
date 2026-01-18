@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Question Discussion - HireSight{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+    {% url 'assessments:history' as history_url %}
+    {% include 'components/back_button.html' with fallback_url=history_url label='Back to History' %}
+    {% include 'assessments/nav_panel.html' %}
+    <section class="bg-white rounded-2xl shadow-lg p-6 space-y-4">
+        <div class="flex items-start justify-between gap-4">
+            <div>
+                <p class="text-sm uppercase tracking-wide text-gray-500">Question Discussion</p>
+                <h1 class="text-2xl font-semibold text-gray-900">{{ question.skill_name }} • {{ question.get_difficulty_display }}</h1>
+            </div>
+            <div class="space-y-2 text-right">
+                <button id="flagBtn" class="px-4 py-2 text-xs uppercase tracking-wide rounded-full border border-red-200 text-red-600 hover:bg-red-50 transition">
+                    {% if is_flagged %}Flagged ({{ question.flag_count }}){% else %}Flag question{% endif %}
+                </button>
+                <p class="text-xs text-gray-500">{{ question.flag_count }} flags</p>
+            </div>
+        </div>
+        <p class="text-gray-700">{{ question.question }}</p>
+        <div class="border-t border-gray-100 pt-4 space-y-3">
+            <p class="text-sm font-semibold text-gray-700">Explanation</p>
+            <p class="text-gray-600">{{ question.explanation }}</p>
+            <div class="flex items-center gap-2">
+                {% with explanation_votes.primary|default:{} as votes %}
+                <button data-action="upvote" class="px-3 py-1 rounded-xl bg-indigo-50 text-indigo-600 text-sm font-semibold">Upvote</button>
+                <button data-action="downvote" class="px-3 py-1 rounded-xl bg-red-50 text-red-600 text-sm font-semibold">Downvote</button>
+                <span class="text-xs text-gray-500">Up {{ votes.upvotes|default:0 }} · Down {{ votes.downvotes|default:0 }}</span>
+                {% endwith %}
+            </div>
+        </div>
+    </section>
+
+    <section class="bg-white rounded-2xl shadow-lg p-6 space-y-4">
+        <div class="flex items-center justify-between">
+            <h2 class="text-2xl font-semibold text-gray-900">Community comments</h2>
+            <span class="text-sm text-gray-500">{{ discussions.count }} comments</span>
+        </div>
+        <div class="space-y-3">
+            {% for discussion in discussions %}
+            <article class="border border-gray-100 rounded-2xl p-4 space-y-2">
+                <div class="flex items-center justify-between text-xs text-gray-500">
+                    <span>{{ discussion.user.get_full_name|default:discussion.user.email }}</span>
+                    <span>{{ discussion.upvotes_count }} upvotes · {{ discussion.created_at|timesince }} ago</span>
+                </div>
+                <p class="text-sm text-gray-700">{{ discussion.comment }}</p>
+            </article>
+            {% empty %}
+            <p class="text-sm text-gray-500">No comments yet. Be the first to kick off a discussion.</p>
+            {% endfor %}
+        </div>
+        <form method="post" class="space-y-3">
+            {% csrf_token %}
+            <label class="text-sm font-semibold text-gray-700">Add a comment</label>
+            {{ discussion_form.comment }}
+            <button type="submit" class="px-5 py-3 rounded-xl bg-primary text-white font-semibold hover:bg-primary-dark transition">
+                Submit comment
+            </button>
+        </form>
+    </section>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const csrf = document.querySelector('[name=csrfmiddlewaretoken]').value;
+const questionId = '{{ question.id }}';
+
+document.getElementById('flagBtn').addEventListener('click', async () => {
+    const resp = await fetch(`{% url 'assessments:flag_question' question.id %}`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrf
+        }
+    });
+    const data = await resp.json();
+    const btn = document.getElementById('flagBtn');
+    btn.textContent = data.is_flagged ? `Flagged (${data.flag_count})` : `Flag question`;
+});
+
+document.querySelectorAll('[data-action]').forEach(btn => {
+    btn.addEventListener('click', async (evt) => {
+        const action = evt.target.dataset.action;
+        const resp = await fetch(`{% url 'assessments:upvote_explanation' question.id %}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': csrf
+            },
+            body: new URLSearchParams({
+                action,
+                target: 'primary'
+            })
+        });
+        const data = await resp.json();
+        const label = evt.target.parentElement.querySelector('span');
+        label.textContent = `Up ${data.votes.upvotes} · Down ${data.votes.downvotes}`;
+    });
+});
+</script>
+{% endblock %}

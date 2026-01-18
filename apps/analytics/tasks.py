@@ -25,6 +25,9 @@ from .utils import (
     get_skill_gap_insights_for_company,
     calculate_predictive_score
 )
+from apps.assessments.analytics import AssessmentAnalytics
+from apps.assessments.utils import LearningPathGenerator
+from apps.assessments.analytics_helpers import get_assessment_trends
 
 User = get_user_model()
 
@@ -242,7 +245,23 @@ def generate_personal_snapshots():
         assessments_taken = assessments.count()
         avg_assessment_score = assessments.aggregate(avg=Avg('score'))['avg']
         badges = list(assessments.filter(badge_awarded__isnull=False).values_list('badge_awarded', flat=True).distinct())
-        
+        analytics = AssessmentAnalytics(user)
+        skill_data = analytics.get_skill_radar_data()
+        skill_summary = []
+        for idx, label in enumerate(skill_data.get('labels', [])):
+            skill_summary.append({
+                'skill': label,
+                'avg_score': skill_data.get('avg_scores', [])[idx] if idx < len(skill_data.get('avg_scores', [])) else 0,
+                'pass_rate': skill_data.get('pass_rates', [])[idx] if idx < len(skill_data.get('pass_rates', [])) else 0,
+            })
+        assessment_trends = get_assessment_trends(user, days=30)
+        time_of_day = analytics.get_time_analysis()
+        try:
+            path_data = LearningPathGenerator(user).generate_path()
+            weak_skills = [area['skill'] for area in path_data.get('weak_areas', [])]
+        except Exception:
+            weak_skills = []
+
         # Create snapshot
         PersonalAnalyticsSnapshot.objects.update_or_create(
             user=user,
@@ -264,6 +283,10 @@ def generate_personal_snapshots():
                 'skill_assessments_taken': assessments_taken,
                 'avg_skill_assessment_score': avg_assessment_score,
                 'badges_earned': badges,
+                'skill_summary': skill_summary,
+                'assessment_trends': assessment_trends,
+                'time_of_day_performance': time_of_day,
+                'weak_skills': weak_skills,
             }
         )
     

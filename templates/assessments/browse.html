@@ -6,10 +6,25 @@
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <!-- Header -->
-    <div class="mb-8">
-        <h1 class="text-4xl font-display font-bold text-gray-900 mb-2">Skill Assessments</h1>
-        <p class="text-lg text-gray-600">Test your skills and earn verified badges to showcase on your profile</p>
+    <div class="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+            <h1 class="text-4xl font-display font-bold text-gray-900 mb-2">Skill Assessments</h1>
+            <p class="text-lg text-gray-600">Test your skills and earn verified badges to showcase on your profile</p>
+        </div>
+        <div class="flex flex-wrap gap-3 items-center" role="group" aria-label="Assessment quick actions">
+            <a href="{% url 'assessments:study_groups' %}"
+               class="inline-flex items-center justify-center rounded-lg px-5 py-3 border border-primary text-primary font-semibold shadow-sm hover:bg-primary-light focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 transition"
+               aria-label="Explore study groups">
+                Explore Study Groups
+            </a>
+            <a href="{% url 'assessments:history' %}"
+               class="inline-flex items-center justify-center rounded-lg px-5 py-3 bg-gradient-to-r from-primary to-secondary text-white font-semibold shadow-sm hover:opacity-90 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 transition"
+               aria-label="View assessment history">
+                View Assessment History
+            </a>
+        </div>
     </div>
+    {% include 'assessments/nav_panel.html' %}
 
     <!-- Stats Bar -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -58,7 +73,7 @@
 
     <!-- Filters -->
     <div class="bg-white rounded-xl shadow-md p-6 mb-8">
-        <form method="get" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <form method="get" class="grid grid-cols-1 md:grid-cols-4 gap-4" aria-label="Filter assessments">
             <!-- Search Skill -->
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Search Skill</label>
@@ -86,15 +101,18 @@
             <!-- Filter Actions -->
             <div class="md:col-span-4 flex flex-wrap items-center gap-3">
                 <div class="flex gap-3">
-                    <button type="submit" class="px-6 py-2 bg-primary text-white rounded-lg font-semibold hover:bg-primary-dark transition-colors">
-                        Apply Filters
-                    </button>
-                    <a href="{% url 'assessments:browse' %}" class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-colors">
-                        Clear
-                    </a>
-                </div>
-                <a href="{% url 'assessments:generate_questions_page' %}"
-                   class="ml-auto inline-flex items-center justify-center rounded-lg border border-dashed border-primary px-4 py-2 text-sm font-semibold text-primary transition hover:border-primary-dark hover:text-primary-dark">
+                <button type="submit" class="px-6 py-2 bg-primary text-white rounded-lg font-semibold hover:bg-primary-dark focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 transition-colors"
+                        aria-label="Apply filters">
+                    Apply Filters
+                </button>
+                <a href="{% url 'assessments:browse' %}" class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 transition-colors"
+                   aria-label="Clear filters">
+                    Clear
+                </a>
+            </div>
+            <a href="{% url 'assessments:generate_questions_page' %}"
+               class="ml-auto inline-flex items-center justify-center rounded-lg border border-dashed border-primary px-4 py-2 text-sm font-semibold text-primary transition hover:border-primary-dark hover:text-primary-dark focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+               aria-label="Generate AI questions">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                     </svg>
@@ -106,6 +124,7 @@
 
     <!-- Tests Grid -->
     {% if tests_data %}
+    <section aria-label="Available assessments">
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         {% for entry in tests_data %}
         {% with test=entry.test best_score=entry.best_score has_badge=entry.has_badge matches_skills=entry.matches_skills %}
@@ -181,15 +200,17 @@
 
                 <!-- Action Button -->
                 <a href="{% url 'assessments:test_detail' test.slug %}" 
-                   class="block w-full text-center px-4 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg font-semibold hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200">
+                   class="block w-full text-center px-4 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg font-semibold hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary"
+                   aria-label="{% if best_score %}Retake {{ test.title }}{% else %}Start {{ test.title }}{% endif %}">
                     {% if best_score %}Retake Test{% else %}Start Test{% endif %}
                 </a>
                 
                 {% if request.user.account_type == 'personal' %}
                 <div class="mt-4 space-y-2 text-center" data-generate-wrapper data-cooldown-remaining="{{ entry.cooldown_remaining }}">
                     <button type="button"
-                            class="generate-questions-btn w-full px-4 py-3 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 bg-white hover:border-primary hover:text-primary transition-colors"
+                            class="generate-questions-btn w-full px-4 py-3 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 bg-white hover:border-primary hover:text-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 transition-colors"
                             data-generate-url="{% url 'assessments:generate_questions' test.slug %}"
+                            aria-label="Generate additional questions for {{ test.title }}"
                             {% if entry.cooldown_remaining %}disabled{% endif %}>
                         Generate Questions (admin)
                     </button>
@@ -208,10 +229,10 @@
 
     <!-- Pagination -->
     {% if is_paginated %}
-    <div class="flex justify-center items-center space-x-2 mt-8">
+    <div class="flex justify-center items-center space-x-2 mt-8" role="navigation" aria-label="Assessment pagination">
         {% if page_obj.has_previous %}
-        <a href="?page=1" class="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">First</a>
-        <a href="?page={{ page_obj.previous_page_number }}" class="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Previous</a>
+        <a href="?page=1" class="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2" aria-label="First page">First</a>
+        <a href="?page={{ page_obj.previous_page_number }}" class="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2" aria-label="Previous page">Previous</a>
         {% endif %}
 
         <span class="px-4 py-2 bg-primary text-white rounded-lg">
@@ -219,10 +240,11 @@
         </span>
 
         {% if page_obj.has_next %}
-        <a href="?page={{ page_obj.next_page_number }}" class="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Next</a>
-        <a href="?page={{ page_obj.paginator.num_pages }}" class="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Last</a>
+        <a href="?page={{ page_obj.next_page_number }}" class="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2" aria-label="Next page">Next</a>
+        <a href="?page={{ page_obj.paginator.num_pages }}" class="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2" aria-label="Last page">Last</a>
         {% endif %}
     </div>
+    </section>
     {% endif %}
 
     {% else %}

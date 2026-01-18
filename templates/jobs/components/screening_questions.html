@@ -251,7 +251,7 @@
     </div>
     
     <!-- Hidden textarea to store JSON -->
-    <textarea id="screening-questions-json" name="screening_questions" style="display: none;"></textarea>
+    <textarea id="screening-questions-json" name="screening_questions" style="display: none;">{{ form.screening_questions.value|default:"[]" }}</textarea>
     
     <!-- Questions List -->
     <div class="questions-list" id="questions-list">
@@ -268,12 +268,12 @@
         
         <div class="form-group">
             <label>Question Text *</label>
-            <textarea id="question-text" placeholder="e.g., What is your experience with Django?" required></textarea>
+            <textarea id="question-text" placeholder="e.g., What is your experience with Django?"></textarea>
         </div>
         
         <div class="form-group">
             <label>Question Type *</label>
-            <select id="question-type" required>
+            <select id="question-type">
                 <option value="">Select type...</option>
                 <option value="short-text">Short Text (1 line)</option>
                 <option value="long-text">Long Text (paragraph)</option>

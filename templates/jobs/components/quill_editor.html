@@ -6,42 +6,42 @@
 
 <style>
 /* Custom Quill Styling for Job Descriptions */
-.quill-wrapper {
-    margin-bottom: 1.5rem;
-}
-
-.quill-label {
-    display: block;
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: #374151;
-    margin-bottom: 0.5rem;
-}
-
-.quill-editor {
+#quill-description-editor,
+#quill-responsibilities-editor,
+#quill-nice-to-have-editor {
     background: white;
     border: 1px solid #d1d5db;
     border-radius: 0.75rem;
     min-height: 200px;
+    width: 100%;
+    box-sizing: border-box;
 }
 
-.quill-editor .ql-container {
+#quill-description-editor .ql-container,
+#quill-responsibilities-editor .ql-container,
+#quill-nice-to-have-editor .ql-container {
     font-size: 15px;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     min-height: 150px;
+    border: none;
 }
 
-.quill-editor .ql-editor {
+#quill-description-editor .ql-editor,
+#quill-responsibilities-editor .ql-editor,
+#quill-nice-to-have-editor .ql-editor {
     min-height: 150px;
     padding: 1rem;
 }
 
-.quill-editor.focused {
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+#quill-description-editor.ql-container.ql-snow,
+#quill-responsibilities-editor.ql-container.ql-snow,
+#quill-nice-to-have-editor.ql-container.ql-snow {
+    border: 1px solid #d1d5db;
 }
 
-.quill-editor .ql-toolbar {
+#quill-description-editor .ql-toolbar,
+#quill-responsibilities-editor .ql-toolbar,
+#quill-nice-to-have-editor .ql-toolbar {
     border: none;
     border-bottom: 1px solid #e5e7eb;
     border-radius: 0.75rem 0.75rem 0 0;
@@ -49,14 +49,17 @@
     padding: 0.75rem 1rem;
 }
 
-.quill-error {
-    border-color: #ef4444;
+.ql-toolbar.ql-snow {
+    border: none !important;
+    border-bottom: 1px solid #e5e7eb !important;
 }
 
-.quill-help-text {
-    margin-top: 0.5rem;
-    font-size: 0.875rem;
-    color: #6b7280;
+.ql-container.ql-snow {
+    border: none !important;
+}
+
+.quill-error {
+    border-color: #ef4444 !important;
 }
 </style>
 
@@ -64,151 +67,105 @@
 <script src="https://cdn.quilljs.com/1.3.7/quill.js"></script>
 
 <script>
-/**
- * Initialize Quill editor for job descriptions
- * Configured specifically for HireSight job postings
- */
-class JobDescriptionEditor {
-    constructor(editorId, hiddenInputId, config = {}) {
-        this.editorId = editorId;
-        this.hiddenInputId = hiddenInputId;
-        this.config = config;
-        this.editor = null;
-        this.init();
-    }
+    (function() {
+        const initQuillEditors = function() {
+            console.log('Initializing Quill editors...');
 
-    init() {
-        const editorElement = document.getElementById(this.editorId);
-        const hiddenInput = document.getElementById(this.hiddenInputId);
+            function setupEditor(editorSelector, textareaId, placeholder, options = {}) {
+                const editorElement = document.querySelector(editorSelector);
+                const textarea = document.getElementById(textareaId);
 
-        if (!editorElement || !hiddenInput) {
-            console.error(`Editor or input not found: ${this.editorId}`);
-            return;
-        }
+                if (!editorElement || !textarea) {
+                    console.warn(`Quill editor skipped: ${editorSelector}`);
+                    return null;
+                }
 
-        // Configure toolbar for job descriptions
-        const toolbarOptions = this.config.toolbar || [
-            // Text formatting
-            [{ 'header': [2, 3, false] }],
-            ['bold', 'italic', 'underline'],
+                if (typeof Quill === 'undefined') {
+                    showTextareaFallback(editorElement, textarea);
+                    return null;
+                }
 
-            // Lists
-            [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                const quillInstance = new Quill(editorSelector, {
+                    theme: 'snow',
+                    modules: {
+                        toolbar: [
+                            [{ 'header': [2, 3, false] }],
+                            ['bold', 'italic', 'underline'],
+                            [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                            [{ 'indent': '-1' }, { 'indent': '+1' }],
+                            ['link'],
+                            ['clean']
+                        ],
+                        ...(options.modules || {})
+                    },
+                    placeholder,
+                    readOnly: options.readOnly || false
+                });
 
-            // Indent
-            [{ 'indent': '-1'}, { 'indent': '+1' }],
+                if (textarea.value) {
+                    quillInstance.root.innerHTML = textarea.value;
+                }
 
-            // Links
-            ['link'],
+                quillInstance.on('text-change', function() {
+                    textarea.value = quillInstance.root.innerHTML;
+                });
 
-            // Clear formatting
-            ['clean']
-        ];
-
-        // Initialize Quill
-        this.editor = new Quill(editorElement, {
-            theme: 'snow',
-            modules: {
-                toolbar: toolbarOptions
-            },
-            placeholder: this.config.placeholder || 'Enter job description...',
-        });
-
-        // Load existing content
-        const existingContent = hiddenInput.value;
-        if (existingContent) {
-            this.editor.root.innerHTML = existingContent;
-        }
-
-        // Sync with hidden input on change
-        this.editor.on('text-change', () => {
-            const html = this.editor.root.innerHTML;
-            hiddenInput.value = html;
-
-            // Clear validation errors on change
-            editorElement.classList.remove('quill-error');
-        });
-
-        // Focus styling
-        this.editor.on('selection-change', (range) => {
-            if (range) {
-                editorElement.classList.add('focused');
-            } else {
-                editorElement.classList.remove('focused');
+                return quillInstance;
             }
-        });
 
-        // Validation on form submit
-        const form = hiddenInput.closest('form');
-        if (form) {
-            form.addEventListener('submit', (e) => {
-                if (!this.validate()) {
-                    e.preventDefault();
-                    editorElement.classList.add('quill-error');
-                    editorElement.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'center'
+function showTextareaFallback(editorElement, textarea) {
+                if (editorElement) {
+                    editorElement.style.display = 'none';
+                }
+                if (textarea) {
+                    textarea.style.display = 'block';
+                    textarea.style.minHeight = '150px';
+                    textarea.style.width = '100%';
+                    textarea.style.boxSizing = 'border-box';
+                }
+            }
+
+            const descriptionQuill = setupEditor(
+                '#quill-description-editor',
+                'quill-description',
+                'Describe the role in detail. What will the candidate be doing day-to-day? What projects will they work on?'
+            );
+
+            if (descriptionQuill) {
+                const textarea = document.getElementById('quill-description');
+                const editorElement = document.querySelector('#quill-description-editor');
+                const form = textarea.closest('form');
+                if (form) {
+                    form.addEventListener('submit', function(event) {
+                        const text = descriptionQuill.getText().trim();
+                        if (text.length < 100) {
+                            event.preventDefault();
+                            alert('Job description must be at least 100 characters long');
+                            if (editorElement) {
+                                editorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            }
+                        }
                     });
                 }
-            });
+            }
+
+            setupEditor(
+                '#quill-responsibilities-editor',
+                'quill-responsibilities',
+                'List the key responsibilities and duties for this role...'
+            );
+
+            setupEditor(
+                '#quill-nice-to-have-editor',
+                'quill-nice-to-have',
+                'What additional skills or experience would be beneficial but not required?'
+            );
+        };
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initQuillEditors);
+        } else {
+            initQuillEditors();
         }
-    }
-
-    validate() {
-        const text = this.editor.getText().trim();
-        const minLength = this.config.minLength || 100;
-        return text.length >= minLength;
-    }
-
-    getHTML() {
-        return this.editor.root.innerHTML;
-    }
-
-    getText() {
-        return this.editor.getText();
-    }
-
-    setHTML(html) {
-        this.editor.root.innerHTML = html;
-    }
-}
-
-// Initialize editors when DOM is ready
-document.addEventListener('DOMContentLoaded', function() {
-    // Description editor (required, min 100 chars)
-    if (document.getElementById('quill-description-editor')) {
-        window.descriptionEditor = new JobDescriptionEditor(
-            'quill-description-editor',
-            'quill-description',
-            {
-                placeholder: 'Describe the role in detail. What will the candidate be doing day-to-day? What projects will they work on?',
-                minLength: 100
-            }
-        );
-    }
-
-    // Responsibilities editor (optional)
-    if (document.getElementById('quill-responsibilities-editor')) {
-        window.responsibilitiesEditor = new JobDescriptionEditor(
-            'quill-responsibilities-editor',
-            'quill-responsibilities',
-            {
-                placeholder: 'List the key responsibilities and duties for this role...',
-                minLength: 0  // Optional field
-            }
-        );
-    }
-
-    // Nice-to-have editor (optional)
-    if (document.getElementById('quill-nice-to-have-editor')) {
-        window.niceToHaveEditor = new JobDescriptionEditor(
-            'quill-nice-to-have-editor',
-            'quill-nice-to-have',
-            {
-                placeholder: 'What additional skills or experience would be beneficial but not required?',
-                minLength: 0
-            }
-        );
-    }
-});
+    })();
 </script>

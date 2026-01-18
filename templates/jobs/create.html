@@ -2,39 +2,7 @@
 
 {% block title %}Create Job Posting - HireSight{% endblock %}
 
-{% block extra_css %}
-<!-- Quill CSS -->
-<link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
-<style>
-.quill-editor-container {
-    border: 1px solid #d1d5db;
-    border-radius: 0.75rem;
-    overflow: hidden;
-}
-.quill-editor-container .ql-toolbar {
-    border: none;
-    border-bottom: 1px solid #d1d5db;
-    background-color: #f9fafb;
-}
-.quill-editor-container .ql-container {
-    border: none;
-    font-family: inherit;
-}
-.quill-editor-container .ql-editor {
-    min-height: 200px;
-    padding: 1rem;
-}
-.quill-editor-container:focus-within {
-    ring: 2px;
-    ring-color: #0066FF;
-    border-color: #0066FF;
-}
-</style>
-{% endblock %}
-
 {% block extra_js %}
-<!-- Quill JS -->
-<script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
 {% include 'jobs/components/quill_editor.html' %}
 {% endblock %}
 
@@ -162,9 +130,7 @@
                             <label for="{{ form.department.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
                                 Department
                             </label>
-                            <input type="text" name="department" id="{{ form.department.id_for_label }}"
-                                   class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
-                                   placeholder="e.g. Engineering, Marketing">
+                            {{ form.department }}
                             {% if form.department.errors %}
                                 <p class="mt-1 text-sm text-red-600">{{ form.department.errors.0 }}</p>
                             {% endif %}
@@ -229,30 +195,29 @@
                     <div class="space-y-6">
                         <!-- Description -->
                         <div>
-                            <label for="{{ form.description.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+                            <label for="quill-description" class="block text-sm font-semibold text-gray-700 mb-2">
                                 Job Description <span class="text-red-500">*</span>
                             </label>
-                            <div class="quill-editor-container">
-                                <div id="description-editor" class="quill-editor"></div>
-                                {{ form.description }}
-                            </div>
+                            <div id="quill-description-editor"></div>
+                            <textarea name="description" id="quill-description" style="display: none;" required>{{ form.description.value|default:"" }}</textarea>
                             {% if form.description.errors %}
                                 <p class="mt-1 text-sm text-red-600">{{ form.description.errors.0 }}</p>
                             {% endif %}
                             <p class="mt-1 text-xs text-gray-500">Minimum 100 characters required</p>
                         </div>
-
+                        
                         <!-- Responsibilities -->
                         <div>
-                            <label for="{{ form.responsibilities.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+                            <label for="quill-responsibilities" class="block text-sm font-semibold text-gray-700 mb-2">
                                 Responsibilities
                             </label>
-                            {{ form.responsibilities }}
+                            <div id="quill-responsibilities-editor"></div>
+                            <textarea name="responsibilities" id="quill-responsibilities" style="display: none;">{{ form.responsibilities.value|default:"" }}</textarea>
                             {% if form.responsibilities.errors %}
                                 <p class="mt-1 text-sm text-red-600">{{ form.responsibilities.errors.0 }}</p>
                             {% endif %}
                         </div>
-
+                        
                         <!-- Requirements -->
                         <div>
                             <label for="{{ form.requirements_text.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
@@ -264,18 +229,19 @@
                             {% endif %}
                             <p class="mt-1 text-xs text-gray-500">{{ form.requirements_text.help_text }}</p>
                         </div>
-
+                        
                         <!-- Nice to Have -->
                         <div>
-                            <label for="{{ form.nice_to_have.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+                            <label for="quill-nice-to-have" class="block text-sm font-semibold text-gray-700 mb-2">
                                 Nice-to-Have Qualifications
                             </label>
-                            {{ form.nice_to_have }}
+                            <div id="quill-nice-to-have-editor"></div>
+                            <textarea name="nice_to_have" id="quill-nice-to-have" style="display: none;">{{ form.nice_to_have.value|default:"" }}</textarea>
                             {% if form.nice_to_have.errors %}
                                 <p class="mt-1 text-sm text-red-600">{{ form.nice_to_have.errors.0 }}</p>
                             {% endif %}
                         </div>
-
+                        
                         <!-- Benefits -->
                         <div>
                             <label for="{{ form.benefits.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
@@ -304,9 +270,7 @@
                             <label for="{{ form.education_required.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
                                 Education Required
                             </label>
-                            <input type="text" name="education_required" id="{{ form.education_required.id_for_label }}"
-                                   class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
-                                   placeholder="e.g. Bachelor's degree in Computer Science">
+                            {{ form.education_required }}
                             {% if form.education_required.errors %}
                                 <p class="mt-1 text-sm text-red-600">{{ form.education_required.errors.0 }}</p>
                             {% endif %}

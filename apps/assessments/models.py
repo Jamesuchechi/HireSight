@@ -49,6 +49,9 @@ class QuestionPool(models.Model):
     # Flags
     is_active = models.BooleanField(default=True, db_index=True)
     is_verified = models.BooleanField(default=False, help_text="Verified by admin")
+    is_flagged = models.BooleanField(default=False)
+    flag_count = models.PositiveIntegerField(default=0)
+    explanation_upvotes = models.JSONField(default=dict, blank=True)
     
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
@@ -144,6 +147,7 @@ class SkillTest(models.Model):
     total_passed = models.PositiveIntegerField(default=0)
     average_score = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     average_completion_time = models.FloatField(default=0.0, help_text="Average time in minutes")
+    max_retakes_per_day = models.PositiveIntegerField(default=3, help_text="Daily retake cap per user")
     
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
@@ -293,6 +297,7 @@ class SkillAssessmentAttempt(models.Model):
     # Timing
     time_taken_minutes = models.PositiveIntegerField(null=True, blank=True)
     time_limit_exceeded = models.BooleanField(default=False)
+    is_practice_mode = models.BooleanField(default=False)
     
     # Metadata
     ip_address = models.GenericIPAddressField(null=True, blank=True)
@@ -314,6 +319,14 @@ class SkillAssessmentAttempt(models.Model):
     def get_absolute_url(self):
         return reverse('assessments:results', kwargs={'attempt_id': self.id})
     
+    @property
+    def score_needed_to_pass(self):
+        """Positive gap between passing score and current score."""
+        if self.score is None:
+            return None
+        deficit = self.test.passing_score - self.score
+        return deficit if deficit > 0 else 0
+
     def calculate_score(self):
         """Calculate score with question pool tracking"""
         if self.status != 'COMPLETED':
@@ -455,6 +468,177 @@ class SkillBadge(models.Model):
         if not self.expires_at:
             return False
         return timezone.now() > self.expires_at
+
+
+class StudyGroup(models.Model):
+    """Study groups for collaborative learning."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=200)
+    description = models.TextField()
+    skill_focus = models.CharField(max_length=100)
+
+    creator = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='created_study_groups'
+    )
+    members = models.ManyToManyField(
+        User,
+        through='StudyGroupMembership',
+        related_name='study_groups'
+    )
+
+    is_public = models.BooleanField(default=True)
+    max_members = models.PositiveIntegerField(default=50)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.name
+
+    def get_average_score(self):
+        from django.db.models import Avg
+
+        return SkillAssessmentAttempt.objects.filter(
+            user__in=self.members.all(),
+            test__skill_name__iexact=self.skill_focus,
+            status='COMPLETED'
+        ).aggregate(avg=Avg('score'))['avg'] or 0
+
+
+class StudyGroupMembership(models.Model):
+    """Link between users and study groups."""
+
+    ROLE_CHOICES = [
+        ('ADMIN', 'Admin'),
+        ('MEMBER', 'Member'),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    group = models.ForeignKey(StudyGroup, on_delete=models.CASCADE, related_name='memberships')
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='MEMBER')
+    joined_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ['user', 'group']
+        ordering = ['joined_at']
+
+
+class GroupChallenge(models.Model):
+    """Challenges that a study group can run."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    group = models.ForeignKey(StudyGroup, on_delete=models.CASCADE, related_name='challenges')
+    test = models.ForeignKey(SkillTest, on_delete=models.CASCADE)
+
+    title = models.CharField(max_length=200)
+    description = models.TextField()
+    prize_description = models.TextField(blank=True)
+
+    start_date = models.DateTimeField()
+    end_date = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-start_date']
+
+    def get_leaderboard(self):
+        from django.db.models import Max
+
+        participants = SkillAssessmentAttempt.objects.filter(
+            user__study_groups=self.group,
+            test=self.test,
+            status='COMPLETED',
+            completed_at__gte=self.start_date,
+            completed_at__lte=self.end_date
+        ).values(
+            'user',
+            'user__email',
+            'user__personal_profile__full_name'
+        ).annotate(
+            best_score=Max('score')
+        ).order_by('-best_score')
+        return participants[:10]
+
+
+class QuestionDiscussion(models.Model):
+    """Discussions tied to specific questions."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    question = models.ForeignKey('QuestionPool', on_delete=models.CASCADE, related_name='discussions')
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    comment = models.TextField()
+    upvotes = models.ManyToManyField(User, related_name='upvoted_discussions', blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def get_upvote_count(self):
+        return self.upvotes.count()
+
+
+class BookmarkedQuestion(models.Model):
+    """User bookmarks for later review or practice."""
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='bookmarked_questions')
+    question = models.ForeignKey('QuestionPool', on_delete=models.CASCADE, related_name='bookmarks')
+    attempt = models.ForeignKey(SkillAssessmentAttempt, on_delete=models.SET_NULL, null=True, blank=True, related_name='bookmarked_questions')
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = [['user', 'question']]
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Bookmark by {self.user.email} · {self.question.skill_name}"
+
+
+class Achievement(models.Model):
+    """Gamified achievements for assessment milestones."""
+
+    ACHIEVEMENT_TYPES = [
+        ('first_attempt_pass', 'First Attempt Pass'),
+        ('perfect_score', 'Perfect Score'),
+        ('speed_demon', 'Speed Demon'),
+        ('consistency_king', 'Consistency King'),
+        ('skill_master', 'Skill Master'),
+    ]
+
+    code = models.CharField(max_length=50, unique=True)
+    name = models.CharField(max_length=150)
+    description = models.TextField()
+    icon = models.CharField(max_length=10, default='🏅')
+    type = models.CharField(max_length=50, choices=ACHIEVEMENT_TYPES)
+    criteria = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
+class UserAchievement(models.Model):
+    """Track achievements earned by users."""
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='achievements')
+    achievement = models.ForeignKey(Achievement, on_delete=models.CASCADE, related_name='earned_by')
+    earned_at = models.DateTimeField(auto_now_add=True)
+    metadata = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        unique_together = [['user', 'achievement']]
+        ordering = ['-earned_at']
+
+    def __str__(self):
+        return f"{self.user.email} · {self.achievement.name}"
 
 
 class AssessmentCategory(models.Model):

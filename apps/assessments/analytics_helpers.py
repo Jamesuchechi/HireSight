@@ -19,6 +19,7 @@ def track_assessment_completion(attempt):
     """Send assessment completion events to analytics."""
     try:
         from apps.analytics.models import UserEvent
+        from apps.analytics.models import SkillAssessmentResult
 
         UserEvent.objects.create(
             user=attempt.user,
@@ -35,6 +36,25 @@ def track_assessment_completion(attempt):
             },
             timestamp=attempt.completed_at or timezone.now()
         )
+        SkillAssessmentResult.objects.update_or_create(
+            attempt_id=attempt.id,
+            defaults={
+                'user': attempt.user,
+                'test_name': attempt.test.title,
+                'score': attempt.score or 0,
+                'max_score': 100.0,
+                'passed': bool(attempt.passed),
+                'badge_awarded': getattr(attempt, 'badge', None).badge_name if getattr(attempt, 'badge', None) else '',
+                'metadata': {
+                    'test_id': str(attempt.test.id),
+                    'skill_name': attempt.test.skill_name,
+                    'difficulty': attempt.test.difficulty,
+                    'questions': len(attempt.frozen_questions),
+                    'time_taken': attempt.time_taken_minutes
+                },
+                'taken_at': attempt.completed_at or timezone.now()
+            }
+        )
     except ImportError:
         logger.debug('Analytics UserEvent model unavailable for tracking.')
 
@@ -43,6 +63,7 @@ def track_badge_earned(badge):
     """Send badge earned events to analytics."""
     try:
         from apps.analytics.models import UserEvent
+        from apps.analytics.models import SkillAssessmentResult
 
         UserEvent.objects.create(
             user=badge.user,
@@ -55,6 +76,9 @@ def track_badge_earned(badge):
                 'score': badge.attempt.score,
             },
             timestamp=badge.issued_at
+        )
+        SkillAssessmentResult.objects.filter(attempt_id=badge.attempt_id).update(
+            badge_awarded=badge.badge_name
         )
     except ImportError:
         logger.debug('Analytics UserEvent model unavailable for badge tracking.')

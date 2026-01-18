@@ -1,115 +1,115 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Skill Proficiency{% endblock %}
-
-{% block extra_css %}
-<style>
-    .chart-card {
-        background: #ffffff;
-        border: 1px solid #e5e7eb;
-        border-radius: 16px;
-        padding: 1.5rem;
-        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.1);
-    }
-
-    .metric-card {
-        background: #0f172a;
-        color: #ffffff;
-        border-radius: 12px;
-        padding: 1rem;
-        display: flex;
-        flex-direction: column;
-        gap: 0.35rem;
-        min-height: 120px;
-    }
-
-    .metric-card .value {
-        font-size: 2rem;
-        font-weight: 700;
-    }
-
-    .badge-progress {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-top: 1rem;
-        font-size: 0.95rem;
-        color: #1f2937;
-    }
-
-    .badge-progress span:nth-of-type(2) {
-        font-weight: 600;
-    }
-</style>
-{% endblock %}
+{% block title %}Skill Proficiency - HireSight{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8">
-    <div class="flex flex-wrap items-center justify-between gap-4">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-            <h1 class="text-3xl font-bold text-gray-900">Skill Proficiency</h1>
-            <p class="text-gray-600 mt-1">Insights powered by your completed assessments.</p>
+            <h1 class="text-4xl font-display font-bold text-gray-900 mb-2">Skill Proficiency</h1>
+            <p class="text-lg text-gray-600">Insights powered by your completed assessments</p>
         </div>
-        <a href="{% url 'analytics:dashboard' %}" class="px-4 py-2 rounded-full border border-gray-300 hover:bg-gray-50">Back to Analytics</a>
+        <a href="{% url 'analytics:dashboard' %}" 
+           class="inline-flex items-center justify-center rounded-lg px-5 py-3 border border-gray-300 text-gray-700 font-semibold shadow-sm hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 transition">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+            </svg>
+            Back to Analytics
+        </a>
     </div>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
-        <div class="metric-card">
-            <div class="text-sm uppercase tracking-wide text-gray-200">Assessments</div>
-            <div class="value">{{ report.total_attempts|default:0 }}</div>
-            <div class="text-sm text-gray-200">Completed attempts</div>
+    <!-- Key Metrics -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-gradient-to-br from-primary to-primary-dark rounded-xl shadow-md p-6 text-white">
+            <div class="flex items-center justify-between mb-2">
+                <p class="text-sm font-semibold uppercase tracking-wide opacity-90">Assessments</p>
+                <svg class="w-8 h-8 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                </svg>
+            </div>
+            <p class="text-4xl font-bold mb-1">{{ report.total_attempts|default:0 }}</p>
+            <p class="text-sm opacity-90">Completed attempts</p>
         </div>
-        <div class="metric-card">
-            <div class="text-sm uppercase tracking-wide text-gray-200">Pass Rate</div>
-            <div class="value">{{ report.pass_rate|default:0 }}%</div>
-            <div class="text-sm text-gray-200">Average score</div>
+
+        <div class="bg-gradient-to-br from-success to-emerald-600 rounded-xl shadow-md p-6 text-white">
+            <div class="flex items-center justify-between mb-2">
+                <p class="text-sm font-semibold uppercase tracking-wide opacity-90">Pass Rate</p>
+                <svg class="w-8 h-8 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            </div>
+            <p class="text-4xl font-bold mb-1">{{ report.pass_rate|default:0 }}%</p>
+            <p class="text-sm opacity-90">Average score</p>
         </div>
-        <div class="metric-card">
-            <div class="text-sm uppercase tracking-wide text-gray-200">Badges</div>
-            <div class="value">{{ report.total_badges|default:0 }}</div>
-            <div class="text-sm text-gray-200">Verified achievements</div>
+
+        <div class="bg-gradient-to-br from-secondary to-purple-600 rounded-xl shadow-md p-6 text-white">
+            <div class="flex items-center justify-between mb-2">
+                <p class="text-sm font-semibold uppercase tracking-wide opacity-90">Badges</p>
+                <svg class="w-8 h-8 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+                </svg>
+            </div>
+            <p class="text-4xl font-bold mb-1">{{ report.total_badges|default:0 }}</p>
+            <p class="text-sm opacity-90">Verified achievements</p>
         </div>
     </div>
 
-    <div class="grid grid-cols-1 gap-6 mt-8 lg:grid-cols-2">
-        <div class="chart-card">
-            <div class="flex items-center justify-between mb-3">
-                <h2 class="text-xl font-semibold text-gray-900">Skill proficiency radar</h2>
-                <span class="text-sm text-gray-500">Last 90 days</span>
+    <!-- Charts Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <!-- Skill Radar -->
+        <div class="bg-white rounded-xl shadow-md p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl font-bold text-gray-900">Skill Proficiency Radar</h2>
+                <span class="text-sm text-gray-500 font-medium">Last 90 days</span>
             </div>
-            <canvas id="skillRadar" width="400" height="320"></canvas>
+            <div style="position: relative; height: 320px;">
+                <canvas id="skillRadar"></canvas>
+            </div>
         </div>
-        <div class="chart-card">
-            <div class="flex items-center justify-between mb-3">
-                <h2 class="text-xl font-semibold text-gray-900">Assessment score trends</h2>
-                <span class="text-sm text-gray-500">Over time</span>
+
+        <!-- Score Trends -->
+        <div class="bg-white rounded-xl shadow-md p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl font-bold text-gray-900">Assessment Score Trends</h2>
+                <span class="text-sm text-gray-500 font-medium">Over time</span>
             </div>
-            <canvas id="scoreTrends" width="400" height="320"></canvas>
+            <div style="position: relative; height: 320px;">
+                <canvas id="scoreTrends"></canvas>
+            </div>
         </div>
     </div>
 
-    <div class="grid grid-cols-1 gap-6 mt-6 lg:grid-cols-2">
-        <div class="chart-card">
-            <div class="flex items-center justify-between mb-3">
-                <h2 class="text-xl font-semibold text-gray-900">Time spent on assessments</h2>
-                <span class="text-sm text-gray-500">Minutes</span>
+    <!-- Progress Charts -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Time Spent -->
+        <div class="bg-white rounded-xl shadow-md p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl font-bold text-gray-900">Time Spent on Assessments</h2>
+                <span class="text-sm text-gray-500 font-medium">Minutes</span>
             </div>
-            <canvas id="timeSpentChart" width="400" height="280"></canvas>
-            <div class="badge-progress">
-                <span>Total time logged</span>
-                <span>{{ report.total_time_spent|default:0 }} min</span>
+            <div style="position: relative; height: 280px;">
+                <canvas id="timeSpentChart"></canvas>
+            </div>
+            <div class="mt-6 flex justify-between items-center p-4 bg-gradient-to-r from-blue-50 to-blue-100/50 rounded-lg border border-blue-200">
+                <span class="text-sm font-semibold text-gray-700">Total time logged</span>
+                <span class="text-xl font-bold text-primary">{{ report.total_time_spent|default:0 }} min</span>
             </div>
         </div>
-        <div class="chart-card">
-            <div class="flex items-center justify-between mb-3">
-                <h2 class="text-xl font-semibold text-gray-900">Badge collection progress</h2>
-                <span class="text-sm text-gray-500">Verified awards</span>
+
+        <!-- Badge Progress -->
+        <div class="bg-white rounded-xl shadow-md p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl font-bold text-gray-900">Badge Collection Progress</h2>
+                <span class="text-sm text-gray-500 font-medium">Verified awards</span>
             </div>
-            <canvas id="badgeProgressChart" width="400" height="280"></canvas>
-            <div class="badge-progress">
-                <span>Badges</span>
-                <span>{{ report.total_badges|default:0 }}/{{ report.skills_tested|default:1 }}</span>
+            <div style="position: relative; height: 280px;">
+                <canvas id="badgeProgressChart"></canvas>
+            </div>
+            <div class="mt-6 flex justify-between items-center p-4 bg-gradient-to-r from-purple-50 to-purple-100/50 rounded-lg border border-purple-200">
+                <span class="text-sm font-semibold text-gray-700">Badges earned</span>
+                <span class="text-xl font-bold text-secondary">{{ report.total_badges|default:0 }}/{{ report.skills_tested|default:1 }}</span>
             </div>
         </div>
     </div>
@@ -118,13 +118,16 @@
 {{ proficiency_data|json_script:"proficiency-data" }}
 {{ trends|json_script:"assessment-trends" }}
 {{ report|json_script:"assessment-report" }}
+{% endblock %}
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 <script>
     const proficiencyData = JSON.parse(document.getElementById('proficiency-data').textContent || '[]');
     const trendData = JSON.parse(document.getElementById('assessment-trends').textContent || '[]');
     const reportData = JSON.parse(document.getElementById('assessment-report').textContent || '{}');
 
+    // Skill Radar Chart
     const radarLabels = proficiencyData.map(item => item.skill);
     const radarScores = proficiencyData.map(item => item.score);
 
@@ -136,19 +139,34 @@
             datasets: [{
                 label: 'Score',
                 data: radarScores,
-                borderColor: '#4338ca',
-                backgroundColor: 'rgba(67, 56, 202, 0.35)',
-                pointBackgroundColor: '#4338ca',
+                borderColor: 'rgb(99, 102, 241)',
+                backgroundColor: 'rgba(99, 102, 241, 0.2)',
+                pointBackgroundColor: 'rgb(99, 102, 241)',
+                pointBorderColor: '#fff',
+                pointHoverBackgroundColor: '#fff',
+                pointHoverBorderColor: 'rgb(99, 102, 241)',
                 pointRadius: 5,
+                pointHoverRadius: 7
             }]
         },
         options: {
+            responsive: true,
+            maintainAspectRatio: false,
             scales: {
                 r: {
                     beginAtZero: true,
                     max: 100,
                     ticks: {
-                        stepSize: 20
+                        stepSize: 20,
+                        font: {
+                            size: 11
+                        }
+                    },
+                    pointLabels: {
+                        font: {
+                            size: 12,
+                            weight: 'bold'
+                        }
                     }
                 }
             },
@@ -156,11 +174,11 @@
                 legend: {
                     display: false
                 }
-            },
-            maintainAspectRatio: false
+            }
         }
     });
 
+    // Score Trends Chart
     const trendCtx = document.getElementById('scoreTrends').getContext('2d');
     new Chart(trendCtx, {
         type: 'line',
@@ -169,14 +187,20 @@
             datasets: [{
                 label: 'Score',
                 data: trendData.map(item => item.score),
-                borderColor: '#059669',
-                backgroundColor: 'rgba(5, 150, 105, 0.2)',
-                tension: 0.3,
+                borderColor: 'rgb(34, 197, 94)',
+                backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                tension: 0.4,
                 fill: true,
-                pointRadius: 3,
+                pointRadius: 4,
+                pointHoverRadius: 6,
+                pointBackgroundColor: 'rgb(34, 197, 94)',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2
             }]
         },
         options: {
+            responsive: true,
+            maintainAspectRatio: false,
             scales: {
                 y: {
                     beginAtZero: true,
@@ -187,39 +211,51 @@
                 legend: {
                     display: false
                 }
-            },
-            maintainAspectRatio: false
+            }
         }
     });
 
+    // Time Spent Chart
     const totalTime = reportData.total_time_spent || 0;
     const goalTime = Math.max((reportData.skills_tested || 1) * 60, 60);
     const remainingTime = Math.max(goalTime - totalTime, 0);
+    
     const timeCtx = document.getElementById('timeSpentChart').getContext('2d');
     new Chart(timeCtx, {
         type: 'doughnut',
         data: {
-            labels: ['Logged', 'Remaining'],
+            labels: ['Time Logged', 'Remaining'],
             datasets: [{
                 data: [totalTime, remainingTime],
-                backgroundColor: ['#6366f1', '#e5e7eb'],
+                backgroundColor: [
+                    'rgba(99, 102, 241, 0.8)',
+                    'rgba(229, 231, 235, 0.8)'
+                ],
                 borderWidth: 0
             }]
         },
         options: {
+            responsive: true,
+            maintainAspectRatio: false,
             cutout: '70%',
             plugins: {
                 legend: {
-                    position: 'bottom'
+                    position: 'bottom',
+                    labels: {
+                        padding: 15,
+                        font: {
+                            size: 12
+                        }
+                    }
                 }
-            },
-            maintainAspectRatio: false
+            }
         }
     });
 
+    // Badge Progress Chart
     const badges = reportData.total_badges || 0;
     const badgeGoal = Math.max(reportData.skills_tested || 1, 3);
-    const badgesRemaining = Math.max(badgeGoal - badges, 0);
+    
     const badgeCtx = document.getElementById('badgeProgressChart').getContext('2d');
     new Chart(badgeCtx, {
         type: 'bar',
@@ -228,24 +264,29 @@
             datasets: [{
                 label: 'Badges',
                 data: [badges, badgeGoal],
-                backgroundColor: ['#f59e0b', '#c7d2fe'],
+                backgroundColor: [
+                    'rgba(147, 51, 234, 0.8)',
+                    'rgba(199, 210, 254, 0.8)'
+                ],
                 borderRadius: 8,
+                borderWidth: 0
             }]
         },
         options: {
+            responsive: true,
+            maintainAspectRatio: false,
             indexAxis: 'y',
             scales: {
                 x: {
                     beginAtZero: true,
-                    max: badgeGoal * 1.1
+                    max: Math.max(badgeGoal * 1.2, 5)
                 }
             },
             plugins: {
                 legend: {
                     display: false
                 }
-            },
-            maintainAspectRatio: false
+            }
         }
     });
 </script>
