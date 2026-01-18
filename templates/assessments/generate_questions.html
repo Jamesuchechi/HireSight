@@ -1,85 +1,161 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Generate AI Questions{% endblock %}
+{% block title %}Generate AI Questions - HireSight{% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-    <div class="bg-white rounded-xl shadow-lg p-6 space-y-4">
-        <h1 class="text-3xl font-bold text-gray-900">Generate questions with AI</h1>
-        <p class="text-sm text-gray-600">
-            Provide the skill, difficulty level, and question type you want to seed. The AI generator will
-            produce question_count questions, each with explanations and answer data that can be reviewed
-            and verified before being used in live assessments.
-        </p>
-        <form method="post" class="space-y-6">
-            {% csrf_token %}
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    {{ form.skill_name.label_tag }}
-                    {{ form.skill_name }}
-                    {{ form.skill_name.errors }}
-                </div>
-                <div>
-                    {{ form.difficulty.label_tag }}
-                    {{ form.difficulty }}
-                    {{ form.difficulty.errors }}
-                </div>
-                <div>
-                    {{ form.question_type.label_tag }}
-                    {{ form.question_type }}
-                    {{ form.question_type.errors }}
-                </div>
-                <div>
-                    {{ form.question_count.label_tag }}
-                    {{ form.question_count }}
-                    {{ form.question_count.errors }}
-                </div>
-            </div>
-            {% if form.non_field_errors %}
-            <div class="text-sm text-red-600">
-                {{ form.non_field_errors }}
-            </div>
-            {% endif %}
-            <button type="submit"
-                    class="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg font-semibold shadow-lg hover:shadow-2xl transition">
-                Generate questions
-            </button>
-        </form>
-    </div>
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    {% url 'assessments:browse' as browse_url %}
+    {% include 'components/back_button.html' with fallback_url=browse_url label='Back to Browse Tests' %}
 
-    {% if form_submitted %}
-    <div class="bg-white rounded-xl shadow-lg p-6 space-y-4">
-        <p class="text-sm font-semibold text-gray-700">{{ generation_message }}</p>
-
-        {% if question_status %}
-        <div class="space-y-4">
-            {% for item in question_status %}
-            <div class="border border-gray-200 rounded-lg p-4">
-                <p class="font-semibold text-gray-800">{{ forloop.counter }}. {{ item.payload.question }}</p>
-                <ul class="list-disc list-inside text-sm text-gray-600 mt-2">
-                    {% if item.payload.options %}
-                        {% for option in item.payload.options %}
-                        <li>{{ option }}</li>
-                        {% endfor %}
-                    {% else %}
-                    <li>No options provided (code/essay question)</li>
-                    {% endif %}
-                </ul>
-                <p class="mt-2 text-xs text-gray-500">Points: {{ item.payload.points }} | Estimated time: {{ item.payload.estimated_time_seconds }}s</p>
-                <p class="mt-2 text-sm text-gray-600"><strong>Explanation:</strong> {{ item.payload.explanation }}</p>
-                <p class="mt-1 text-xs {{ item.created|yesno:'text-green-600,text-gray-500' }}">
-                    {% if item.created %}
-                    New pool entry created.
-                    {% else %}
-                    Question already existed.
-                    {% endif %}
-                </p>
+    <!-- Main Card -->
+    <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+        <!-- Header Section -->
+        <div class="bg-gradient-to-r from-primary to-secondary p-6 text-white">
+            <div class="flex items-center space-x-3 mb-2">
+                <div class="w-12 h-12 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-3xl font-bold">AI Question Generator</h1>
+                    <p class="text-sm opacity-90">Powered by Advanced AI</p>
+                </div>
             </div>
-            {% endfor %}
         </div>
-        {% endif %}
+
+        <!-- Info Section -->
+        <div class="p-6 bg-blue-50 border-b border-blue-100">
+            <div class="flex items-start space-x-3">
+                <svg class="w-6 h-6 text-primary flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <div class="flex-1">
+                    <h3 class="font-semibold text-gray-900 mb-1">How it works</h3>
+                    <p class="text-sm text-gray-600 leading-relaxed">
+                        Provide the skill, difficulty level, and question type you want to generate. Our AI will create
+                        high-quality questions with detailed explanations and answer data. All generated questions are 
+                        automatically saved to the database and will be available for use in assessments immediately.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Section -->
+        <div class="p-8">
+            <form method="post" class="space-y-6">
+                {% csrf_token %}
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Skill Name -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            {{ form.skill_name.label }}
+                            <span class="text-danger">*</span>
+                        </label>
+                        {{ form.skill_name }}
+                        {% if form.skill_name.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.skill_name.errors.0 }}</p>
+                        {% endif %}
+                        <p class="mt-1 text-xs text-gray-500">e.g., Python, React, Data Structures</p>
+                    </div>
+
+                    <!-- Difficulty -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            {{ form.difficulty.label }}
+                            <span class="text-danger">*</span>
+                        </label>
+                        {{ form.difficulty }}
+                        {% if form.difficulty.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.difficulty.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Question Type -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            {{ form.question_type.label }}
+                            <span class="text-danger">*</span>
+                        </label>
+                        {{ form.question_type }}
+                        {% if form.question_type.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.question_type.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Question Count -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            {{ form.question_count.label }}
+                            <span class="text-danger">*</span>
+                        </label>
+                        {{ form.question_count }}
+                        {% if form.question_count.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.question_count.errors.0 }}</p>
+                        {% endif %}
+                        <p class="mt-1 text-xs text-gray-500">Between 1 and 50 questions</p>
+                    </div>
+                </div>
+
+                <!-- Non-field Errors -->
+                {% if form.non_field_errors %}
+                <div class="rounded-lg bg-red-50 border border-red-200 p-4">
+                    <div class="flex items-start">
+                        <svg class="w-5 h-5 text-red-600 mt-0.5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <div class="text-sm text-red-700">
+                            {{ form.non_field_errors }}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Submit Button -->
+                <div class="flex items-center justify-between pt-4 border-t border-gray-200">
+                    <div class="text-sm text-gray-600">
+                        <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                        </svg>
+                        Questions will be auto-saved
+                    </div>
+                    <button type="submit"
+                            class="inline-flex items-center px-8 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                        Generate Questions
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Features Section -->
+        <div class="bg-gray-50 px-8 py-6 border-t border-gray-200">
+            <h3 class="text-sm font-semibold text-gray-700 mb-3">What you'll get:</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="flex items-start space-x-2">
+                    <svg class="w-5 h-5 text-success flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                    </svg>
+                    <span class="text-sm text-gray-600">AI-crafted questions with proper difficulty scaling</span>
+                </div>
+                <div class="flex items-start space-x-2">
+                    <svg class="w-5 h-5 text-success flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                    </svg>
+                    <span class="text-sm text-gray-600">Detailed explanations for correct answers</span>
+                </div>
+                <div class="flex items-start space-x-2">
+                    <svg class="w-5 h-5 text-success flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                    </svg>
+                    <span class="text-sm text-gray-600">Automatic database storage for immediate use</span>
+                </div>
+            </div>
+        </div>
     </div>
-    {% endif %}
 </div>
 {% endblock %}

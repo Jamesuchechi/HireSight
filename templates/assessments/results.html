@@ -5,6 +5,8 @@
 
 {% block content %}
 <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    {% url 'assessments:test_detail' attempt.test.slug as test_detail_url %}
+    {% include 'components/back_button.html' with fallback_url=test_detail_url label='Back to Test Details' %}
     <!-- Result Header -->
     <div class="bg-gradient-to-br {% if attempt.passed %}from-green-500 to-green-600{% else %}from-orange-500 to-red-600{% endif %} rounded-xl shadow-2xl p-8 text-white text-center mb-8">
         {% if attempt.passed %}

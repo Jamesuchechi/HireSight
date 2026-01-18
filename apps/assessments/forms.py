@@ -21,6 +21,29 @@ class TestFilterForm(forms.Form):
             'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary'
         })
     )
+    
+    test_type = forms.ChoiceField(
+        required=False,
+        choices=[('', 'All Types')] + list(SkillTest.TEST_TYPES),
+        widget=forms.Select(attrs={
+            'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary'
+        })
+    )
+    
+    sort_by = forms.ChoiceField(
+        required=False,
+        choices=[
+            ('', 'Default'),
+            ('recommended', 'Recommended for You'),
+            ('popular', 'Most Popular'),
+            ('difficulty', 'By Difficulty'),
+            ('newest', 'Newest First'),
+            ('oldest', 'Oldest First'),
+        ],
+        widget=forms.Select(attrs={
+            'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary'
+        })
+    )
 
 
 class QuestionGenerationForm(forms.Form):
@@ -48,28 +71,6 @@ class QuestionGenerationForm(forms.Form):
         max_value=50,
         initial=10,
         widget=forms.NumberInput(attrs={
-            'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary'
-        })
-    )
-    
-    test_type = forms.ChoiceField(
-        required=False,
-        choices=[('', 'All Types')] + list(SkillTest.TEST_TYPES),
-        widget=forms.Select(attrs={
-            'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary'
-        })
-    )
-    
-    sort_by = forms.ChoiceField(
-        required=False,
-        choices=[
-            ('', 'Default'),
-            ('recommended', 'Recommended for You'),
-            ('popular', 'Most Popular'),
-            ('difficulty', 'By Difficulty'),
-            ('newest', 'Newest First'),
-        ],
-        widget=forms.Select(attrs={
             'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary'
         })
     )

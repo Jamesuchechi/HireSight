@@ -5,6 +5,8 @@
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    {% url 'assessments:browse' as browse_url %}
+    {% include 'components/back_button.html' with fallback_url=browse_url label='Back to Browse Tests' %}
     <!-- Header -->
     <div class="mb-8">
         <h1 class="text-4xl font-display font-bold text-gray-900 mb-2">🏆 My Skill Badges</h1>

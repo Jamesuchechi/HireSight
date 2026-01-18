@@ -67,6 +67,7 @@ def get_generation_cooldown_remaining(slug):
     remaining = GENERATION_COOLDOWN_SECONDS - elapsed
     return int(remaining) if remaining > 0 else 0
 
+
 class PersonalAccountRequiredMixin(UserPassesTestMixin):
     """Mixin to ensure only personal accounts can access"""
     
@@ -122,6 +123,8 @@ class BrowseTestsView(LoginRequiredMixin, PersonalAccountRequiredMixin, ListView
                 queryset = queryset.order_by('difficulty', 'skill_name')
             elif sort_by == 'newest':
                 queryset = queryset.order_by('-created_at')
+            elif sort_by == 'oldest':
+                queryset = queryset.order_by('created_at')
             elif sort_by == 'recommended':
                 # Prioritize tests matching user skills
                 if user_skills:
@@ -187,7 +190,6 @@ class GenerateQuestionsPageView(LoginRequiredMixin, PersonalAccountRequiredMixin
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['title'] = 'Generate AI Questions'
-        context.setdefault('form_submitted', False)
         return context
 
     def form_valid(self, form):
@@ -199,8 +201,8 @@ class GenerateQuestionsPageView(LoginRequiredMixin, PersonalAccountRequiredMixin
         try:
             generator = QuestionGenerator()
         except (ValueError, ImportError) as exc:
-            form.add_error(None, str(exc))
-            return self.form_invalid(form)
+            messages.error(self.request, f"Question generation unavailable: {str(exc)}")
+            return redirect('assessments:browse')
 
         generated = generator.generate_questions(
             skill_name=skill_name,
@@ -209,8 +211,11 @@ class GenerateQuestionsPageView(LoginRequiredMixin, PersonalAccountRequiredMixin
             question_type=question_type
         )
 
+        if not generated:
+            messages.warning(self.request, 'No questions were generated. Please try again.')
+            return redirect('assessments:browse')
+
         created_count = 0
-        question_status = []
         for q_data in generated:
             question, created = QuestionPool.objects.get_or_create(
                 skill_name=skill_name,
@@ -228,23 +233,69 @@ class GenerateQuestionsPageView(LoginRequiredMixin, PersonalAccountRequiredMixin
             )
             if created:
                 created_count += 1
-            question_status.append({
-                'payload': q_data,
-                'created': created
-            })
 
-        context = self.get_context_data(form=form)
-        context.update({
-            'question_status': question_status,
-            'created_count': created_count,
-            'generation_message': (
-                f"Generated {len(generated)} questions for {skill_name} "
-                f"({created_count} new entries stored)."
-                if generated else "No questions were generated."
-            ),
-            'form_submitted': True
-        })
-        return self.render_to_response(context)
+        if created_count == 0:
+            messages.warning(
+                self.request,
+                f"AI generated {len(generated)} question(s) but none were new; they likely already exist in the question pool."
+            )
+            return redirect('assessments:browse')
+
+        # Refresh cache so browse page shows newly created questions immediately
+        cache_question_types = [question_type]
+        refresh_question_pool_cache(skill_name, difficulty, cache_question_types)
+        default_cache_types = ['MULTIPLE_CHOICE', 'TRUE_FALSE']
+        if set(default_cache_types) != set(cache_question_types):
+            refresh_question_pool_cache(skill_name, difficulty, default_cache_types)
+
+        # Ensure a dynamic SkillTest exists so the new skill shows up on Browse
+        existing_test = SkillTest.objects.filter(
+            skill_name__iexact=skill_name,
+            difficulty=difficulty,
+            test_type='DYNAMIC',
+            is_active=True
+        ).first()
+
+        if not existing_test:
+            title = f"{skill_name} Practice Test"
+            description = f"AI-generated practice questions for {skill_name} at {difficulty.title()} level."
+            question_pool_filters = {'difficulty': difficulty, 'types': [question_type]}
+            duration_minutes = max(20, question_count * 2)
+            SkillTest.objects.create(
+                title=title,
+                skill_name=skill_name,
+                description=description,
+                test_type='DYNAMIC',
+                difficulty=difficulty,
+                duration_minutes=duration_minutes,
+                passing_score=70,
+                question_count=question_count,
+                question_pool_filters=question_pool_filters,
+                required_skills=[skill_name],
+                is_active=True,
+                is_featured=False
+            )
+        else:
+            filters = existing_test.question_pool_filters or {}
+            types = set(filters.get('types', []))
+            types.add(question_type)
+            filters['types'] = list(types)
+            filters.setdefault('difficulty', difficulty)
+            updated_fields = []
+            if existing_test.question_pool_filters != filters:
+                existing_test.question_pool_filters = filters
+                updated_fields.append('question_pool_filters')
+            if existing_test.question_count < question_count:
+                existing_test.question_count = question_count
+                updated_fields.append('question_count')
+            if updated_fields:
+                existing_test.save(update_fields=updated_fields)
+
+        messages.success(
+            self.request,
+            f"Successfully generated {len(generated)} questions for {skill_name} ({created_count} new entries saved)."
+        )
+        return redirect('assessments:browse')
 
 
 class TestDetailView(LoginRequiredMixin, PersonalAccountRequiredMixin, DetailView):
@@ -463,16 +514,19 @@ class GenerateQuestionsView(LoginRequiredMixin, PersonalAccountRequiredMixin, Vi
             created_count = generator.bulk_generate_for_test(test)
             if created_count:
                 message = f"Generated {created_count} new questions for {test.title}."
+                cooldown_seconds = GENERATION_COOLDOWN_SECONDS
             else:
                 message = f"No new questions were generated for {test.title}."
+                cooldown_seconds = 0
             logger.info(f"{request.user.email} triggered question generation for {test.title}")
-            cache.set(cooldown_key, timezone.now().timestamp(), GENERATION_COOLDOWN_SECONDS)
+            if cooldown_seconds:
+                cache.set(cooldown_key, timezone.now().timestamp(), cooldown_seconds)
             latest_pool_count = refresh_question_pool_cache(test.skill_name, difficulty, question_types)
             return JsonResponse({
                 'success': True,
                 'created_count': created_count,
                 'message': message,
-                'cooldown': GENERATION_COOLDOWN_SECONDS,
+                'cooldown': cooldown_seconds,
                 'pool_count': latest_pool_count
             })
         except Exception as exc:

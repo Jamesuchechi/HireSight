@@ -5,6 +5,8 @@
 
 {% block content %}
 <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    {% url 'assessments:browse' as browse_url %}
+    {% include 'components/back_button.html' with fallback_url=browse_url label='Back to Browse Tests' %}
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <!-- Main Content -->
         <div class="lg:col-span-2">
