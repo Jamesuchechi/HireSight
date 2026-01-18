@@ -3,19 +3,19 @@
 {% block title %}Manage Jobs - HireSight{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 py-8 px-4 sm:px-6 lg:px-8">
+<div class="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
     <div class="max-w-7xl mx-auto">
         <!-- Header Section -->
-        <div class="mb-8 animate-fade-in">
+        <div class="mb-8">
             <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
-                    <h1 class="font-display text-4xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-2">
+                    <h1 class="font-display text-4xl font-bold text-gray-900 mb-2">
                         Manage Job Postings
                     </h1>
-                    <p class="text-gray-600">Track and manage all your job listings in one place</p>
+                    <p class="text-gray-600 text-lg">Track and manage all your job listings in one place</p>
                 </div>
                 <a href="{% url 'jobs:create' %}" 
-                   class="btn-primary inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                   class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-xl font-semibold shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200">
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                     </svg>
@@ -25,84 +25,96 @@
         </div>
 
         <!-- Stats Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 animate-slide-up">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <!-- Total Jobs Card -->
-            <div class="card-hover bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-600 mb-1">Total Jobs</p>
-                        <h3 class="text-3xl font-bold text-gray-900">{{ stats.total }}</h3>
+            <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+                <div class="p-6">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">Total Jobs</p>
+                            <h3 class="text-3xl font-bold text-gray-900">{{ stats.total }}</h3>
+                        </div>
+                        <div class="flex-shrink-0 ml-4">
+                            <div class="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+                                <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                                </svg>
+                            </div>
+                        </div>
                     </div>
-                    <div class="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
-                        <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-                        </svg>
-                    </div>
+                    <div class="mt-4 text-sm text-gray-500">All listings</div>
                 </div>
-                <div class="mt-4 flex items-center text-sm">
-                    <span class="text-gray-500">All listings</span>
-                </div>
+                <div class="h-1 bg-gradient-to-r from-blue-500 to-blue-600"></div>
             </div>
 
             <!-- Active Jobs Card -->
-            <div class="card-hover bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-600 mb-1">Active Jobs</p>
-                        <h3 class="text-3xl font-bold text-success">{{ stats.active }}</h3>
+            <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+                <div class="p-6">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">Active Jobs</p>
+                            <h3 class="text-3xl font-bold text-gray-900">{{ stats.active }}</h3>
+                        </div>
+                        <div class="flex-shrink-0 ml-4">
+                            <div class="w-14 h-14 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg">
+                                <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            </div>
+                        </div>
                     </div>
-                    <div class="w-14 h-14 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg">
-                        <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                    </div>
+                    <div class="mt-4 text-sm text-gray-500">Currently hiring</div>
                 </div>
-                <div class="mt-4 flex items-center text-sm">
-                    <span class="text-gray-500">Currently hiring</span>
-                </div>
+                <div class="h-1 bg-gradient-to-r from-green-500 to-green-600"></div>
             </div>
 
             <!-- Draft Jobs Card -->
-            <div class="card-hover bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-600 mb-1">Draft Jobs</p>
-                        <h3 class="text-3xl font-bold text-warning">{{ stats.draft }}</h3>
+            <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+                <div class="p-6">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">Draft Jobs</p>
+                            <h3 class="text-3xl font-bold text-gray-900">{{ stats.draft }}</h3>
+                        </div>
+                        <div class="flex-shrink-0 ml-4">
+                            <div class="w-14 h-14 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl flex items-center justify-center shadow-lg">
+                                <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                </svg>
+                            </div>
+                        </div>
                     </div>
-                    <div class="w-14 h-14 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl flex items-center justify-center shadow-lg">
-                        <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                        </svg>
-                    </div>
+                    <div class="mt-4 text-sm text-gray-500">In progress</div>
                 </div>
-                <div class="mt-4 flex items-center text-sm">
-                    <span class="text-gray-500">In progress</span>
-                </div>
+                <div class="h-1 bg-gradient-to-r from-yellow-500 to-yellow-600"></div>
             </div>
 
             <!-- Closed Jobs Card -->
-            <div class="card-hover bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-600 mb-1">Closed Jobs</p>
-                        <h3 class="text-3xl font-bold text-gray-600">{{ stats.closed }}</h3>
+            <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+                <div class="p-6">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">Closed Jobs</p>
+                            <h3 class="text-3xl font-bold text-gray-900">{{ stats.closed }}</h3>
+                        </div>
+                        <div class="flex-shrink-0 ml-4">
+                            <div class="w-14 h-14 bg-gradient-to-br from-gray-500 to-gray-600 rounded-xl flex items-center justify-center shadow-lg">
+                                <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
+                                </svg>
+                            </div>
+                        </div>
                     </div>
-                    <div class="w-14 h-14 bg-gradient-to-br from-gray-500 to-gray-600 rounded-xl flex items-center justify-center shadow-lg">
-                        <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
-                        </svg>
-                    </div>
+                    <div class="mt-4 text-sm text-gray-500">Archived</div>
                 </div>
-                <div class="mt-4 flex items-center text-sm">
-                    <span class="text-gray-500">Archived</span>
-                </div>
+                <div class="h-1 bg-gradient-to-r from-gray-500 to-gray-600"></div>
             </div>
         </div>
 
         <!-- Job Listings Table -->
-        <div class="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden animate-scale-in">
-            <div class="bg-gradient-to-r from-primary to-secondary px-6 py-4">
-                <h2 class="text-xl font-display font-bold text-white">Your Job Postings</h2>
+        <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+            <div class="px-6 py-5 border-b border-gray-200">
+                <h2 class="text-xl font-display font-bold text-gray-900">Your Job Postings</h2>
             </div>
             
             <div class="p-6">
@@ -111,11 +123,11 @@
                         <table class="w-full">
                             <thead>
                                 <tr class="border-b border-gray-200">
-                                    <th class="text-left py-4 px-4 font-semibold text-gray-700">Job Title</th>
-                                    <th class="text-left py-4 px-4 font-semibold text-gray-700">Status</th>
-                                    <th class="text-center py-4 px-4 font-semibold text-gray-700">Applications</th>
-                                    <th class="text-center py-4 px-4 font-semibold text-gray-700">Views</th>
-                                    <th class="text-center py-4 px-4 font-semibold text-gray-700">Actions</th>
+                                    <th class="text-left py-4 px-4 font-semibold text-gray-700 text-sm uppercase tracking-wide">Job Title</th>
+                                    <th class="text-left py-4 px-4 font-semibold text-gray-700 text-sm uppercase tracking-wide">Status</th>
+                                    <th class="text-center py-4 px-4 font-semibold text-gray-700 text-sm uppercase tracking-wide">Applications</th>
+                                    <th class="text-center py-4 px-4 font-semibold text-gray-700 text-sm uppercase tracking-wide">Views</th>
+                                    <th class="text-center py-4 px-4 font-semibold text-gray-700 text-sm uppercase tracking-wide">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -140,17 +152,17 @@
                                     </td>
                                     <td class="py-4 px-4">
                                         {% if job.status == 'active' %}
-                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
+                                        <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold bg-green-100 text-green-800">
                                             <span class="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
                                             {{ job.get_status_display }}
                                         </span>
                                         {% elif job.status == 'draft' %}
-                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">
+                                        <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">
                                             <span class="w-2 h-2 bg-yellow-500 rounded-full mr-2"></span>
                                             {{ job.get_status_display }}
                                         </span>
                                         {% else %}
-                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800">
+                                        <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-800">
                                             <span class="w-2 h-2 bg-gray-500 rounded-full mr-2"></span>
                                             {{ job.get_status_display }}
                                         </span>
@@ -183,43 +195,53 @@
                                                 <div class="py-2">
                                                     <a href="{% url 'jobs:detail' job.slug %}" 
                                                        class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-                                                        <svg class="w-5 h-5 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                                                        </svg>
-                                                        View Details
+                                                        <div class="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center mr-3">
+                                                            <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                                            </svg>
+                                                        </div>
+                                                        <span class="font-medium">View Details</span>
                                                     </a>
                                                     <a href="{% url 'jobs:edit' job.slug %}" 
                                                        class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-                                                        <svg class="w-5 h-5 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                                        </svg>
-                                                        Edit Job
+                                                        <div class="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center mr-3">
+                                                            <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                                            </svg>
+                                                        </div>
+                                                        <span class="font-medium">Edit Job</span>
                                                     </a>
                                                     <form method="post" action="{% url 'jobs:duplicate' job.slug %}" class="inline">
                                                         {% csrf_token %}
                                                         <button type="submit" 
                                                                class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors w-full text-left">
-                                                            <svg class="w-5 h-5 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-                                                            </svg>
-                                                            Duplicate
+                                                            <div class="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center mr-3">
+                                                                <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                                                                </svg>
+                                                            </div>
+                                                            <span class="font-medium">Duplicate</span>
                                                         </button>
                                                     </form>
                                                     <a href="{% url 'jobs:stats' job.slug %}" 
                                                        class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-                                                        <svg class="w-5 h-5 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                                                        </svg>
-                                                        Analytics
+                                                        <div class="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center mr-3">
+                                                            <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                                            </svg>
+                                                        </div>
+                                                        <span class="font-medium">Analytics</span>
                                                     </a>
                                                     <div class="border-t border-gray-100 my-2"></div>
                                                     <a href="{% url 'jobs:delete' job.slug %}" 
                                                        class="flex items-center px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors">
-                                                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                                        </svg>
-                                                        Delete Job
+                                                        <div class="w-8 h-8 bg-red-50 rounded-lg flex items-center justify-center mr-3">
+                                                            <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                                            </svg>
+                                                        </div>
+                                                        <span class="font-medium">Delete Job</span>
                                                     </a>
                                                 </div>
                                             </div>
@@ -237,21 +259,21 @@
                         <nav class="flex items-center gap-2">
                             {% if page_obj.has_previous %}
                             <a href="?page={{ page_obj.previous_page_number }}" 
-                               class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
+                               class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 hover:border-primary transition-colors font-medium">
                                 Previous
                             </a>
                             {% endif %}
 
                             {% for num in page_obj.paginator.page_range %}
                             <a href="?page={{ num }}" 
-                               class="px-4 py-2 rounded-lg transition-colors {% if page_obj.number == num %}bg-gradient-to-r from-primary to-secondary text-white font-semibold{% else %}bg-white border border-gray-300 text-gray-700 hover:bg-gray-50{% endif %}">
+                               class="px-4 py-2 rounded-lg transition-colors font-medium {% if page_obj.number == num %}bg-gradient-to-r from-primary to-secondary text-white shadow-md{% else %}bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-primary{% endif %}">
                                 {{ num }}
                             </a>
                             {% endfor %}
 
                             {% if page_obj.has_next %}
                             <a href="?page={{ page_obj.next_page_number }}" 
-                               class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
+                               class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 hover:border-primary transition-colors font-medium">
                                 Next
                             </a>
                             {% endif %}
@@ -271,7 +293,7 @@
                             You haven't created any job postings yet. Get started by creating your first job listing and start attracting top talent.
                         </p>
                         <a href="{% url 'jobs:create' %}" 
-                           class="btn-primary inline-flex items-center px-8 py-4 bg-gradient-to-r from-primary to-secondary text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                           class="inline-flex items-center px-8 py-4 bg-gradient-to-r from-primary to-secondary text-white rounded-xl font-semibold shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200">
                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                             </svg>

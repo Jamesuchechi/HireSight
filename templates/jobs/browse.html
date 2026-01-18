@@ -4,30 +4,32 @@
 {% block meta_description %}Find your dream job with AI-powered job matching. Browse thousands of opportunities from top companies.{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50">
+<div class="min-h-screen bg-gray-50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <!-- Header -->
-        <div class="mb-8 animate-fade-in">
-            <h1 class="text-5xl font-display font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-4">
+        <div class="mb-8">
+            <h1 class="text-5xl font-display font-bold text-gray-900 mb-4">
                 Find Your Dream Job
             </h1>
             <p class="text-xl text-gray-600">Discover opportunities that match your skills and career goals.</p>
         </div>
 
         <!-- Search and Filters -->
-        <div class="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 mb-8 animate-slide-up">
+        <div class="bg-white rounded-xl shadow-md border border-gray-200 p-6 mb-8">
             <form method="get" class="space-y-4" id="searchForm">
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <!-- Search Keywords -->
                     <div class="md:col-span-2">
                         <label for="search" class="block text-sm font-semibold text-gray-700 mb-2">Keywords</label>
                         <div class="relative">
-                            <svg class="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                            </svg>
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                </svg>
+                            </div>
                             <input type="text" name="search" id="search" value="{{ request.GET.search }}"
                                    placeholder="Job title, company, or keywords"
-                                   class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-all">
+                                   class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
                         </div>
                     </div>
 
@@ -35,13 +37,15 @@
                     <div>
                         <label for="location" class="block text-sm font-semibold text-gray-700 mb-2">Location</label>
                         <div class="relative">
-                            <svg class="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                            </svg>
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                </svg>
+                            </div>
                             <input type="text" name="location" id="location" value="{{ request.GET.location }}"
                                    placeholder="City, State"
-                                   class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-all">
+                                   class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
                         </div>
                     </div>
 
@@ -49,7 +53,7 @@
                     <div>
                         <label for="location_radius" class="block text-sm font-semibold text-gray-700 mb-2">Search Radius</label>
                         <select name="location_radius" id="location_radius"
-                                class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-all">
+                                class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
                             <option value="">Any Distance</option>
                             <option value="5" {% if request.GET.location_radius == '5' %}selected{% endif %}>Within 5 miles</option>
                             <option value="10" {% if request.GET.location_radius == '10' %}selected{% endif %}>Within 10 miles</option>
@@ -63,7 +67,7 @@
                     <div>
                         <label for="employment_type" class="block text-sm font-semibold text-gray-700 mb-2">Employment Type</label>
                         <select name="employment_type" id="employment_type" 
-                                class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-all">
+                                class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
                             <option value="">All Types</option>
                             <option value="full_time" {% if request.GET.employment_type == 'full_time' %}selected{% endif %}>Full-time</option>
                             <option value="part_time" {% if request.GET.employment_type == 'part_time' %}selected{% endif %}>Part-time</option>
@@ -91,7 +95,7 @@
                             Clear All
                         </button>
                         <button type="submit" 
-                                class="btn-primary px-8 py-2.5 bg-gradient-to-r from-primary to-secondary text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all">
+                                class="px-8 py-2.5 bg-gradient-to-r from-primary to-secondary text-white rounded-xl font-semibold shadow-md hover:shadow-lg transition-all">
                             Search Jobs
                         </button>
                     </div>
@@ -108,7 +112,7 @@
                         <div>
                             <label for="experience" class="block text-sm font-semibold text-gray-700 mb-2">Experience Level</label>
                             <select name="experience_level" id="experience" 
-                                    class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-all">
+                                    class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
                                 <option value="">Any Experience</option>
                                 <option value="entry" {% if request.GET.experience_level == 'entry' %}selected{% endif %}>Entry Level</option>
                                 <option value="mid" {% if request.GET.experience_level == 'mid' %}selected{% endif %}>Mid Level</option>
@@ -121,7 +125,7 @@
                         <div>
                             <label for="posted_within" class="block text-sm font-semibold text-gray-700 mb-2">Posted Within</label>
                             <select name="posted_within" id="posted_within" 
-                                    class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-all">
+                                    class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
                                 <option value="">Any Time</option>
                                 <option value="1" {% if request.GET.posted_within == '1' %}selected{% endif %}>Last 24 hours</option>
                                 <option value="3" {% if request.GET.posted_within == '3' %}selected{% endif %}>Last 3 days</option>
@@ -137,7 +141,7 @@
                         <div class="flex gap-2 mb-3">
                             <input type="text" name="skills" id="skills" value="{{ request.GET.skills }}"
                                    placeholder="Python, Django, React, etc."
-                                   class="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-all">
+                                   class="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
                         </div>
                         
                         <!-- Skills Match Toggle -->
@@ -182,14 +186,14 @@
 
                 <!-- Job Cards -->
                 {% if jobs %}
-                    <div class="space-y-5 animate-scale-in">
+                    <div class="space-y-5">
                         {% for job in jobs %}
-                            <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl hover:border-primary transition-all duration-300 card-hover">
+                            <div class="bg-white rounded-xl shadow-md border border-gray-200 p-6 hover:shadow-lg hover:border-primary transition-all duration-300">
                                 <div class="flex items-start justify-between mb-4">
                                     <div class="flex items-start space-x-4 flex-1">
                                         {% if job.company.logo %}
                                             <img src="{{ job.company.logo.url }}" alt="{{ job.company.name }}" 
-                                                 class="w-16 h-16 rounded-xl object-cover flex-shrink-0 shadow-md">
+                                                 class="w-16 h-16 rounded-xl object-cover flex-shrink-0 shadow-md border border-gray-200">
                                         {% else %}
                                             <div class="w-16 h-16 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center text-white font-bold text-xl flex-shrink-0 shadow-md">
                                                 {{ job.company.name|slice:":2"|upper }}
@@ -205,18 +209,22 @@
                                             <div class="flex flex-wrap items-center gap-4 text-sm text-gray-600 mb-3">
                                                 {% if job.location %}
                                                     <span class="flex items-center">
-                                                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                                        </svg>
-                                                        {{ job.location }}
+                                                        <div class="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center mr-2">
+                                                            <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                                            </svg>
+                                                        </div>
+                                                        <span class="font-medium">{{ job.location }}</span>
                                                     </span>
                                                 {% endif %}
                                                 {% if job.salary_min %}
                                                     <span class="flex items-center font-semibold text-success">
-                                                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
-                                                        </svg>
+                                                        <div class="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center mr-2">
+                                                            <svg class="w-4 h-4 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                                                            </svg>
+                                                        </div>
                                                         {% if job.salary_max %}
                                                             ${{ job.salary_min|floatformat:0 }} - ${{ job.salary_max|floatformat:0 }}
                                                         {% else %}
@@ -225,10 +233,12 @@
                                                     </span>
                                                 {% endif %}
                                                 <span class="flex items-center">
-                                                    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                                    </svg>
-                                                    {{ job.created_at|timesince }} ago
+                                                    <div class="w-8 h-8 bg-secondary-light rounded-lg flex items-center justify-center mr-2">
+                                                        <svg class="w-4 h-4 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                        </svg>
+                                                    </div>
+                                                    <span class="font-medium">{{ job.created_at|timesince }} ago</span>
                                                 </span>
                                             </div>
                                             {% if job.description %}
@@ -265,10 +275,10 @@
                                         {% endif %}
                                     </div>
                                     <div class="flex space-x-3">
-                                        <a href="{% url 'jobs:detail' job.slug %}" class="btn-primary px-5 py-2 text-sm bg-gradient-to-r from-primary to-secondary text-white rounded-lg font-semibold shadow-md hover:shadow-lg transition-all">
+                                        <a href="{% url 'jobs:detail' job.slug %}" class="px-5 py-2 text-sm bg-white border-2 border-primary text-primary rounded-lg font-semibold hover:bg-primary hover:text-white transition-all">
                                             View Details
                                         </a>
-                                        <a href="{% url 'applications:apply' job.slug %}" class="btn-primary px-5 py-2 text-sm bg-gradient-to-r from-primary to-secondary text-white rounded-lg font-semibold shadow-md hover:shadow-lg transition-all">
+                                        <a href="{% url 'applications:apply' job.slug %}" class="px-5 py-2 text-sm bg-gradient-to-r from-primary to-secondary text-white rounded-lg font-semibold shadow-md hover:shadow-lg transition-all">
                                             Quick Apply
                                         </a>
                                     </div>
@@ -286,7 +296,7 @@
                             <div class="flex space-x-2">
                                 {% if jobs.has_previous %}
                                     <a href="?page={{ jobs.previous_page_number }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
-                                       class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                                       class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-primary transition-colors">
                                         Previous
                                     </a>
                                 {% endif %}
@@ -298,7 +308,7 @@
                                         </span>
                                     {% elif num > jobs.number|add:'-3' and num < jobs.number|add:'3' %}
                                         <a href="?page={{ num }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
-                                           class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                                           class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-primary transition-colors">
                                             {{ num }}
                                         </a>
                                     {% endif %}
@@ -306,7 +316,7 @@
 
                                 {% if jobs.has_next %}
                                     <a href="?page={{ jobs.next_page_number }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
-                                       class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                                       class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-primary transition-colors">
                                         Next
                                     </a>
                                 {% endif %}
@@ -315,7 +325,7 @@
                     {% endif %}
                 {% else %}
                     <!-- Empty State -->
-                    <div class="text-center py-16 bg-white rounded-2xl shadow-lg border border-gray-100">
+                    <div class="text-center py-16 bg-white rounded-xl shadow-md border border-gray-200">
                         <div class="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-primary to-secondary rounded-2xl mb-6 shadow-lg">
                             <svg class="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
@@ -325,7 +335,7 @@
                         <p class="text-gray-600 mb-8 max-w-md mx-auto">Try adjusting your search criteria or browse all available positions.</p>
                         <div class="flex flex-col sm:flex-row gap-3 justify-center">
                             <button onclick="clearFilters()" 
-                                    class="btn-primary px-8 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all">
+                                    class="px-8 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-xl font-semibold shadow-md hover:shadow-lg transition-all">
                                 Clear Filters
                             </button>
                             <a href="{% url 'jobs:browse' %}" 
@@ -340,7 +350,7 @@
             <!-- Sidebar -->
             <div class="space-y-6">
                 <!-- Job Alerts -->
-                <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 card-hover">
+                <div class="bg-white rounded-xl shadow-md border border-gray-200 p-6">
                     <div class="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-br from-primary to-secondary rounded-xl mb-4 shadow-md">
                         <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
@@ -348,13 +358,13 @@
                     </div>
                     <h3 class="text-lg font-bold text-gray-900 mb-2">Job Alerts</h3>
                     <p class="text-gray-600 text-sm mb-4">Get notified when jobs matching your criteria are posted.</p>
-                    <button class="w-full btn-primary py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-xl font-semibold shadow-md hover:shadow-lg transition-all">
+                    <button class="w-full py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-xl font-semibold shadow-md hover:shadow-lg transition-all">
                         Create Job Alert
                     </button>
                 </div>
 
                 <!-- Top Companies -->
-                <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 card-hover">
+                <div class="bg-white rounded-xl shadow-md border border-gray-200 p-6">
                     <h3 class="text-lg font-bold text-gray-900 mb-4">Top Companies Hiring</h3>
                     <div class="space-y-4">
                         <div class="flex items-center space-x-3 p-3 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer">
@@ -388,11 +398,13 @@
                 </div>
 
                 <!-- Salary Insights -->
-                <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 card-hover">
+                <div class="bg-white rounded-xl shadow-md border border-gray-200 p-6">
                     <div class="flex items-center mb-4">
-                        <svg class="w-5 h-5 mr-2 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                        </svg>
+                        <div class="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center mr-3">
+                            <svg class="w-5 h-5 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                            </svg>
+                        </div>
                         <h3 class="text-lg font-bold text-gray-900">Salary Insights</h3>
                     </div>
                     <div class="space-y-4">
@@ -431,7 +443,6 @@
 </div>
 
 <script>
-// Track the state of advanced filters
 let advancedFiltersVisible = false;
 
 function toggleAdvancedFilters() {

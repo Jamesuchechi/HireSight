@@ -65,7 +65,7 @@ def follow_deleted(sender, instance, **kwargs):
         user=instance.follower,
         activity_type=ActivityType.UNFOLLOWED_USER,
         content={
-            'unfollowed_user_id': instance.followed.id,
+            'unfollowed_user_id': str(instance.followed.id),
             'unfollowed_user_name': instance.followed.get_display_name()
         }
     )

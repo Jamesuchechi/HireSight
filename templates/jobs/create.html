@@ -41,36 +41,41 @@
 {% block content %}
 <div class="min-h-screen bg-gray-50">
     <!-- Header -->
-    <div class="bg-gradient-to-r from-secondary via-primary to-purple text-white">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="bg-white border-b border-gray-200 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <h1 class="text-3xl font-display font-bold mb-2">Create Job Posting</h1>
-                    <p class="text-white/90">Post a new job and find the perfect candidate</p>
+                    <h1 class="text-3xl font-display font-bold text-gray-900 mb-1">Create Job Posting</h1>
+                    <p class="text-gray-600">Post a new job and find the perfect candidate</p>
                 </div>
-                <a href="{% url 'jobs:manage' %}" class="px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 text-white rounded-xl hover:bg-white/20 transition-all">
-                    ← Back to Manage Jobs
+                <a href="{% url 'jobs:manage' %}" class="inline-flex items-center px-4 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 hover:border-primary transition-all">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                    </svg>
+                    Back to Manage Jobs
                 </a>
             </div>
         </div>
     </div>
 
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <form method="post" enctype="multipart/form-data" class="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+        <form method="post" enctype="multipart/form-data" class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
             {% csrf_token %}
 
             <!-- Display Form Errors -->
             {% if form.errors %}
-                <div class="bg-red-50 border-l-4 border-red-500 p-4 m-6">
+                <div class="bg-red-50 border-l-4 border-red-500 p-6 m-6">
                     <div class="flex">
                         <div class="flex-shrink-0">
-                            <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
-                            </svg>
+                            <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                                <svg class="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                                </svg>
+                            </div>
                         </div>
-                        <div class="ml-3">
-                            <h3 class="text-sm font-medium text-red-800">There were errors with your submission:</h3>
-                            <div class="mt-2 text-sm text-red-700">
+                        <div class="ml-4">
+                            <h3 class="text-sm font-semibold text-red-800 mb-2">There were errors with your submission:</h3>
+                            <div class="text-sm text-red-700">
                                 <ul class="list-disc list-inside space-y-1">
                                     {% for field, errors in form.errors.items %}
                                         {% for error in errors %}
@@ -87,7 +92,14 @@
             <div class="p-8">
                 <!-- Basic Information -->
                 <div class="mb-8">
-                    <h2 class="text-2xl font-display font-bold text-gray-900 mb-6">Basic Information</h2>
+                    <div class="flex items-center mb-6">
+                        <div class="w-10 h-10 bg-primary-light rounded-lg flex items-center justify-center mr-3">
+                            <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                        <h2 class="text-2xl font-display font-bold text-gray-900">Basic Information</h2>
+                    </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <!-- Job Title -->
@@ -204,8 +216,15 @@
                 </div>
 
                 <!-- Job Description -->
-                <div class="mb-8">
-                    <h3 class="text-xl font-semibold text-gray-900 mb-4">Job Description</h3>
+                <div class="mb-8 border-t border-gray-200 pt-8">
+                    <div class="flex items-center mb-6">
+                        <div class="w-10 h-10 bg-secondary-light rounded-lg flex items-center justify-center mr-3">
+                            <svg class="w-5 h-5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-semibold text-gray-900">Job Description</h3>
+                    </div>
 
                     <div class="space-y-6">
                         <!-- Description -->
@@ -296,8 +315,16 @@
                 </div>
 
                 <!-- Application Settings -->
-                <div class="mb-8">
-                    <h3 class="text-xl font-semibold text-gray-900 mb-4">Application Settings</h3>
+                <div class="mb-8 border-t border-gray-200 pt-8">
+                    <div class="flex items-center mb-6">
+                        <div class="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center mr-3">
+                            <svg class="w-5 h-5 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-semibold text-gray-900">Application Settings</h3>
+                    </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <!-- Application Deadline -->
@@ -324,24 +351,24 @@
                     </div>
 
                     <!-- Checkboxes -->
-                    <div class="mt-6 space-y-4">
+                    <div class="mt-6 space-y-3 bg-gray-50 p-4 rounded-lg">
                         <div class="flex items-center">
                             {{ form.is_remote }}
-                            <label for="{{ form.is_remote.id_for_label }}" class="ml-2 block text-sm text-gray-700">
+                            <label for="{{ form.is_remote.id_for_label }}" class="ml-3 block text-sm font-medium text-gray-700">
                                 This is a remote position
                             </label>
                         </div>
 
                         <div class="flex items-center">
                             {{ form.requires_cover_letter }}
-                            <label for="{{ form.requires_cover_letter.id_for_label }}" class="ml-2 block text-sm text-gray-700">
+                            <label for="{{ form.requires_cover_letter.id_for_label }}" class="ml-3 block text-sm font-medium text-gray-700">
                                 Require cover letter
                             </label>
                         </div>
 
                         <div class="flex items-center">
                             {{ form.requires_portfolio }}
-                            <label for="{{ form.requires_portfolio.id_for_label }}" class="ml-2 block text-sm text-gray-700">
+                            <label for="{{ form.requires_portfolio.id_for_label }}" class="ml-3 block text-sm font-medium text-gray-700">
                                 Require portfolio
                             </label>
                         </div>
@@ -349,13 +376,20 @@
                 </div>
 
                 <!-- Screening Questions -->
-                <div class="mb-8">
+                <div class="mb-8 border-t border-gray-200 pt-8">
                     {% include 'jobs/components/screening_questions.html' %}
                 </div>
 
                 <!-- Status -->
-                <div class="mb-8">
-                    <h3 class="text-xl font-semibold text-gray-900 mb-4">Publication Status</h3>
+                <div class="mb-8 border-t border-gray-200 pt-8">
+                    <div class="flex items-center mb-6">
+                        <div class="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center mr-3">
+                            <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-semibold text-gray-900">Publication Status</h3>
+                    </div>
                     <div>
                         <label for="{{ form.status.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
                             Job Status
@@ -364,19 +398,30 @@
                         {% if form.status.errors %}
                             <p class="mt-1 text-sm text-red-600">{{ form.status.errors.0 }}</p>
                         {% endif %}
-                        <p class="mt-1 text-xs text-gray-500">Choose "Active" to publish immediately or "Draft" to save for later</p>
+                        <p class="mt-2 text-xs text-gray-500 flex items-center">
+                            <svg class="w-4 h-4 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            Choose "Active" to publish immediately or "Draft" to save for later
+                        </p>
                     </div>
                 </div>
 
                 <!-- Form Actions -->
                 <div class="flex items-center justify-between pt-6 border-t border-gray-200">
                     <a href="{% url 'jobs:manage' %}"
-                       class="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-all">
+                       class="inline-flex items-center px-6 py-3 border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-all">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
                         Cancel
                     </a>
 
                     <button type="submit"
-                            class="px-8 py-3 bg-primary text-white rounded-xl font-semibold hover:bg-primary/90 transition-all shadow-lg hover:shadow-xl">
+                            class="inline-flex items-center px-8 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg font-semibold hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 shadow-md">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                        </svg>
                         Create Job Posting
                     </button>
                 </div>

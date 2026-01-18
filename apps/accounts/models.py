@@ -104,6 +104,11 @@ class User(AbstractBaseUser, PermissionsMixin):
         elif self.account_type == 'company' and hasattr(self, 'company_profile'):
             return self.company_profile.company_name
         return self.email
+
+    def get_display_name(self):
+        """User-facing label used when referencing the user."""
+        full_name = self.get_full_name()
+        return full_name if full_name else self.email
     
     def get_profile(self):
         """Return the appropriate profile based on account type."""
