@@ -2,14 +2,107 @@
 
 {% block title %}Cancel Interview{% endblock %}
 
+{% block extra_css %}
+<style>
+    .badge-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 999px;
+        padding: 0.35rem 0.85rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="max-w-3xl mx-auto p-6">
-    <h1 class="text-3xl font-bold mb-6">Cancel Interview</h1>
-    <form method="post" class="space-y-4 bg-white shadow rounded-lg p-6">
-        {% csrf_token %}
-        {{ form.reason.label_tag }}
-        {{ form.reason }}
-        <button type="submit" class="bg-red-600 text-white px-4 py-2 rounded">Confirm Cancel</button>
-    </form>
+<div class="min-h-screen bg-gray-50">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div class="bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden">
+            <div class="px-6 py-6 border-b border-gray-100 bg-gradient-to-r from-red-500 to-pink-500 text-white">
+                <div class="flex items-center justify-between gap-4">
+                    <div>
+                        {% url 'interviews:detail' interview.id as interview_detail_url %}
+                        {% include 'components/back_button.html' with fallback_url=interview_detail_url label='Back to Interview' %}
+                        <h1 class="text-3xl font-semibold">Cancel Interview</h1>
+                        <p class="mt-1 text-sm opacity-90">
+                            {{ interview.application.applicant.get_full_name }} · {{ interview.application.job.title }}
+                        </p>
+                    </div>
+                    <span class="badge-pill bg-white/10 border border-white/40">
+                        {{ interview.get_status_display }}
+                    </span>
+                </div>
+            </div>
+
+            <form method="post" class="px-6 py-8 space-y-8">
+                {% csrf_token %}
+                {{ form.non_field_errors }}
+
+                <section class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-lg font-semibold text-gray-900">Why cancel?</h2>
+                            <p class="text-sm text-gray-600">This reason will be shared with the candidate.</p>
+                        </div>
+                        <div class="text-xs font-semibold uppercase tracking-[0.4em] text-gray-500">Irreversible</div>
+                    </div>
+                    <div>
+                        {{ form.cancellation_reason }}
+                        {{ form.cancellation_reason.errors }}
+                    </div>
+                </section>
+
+                <section class="grid gap-6 lg:grid-cols-3">
+                    <div class="bg-gray-50 border border-dashed border-red-200 rounded-2xl p-4 text-sm text-gray-700">
+                        <p class="font-semibold text-red-500 mb-3">Candidate impact</p>
+                        <ul class="space-y-2 list-disc list-inside">
+                            <li>Candidate will receive a cancellation email instantly.</li>
+                            <li>Auto-reminders for this interview will stop.</li>
+                            <li>You can reschedule again if needed.</li>
+                        </ul>
+                    </div>
+                    <div class="bg-gray-50 border border-dashed border-red-200 rounded-2xl p-4 text-sm text-gray-700">
+                        <p class="font-semibold text-red-500 mb-3">Internal note</p>
+                        <p class="text-xs text-gray-500">
+                            Use the reason section for candidate communication. Add internal notes in the Interview detail view once canceled.
+                        </p>
+                    </div>
+                    <div class="bg-gray-50 border border-dashed border-red-200 rounded-2xl p-4 text-sm text-gray-700">
+                        <p class="font-semibold text-red-500 mb-3">Before you cancel</p>
+                        <p class="text-xs text-gray-500 space-y-2">
+                            <span>✅ Confirm the candidate knows the interview is off.</span>
+                            <span>⏱️ Allow time for alternative time proposals by setting status to Rescheduled instead if possible.</span>
+                        </p>
+                    </div>
+                </section>
+
+                <section class="grid gap-6 lg:grid-cols-3">
+                    <div class="bg-white border border-red-100 rounded-2xl p-4 text-xs text-gray-500">
+                        <p class="font-semibold text-red-500 mb-2">Panel locked?</p>
+                        <p>Make sure other interviewers know the slot is freed to avoid room conflicts.</p>
+                    </div>
+                    <div class="bg-white border border-red-100 rounded-2xl p-4 text-xs text-gray-500">
+                        <p class="font-semibold text-red-500 mb-2">Follow-up</p>
+                        <p>Consider sending a follow-up if this interview was canceled close to the scheduled time.</p>
+                    </div>
+                    <div class="bg-white border border-red-100 rounded-2xl p-4 text-xs text-gray-500">
+                        <p class="font-semibold text-red-500 mb-2">Next steps</p>
+                        <p>Update the application pipeline manually if you expect to continue interviewing later.</p>
+                    </div>
+                </section>
+
+                <div class="flex flex-col sm:flex-row gap-4 items-center">
+                    <button type="submit" class="w-full sm:w-auto px-6 py-3 bg-red-600 text-white rounded-2xl font-semibold shadow-lg hover:bg-red-700 transition-all">
+                        Confirm Cancellation
+                    </button>
+                    <a href="{% url 'interviews:detail' interview.id %}" class="text-sm text-gray-500 hover:text-gray-900">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 {% endblock %}

@@ -611,6 +611,20 @@
                             </svg>
                             <span class="sidebar-nav-text font-medium whitespace-nowrap">My Analytics</span>
                         </a>
+                        <a href="{{ interview_nav_link }}" 
+                           class="sidebar-nav-link flex items-center px-4 py-3 text-gray-700 hover:bg-primary-light hover:text-primary transition-colors">
+                            <svg class="sidebar-nav-icon w-5 h-5 flex-shrink-0 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17l3-5-3-5m6 10l-3-5 3-5"></path>
+                            </svg>
+                            <span class="sidebar-nav-text font-medium whitespace-nowrap flex items-center gap-2">
+                                Interviews
+                                {% if upcoming_interviews_count > 0 %}
+                                <span class="inline-flex items-center justify-center w-6 h-6 text-xs font-semibold text-white bg-blue-600 rounded-full">
+                                    {{ upcoming_interviews_count }}
+                                </span>
+                                {% endif %}
+                            </span>
+                        </a>
                     {% elif request.user.account_type == 'company' %}
                         <!-- Company Navigation -->
                         <a href="{% url 'dashboard:company_dashboard' %}" 
@@ -640,7 +654,7 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                             </svg>
                             <span class="sidebar-nav-text font-medium whitespace-nowrap">Candidates</span>
-                        </a>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        </a>
                         <a href="{% url 'screening:session_list' %}" 
                            class="sidebar-nav-link flex items-center px-4 py-3 text-gray-700 hover:bg-primary-light hover:text-primary transition-colors">
                             <svg class="sidebar-nav-icon w-5 h-5 flex-shrink-0 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -648,14 +662,33 @@
                             </svg>
                             <span class="sidebar-nav-text font-medium whitespace-nowrap">AI Screening</span>
                         </a>
-                    <a href="{% url 'analytics:dashboard' %}" 
-                       class="sidebar-nav-link flex items-center px-4 py-3 text-gray-700 hover:bg-primary-light hover:text-primary transition-colors">
-                        <svg class="sidebar-nav-icon w-5 h-5 flex-shrink-0 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                        </svg>
-                        <span class="sidebar-nav-text font-medium whitespace-nowrap">Analytics</span>
-                    </a>
-                {% endif %}
+                        <a href="{% url 'analytics:dashboard' %}" 
+                           class="sidebar-nav-link flex items-center px-4 py-3 text-gray-700 hover:bg-primary-light hover:text-primary transition-colors">
+                            <svg class="sidebar-nav-icon w-5 h-5 flex-shrink-0 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                            </svg>
+                            <span class="sidebar-nav-text font-medium whitespace-nowrap">Analytics</span>
+                        </a>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            
+                        <a href="{{ interview_nav_link }}" 
+                           class="sidebar-nav-link flex items-center px-4 py-3 text-gray-700 hover:bg-primary-light hover:text-primary transition-colors">
+                            <svg class="sidebar-nav-icon w-5 h-5 flex-shrink-0 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17l3-5-3-5m6 10l-3-5 3-5"></path>
+                            </svg>
+                            <span class="sidebar-nav-text font-medium whitespace-nowrap flex items-center gap-2">
+                                Interviews
+                                {% if upcoming_interviews_count > 0 %}
+                                <span class="inline-flex items-center justify-center w-6 h-6 text-xs font-semibold text-white bg-blue-600 rounded-full">
+                                    {{ upcoming_interviews_count }}
+                                </span>
+                                {% endif %}
+                                {% if show_interview_schedule_action %}
+                                <span class="text-[10px] px-2 py-0.5 rounded-full bg-green-100 text-green-800">
+                                    Schedule
+                                </span>
+                                {% endif %}
+                            </span>
+                        </a>
+                    {% endif %}
                     <!-- Divider -->
                     <div id="sidebar-divider-expanded" class="border-t border-gray-200 my-4 transition-all duration-300"></div>
                     <div id="sidebar-divider-collapsed" class="h-px bg-gray-200 mx-4 my-4 transition-all duration-300 hidden"></div>
@@ -811,25 +844,30 @@
 
             <!-- Main Content (Scrollable) -->
             <main class="flex-1 overflow-y-auto bg-gray-50 min-h-screen md:min-h-0">
-                <div class="sticky top-0 z-20 bg-gray-50 border-b border-gray-200">
-                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-end">
-                        <a href="{% url 'notifications:list' %}"
-                           class="relative inline-flex items-center justify-center w-10 h-10 rounded-full bg-white border border-gray-200 text-gray-600 hover:text-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary shadow-sm">
-                            <span class="sr-only">Open notification center</span>
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                      d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214
-                                      1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
-                            </svg>
-                            {% if unread_notifications_count %}
-                                <span class="absolute -top-1 -right-1 inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white bg-danger rounded-full">
-                                    {{ unread_notifications_count }}
-                                </span>
-                            {% endif %}
-                        </a>
+                <div class="md:hidden">
+                    <div class="fixed top-16 left-0 right-0 z-40 border-b border-gray-200 bg-gray-50 shadow-sm">
+                        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-end">
+                            <a href="{% url 'notifications:list' %}"
+                               class="relative inline-flex items-center justify-center w-10 h-10 rounded-full bg-white border border-gray-200 text-gray-600 hover:text-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary shadow-sm">
+                                <span class="sr-only">Open notification center</span>
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214
+                                          1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+                                </svg>
+                                {% if unread_notifications_count %}
+                                    <span class="absolute -top-1 -right-1 inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white bg-danger rounded-full">
+                                        {{ unread_notifications_count }}
+                                    </span>
+                                {% endif %}
+                            </a>
+                        </div>
                     </div>
+                    <div class="h-16"></div>
                 </div>
-                {% block content %}{% endblock %}
+                {% block content %}
+                    {% block interview_content %}{% endblock %}
+                {% endblock %}
                 
                 <!-- Footer -->
                 {% block footer %}

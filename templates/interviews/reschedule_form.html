@@ -1,15 +1,251 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Reschedule Interview{% endblock %}
 
+{% block extra_css %}
+<style>
+    .timeline-dot {
+        width: 0.75rem;
+        height: 0.75rem;
+        border-radius: 999px;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="max-w-3xl mx-auto p-6">
-    <h1 class="text-3xl font-bold mb-6">Reschedule Interview</h1>
-    <form method="post" class="space-y-4 bg-white shadow rounded-lg p-6">
-        {% csrf_token %}
-        {{ form.new_scheduled_date.label_tag }}
-        {{ form.new_scheduled_date }}
-        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Save</button>
-    </form>
+<div class="min-h-screen bg-slate-50">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div class="bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden">
+            <div class="px-6 py-10 border-b border-slate-100 bg-gradient-to-r from-primary to-secondary text-white">
+                <div class="flex items-center justify-between gap-4">
+                    <div>
+                        <p class="text-sm uppercase tracking-[0.4em]">Interview</p>
+                        <h1 class="text-3xl font-semibold">Reschedule Request</h1>
+                        <p class="mt-2 text-white/80 text-sm leading-relaxed">
+                            Pick a new slot and record the reason so the candidate understands the change.
+                        </p>
+                    </div>
+                    <div class="text-right text-sm">
+                        <p>Interview Type</p>
+                        <p class="text-2xl font-bold">{{ interview.get_interview_type_display }}</p>
+                    </div>
+                </div>
+            </div>
+
+            {% url 'interviews:detail' interview.id as interview_detail_url %}
+            {% include 'components/back_button.html' with fallback_url=interview_detail_url label='Back to Interview' %}
+            <form method="post" class="px-6 py-8 space-y-8">
+                {% csrf_token %}
+                {{ form.non_field_errors }}
+
+                <section class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-lg font-semibold text-slate-900">New Schedule</h2>
+                            <p class="text-sm text-slate-500">Select a new slot that fits the interview duration.</p>
+                        </div>
+                        <div class="text-xs text-slate-500">
+                            Current date:
+                            <strong class="text-slate-900">{{ interview.scheduled_date|date:"M d, Y h:i A" }}</strong>
+                        </div>
+                    </div>
+
+                    <div class="grid gap-6 lg:grid-cols-2">
+                        <div class="space-y-2">
+                            <label class="text-sm font-medium text-slate-700">Proposed date &amp; time</label>
+                            {{ form.new_scheduled_date }}
+                            {{ form.new_scheduled_date.errors }}
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-sm font-medium text-slate-700">Timezone</label>
+                            <p class="text-xs text-slate-500">The candidate will see this time in their timezone.</p>
+                            <div class="px-4 py-3 rounded-xl bg-slate-50 border border-dashed border-slate-200 text-sm text-slate-600">
+                                {{ interview.timezone_name }}
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-lg font-semibold text-slate-900">Reschedule Reason</h2>
+                            <p class="text-sm text-slate-500">This will be shared with the candidate automatically.</p>
+                        </div>
+                        <div class="text-xs text-slate-500">Mandatory field</div>
+                    </div>
+                    <div>
+                        {{ form.reschedule_reason }}
+                        {{ form.reschedule_reason.errors }}
+                    </div>
+                    <div class="text-xs text-slate-400">Try to provide context (e.g., interviewer unavailable or priority shift).</div>
+                </section>
+
+                <section class="space-y-3">
+                    <h3 class="text-base font-semibold text-slate-900">Timeline</h3>
+                    <div class="flex flex-col gap-4 text-sm text-slate-600">
+                        <div class="flex items-center gap-4">
+                            <span class="timeline-dot bg-blue-500"></span>
+                            <span class="flex-1 border-b border-dashed border-slate-200 py-2">
+                                Original schedule:
+                                <strong class="text-slate-900">{{ interview.original_scheduled_date|default:interview.scheduled_date|date:"M d, Y h:i A" }}</strong>
+                            </span>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <span class="timeline-dot bg-emerald-500"></span>
+                            <span class="flex-1 border-b border-dashed border-slate-200 py-2">
+                                Current schedule:
+                                <strong class="text-slate-900">{{ interview.scheduled_date|date:"M d, Y h:i A" }}</strong>
+                            </span>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <span class="timeline-dot bg-primary"></span>
+                            <span class="flex-1 py-2">
+                                Proposed schedule will be added once you confirm the form.
+                            </span>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="grid gap-6 lg:grid-cols-3">
+                    <div class="bg-slate-50 rounded-2xl p-4 border border-slate-100">
+                        <h4 class="text-sm font-semibold uppercase tracking-widest text-slate-500 mb-3">Candidate Impact</h4>
+                        <ul class="space-y-2 text-sm text-slate-600">
+                            <li>Notify the candidate first before you reschedule to avoid confusion.</li>
+                            <li>Allow at least 48 hours notice for interviews above 60 minutes.</li>
+                            <li>Keep the proposed time within the same timezone block.</li>
+                        </ul>
+                    </div>
+                    <div class="bg-slate-50 rounded-2xl p-4 border border-slate-100">
+                        <h4 class="text-sm font-semibold uppercase tracking-widest text-slate-500 mb-3">Suggested Workflow</h4>
+                        <ol class="space-y-2 text-sm text-slate-600 list-decimal list-inside">
+                            <li>Pick an available slot using the date selector.</li>
+                            <li>Double-check the duration so the panel is ready.</li>
+                            <li>Add a short note in the reschedule reason for transparency.</li>
+                        </ol>
+                    </div>
+                    <div class="bg-slate-50 rounded-2xl p-4 border border-slate-100">
+                        <h4 class="text-sm font-semibold uppercase tracking-widest text-slate-500 mb-3">Availability Grid</h4>
+                        <div class="text-xs text-slate-500">
+                            Mon-Fri · 9am – 5pm (default slots)
+                        </div>
+                        <div class="mt-3 space-y-1 text-sm text-slate-700">
+                            <div class="flex justify-between">
+                                <span>Mon · 10:00</span>
+                                <span class="text-slate-500">Booked</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Tue · 14:30</span>
+                                <span class="text-emerald-600">Available</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Thu · 09:30</span>
+                                <span class="text-emerald-600">Available</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="grid gap-6 lg:grid-cols-2">
+                    <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-5">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-semibold text-slate-900">Panel Hosts</h3>
+                            <span class="text-xs text-slate-500">Auto pull from interview info</span>
+                        </div>
+                        <div class="mt-4 space-y-3 text-sm text-slate-600">
+                            <p><strong class="text-slate-900">Primary:</strong> {{ interview.interviewer_name }} ({{ interview.interviewer_email }})</p>
+                            {% for extra in interview.additional_interviewers %}
+                            <p><strong class="text-slate-900">Panelist:</strong> {{ extra.name }} · {{ extra.email }}</p>
+                            {% empty %}
+                            <p class="text-slate-500">No additional interviewers assigned.</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-5">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-semibold text-slate-900">Reschedule History</h3>
+                            <span class="text-xs text-slate-500">Updates</span>
+                        </div>
+                        <div class="mt-4 space-y-2 text-sm text-slate-600">
+                            <p><strong>Attempts:</strong> {{ interview.reschedule_count }} / 5</p>
+                            <p class="text-xs text-slate-500">Rescheduling beyond five attempts will lock the slot.</p>
+                            <p class="text-sm text-slate-800">
+                                Original: {{ interview.original_scheduled_date|default:interview.scheduled_date|date:"M d, Y h:i A" }}
+                            </p>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="bg-gray-900 text-white rounded-3xl p-6 space-y-4">
+                    <h3 class="text-lg font-semibold">Candidate Snapshot</h3>
+                    <div class="flex items-center justify-between gap-4 text-sm text-white/80">
+                        <div>
+                            <p class="text-xs uppercase tracking-[0.4em] text-white/70">Candidate</p>
+                            <p class="text-base text-white">{{ interview.application.applicant.get_full_name }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs uppercase tracking-[0.4em] text-white/70">Job</p>
+                            <p class="text-base text-white">{{ interview.application.job.title }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs uppercase tracking-[0.4em] text-white/70">Status</p>
+                            <p class="text-base text-white">{{ interview.application.get_status_display }}</p>
+                        </div>
+                    </div>
+                    <div class="grid gap-4 md:grid-cols-3">
+                        <div>
+                            <p class="text-xs text-white/60">Candidate email</p>
+                            <p class="font-semibold">{{ interview.application.applicant.email }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-white/60">Interview instructions</p>
+                            <p class="text-sm">{{ interview.candidate_instructions|default:"No special notes" }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-white/60">Duration</p>
+                            <p class="font-semibold">{{ interview.duration_minutes }} minutes</p>
+                        </div>
+                    </div>
+                    <div class="text-xs text-white/60">
+                        All reschedules are logged and the candidate receives a single notification summarizing the change.
+                    </div>
+                </section>
+
+                <section class="space-y-5 bg-slate-900 text-white rounded-3xl p-6">
+                    <h3 class="text-lg font-semibold">Reschedule Communication Checklist</h3>
+                    <p class="text-sm leading-relaxed text-white/80">
+                        We automatically email the candidate when you submit this form, but we also recommend sending a personal note if the change is frequent.
+                    </p>
+                    <ul class="space-y-2 text-sm text-white/80 list-disc list-inside">
+                        <li>Confirm that all panelists are aware and have accepted the new slot.</li>
+                        <li>Update any shared calendar invites once the reschedule is set.</li>
+                        <li>Flag internal notes if the reschedule exceeds two attempts.</li>
+                    </ul>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-white/10 p-3 rounded-2xl border border-white/20">
+                            <p class="text-xs uppercase tracking-widest text-white/80">Policy</p>
+                            <p class="text-sm leading-relaxed mt-2 text-white/70">
+                                Interviews may be rescheduled up to <strong class="text-white">five times</strong>. The candidate will see that you initiated the change and reason in their inbox.
+                            </p>
+                        </div>
+                        <div class="bg-white/10 p-3 rounded-2xl border border-white/20">
+                            <p class="text-xs uppercase tracking-widest text-white/80">Support</p>
+                            <p class="text-sm leading-relaxed mt-2 text-white/70">
+                                Need help with timezone conversions? Visit the scheduling hub or ping the hiring ops team to coordinate quickly.
+                            </p>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="flex flex-col sm:flex-row gap-4 items-center">
+                    <button type="submit" class="w-full sm:w-auto px-6 py-3 bg-primary text-white rounded-2xl font-semibold shadow-lg hover:bg-primary-dark transition-all">
+                        Submit Reschedule
+                    </button>
+                    <a href="{% url 'interviews:detail' interview.id %}" class="text-sm text-slate-500 hover:text-slate-900">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 {% endblock %}

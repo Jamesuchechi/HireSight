@@ -1,5 +1,18 @@
+{% extends 'interviews/emails/base_email.html' %}
+
+{% block subject %}Interview Reminder{% endblock %}
+{% block heading %}Interview Reminder{% endblock %}
+
+{% block content %}
 <p>Hi {{ candidate.get_full_name|default:candidate.email }},</p>
-<p>This is a friendly reminder that your interview for {{ interview.application.job.title }} starts in {{ timeframe }}.</p>
-<p>Scheduled Date: {{ interview.scheduled_date|date:"M d, Y" }} at {{ interview.scheduled_date|time:"h:i A" }}</p>
-{% if interview.video_link %}<p>Join via: <a href="{{ interview.video_link }}">{{ interview.video_link }}</a></p>{% endif %}
-<p>Good luck!</p>
+<p class="meta">This interview is approaching in {{ timeframe }}.</p>
+<p>
+    <strong>Date:</strong> {{ interview.scheduled_date|date:"F j, Y" }}
+    <br>
+    <strong>Time:</strong> {{ interview.scheduled_date|time:"g:i A" }} ({{ interview.timezone_name }})
+</p>
+{% if interview.video_link %}
+<p><strong>Join link:</strong> <a href="{{ interview.video_link }}">{{ interview.video_link }}</a></p>
+{% endif %}
+<a class="cta-button" href="{{ calendar_url }}">Add to Calendar</a>
+{% endblock %}

@@ -11,14 +11,19 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.urls import reverse_lazy, reverse
 from django.http import JsonResponse, HttpResponseForbidden, HttpResponse
-from django.db.models import Q, Avg, Count, Prefetch
+from django.db.models import Q, Avg, Count, Prefetch, ExpressionWrapper, DurationField, F
 from django.db import transaction
 from django.utils import timezone
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.utils.decorators import method_decorator
-
-from .models import Application, ApplicationNote, ApplicationStatusHistory, ApplicationStatus
+from django.utils.timezone import now, timedelta, datetime
+from .models import (
+    Application,
+    ApplicationNote,
+    ApplicationStatusHistory,
+    ApplicationStatus
+)
 from .forms import (
     ApplicationForm, ApplicationReviewForm, ApplicationFilterForm,
     ApplicationBulkActionForm, ApplicationNoteForm, ApplicationWithdrawForm,
@@ -30,10 +35,97 @@ from apps.resumes.models import Resume
 from django.utils.decorators import method_decorator
 from .decorators import personal_account_required, company_account_required
 from apps.resumes.views import ResumeDownloadView as BaseResumeDownloadView, ResumePreviewView as BaseResumePreviewView
+from .utils import build_pipeline_data
 
 
 # Set up logging
 logger = logging.getLogger(__name__)
+
+def build_pipeline_stats(queryset):
+    """Return pipeline stats for statuses and average match score."""
+    totals = {status.value: queryset.filter(status=status.value).count() for status in ApplicationStatus}
+    stats = {
+        'total': queryset.count(),
+        'pending': totals.get(ApplicationStatus.PENDING.value, 0),
+        'screening': totals.get(ApplicationStatus.SCREENING.value, 0),
+        'interview': totals.get(ApplicationStatus.INTERVIEW.value, 0),
+        'offer': totals.get(ApplicationStatus.OFFER.value, 0),
+        'hired': totals.get(ApplicationStatus.HIRED.value, 0),
+        'rejected': totals.get(ApplicationStatus.REJECTED.value, 0),
+        'shortlisted': queryset.filter(is_shortlisted=True).count(),
+        'avg_match_score': queryset.exclude(match_score__isnull=True).aggregate(avg=Avg('match_score'))['avg'] or 0,
+    }
+    return stats
+
+
+def build_stage_summary(queryset):
+    """Build stage summary data with conversion percentages and average time."""
+    total_applications = queryset.count()
+    now = timezone.now()
+    stage_summary = []
+
+    for status in ApplicationStatus:
+        stage_qs = queryset.filter(status=status.value)
+        count = stage_qs.count()
+        percent = round((count / total_applications) * 100, 1) if total_applications else 0
+        duration_expr = ExpressionWrapper(now - F('status_changed_at'), output_field=DurationField())
+        avg_duration = stage_qs.aggregate(avg_time=Avg(duration_expr))['avg_time']
+        avg_days = round(avg_duration.total_seconds() / 86400, 1) if avg_duration else 0
+        stage_summary.append({
+            'label': status.label,
+            'value': status.value,
+            'count': count,
+            'percent': percent,
+            'avg_days': avg_days,
+        })
+
+    return stage_summary
+
+
+def build_history_summary(queryset, days=7):
+    """Return conversion counts for the last N days per status."""
+    cutoff = timezone.now() - timedelta(days=days)
+    prev_cutoff = cutoff - timedelta(days=days)
+    application_ids = list(queryset.values_list('id', flat=True))
+
+    recent_history = ApplicationStatusHistory.objects.filter(
+        application_id__in=application_ids,
+        changed_at__gte=cutoff
+    ).values('new_status').annotate(count=Count('id'))
+
+    previous_history = ApplicationStatusHistory.objects.filter(
+        application_id__in=application_ids,
+        changed_at__gte=prev_cutoff,
+        changed_at__lt=cutoff
+    ).values('new_status').annotate(count=Count('id'))
+
+    previous_map = {item['new_status']: item['count'] for item in previous_history}
+    history_summary = []
+
+    for status in ApplicationStatus:
+        current_count = next((item['count'] for item in recent_history if item['new_status'] == status.value), 0)
+        prev_count = previous_map.get(status.value, 0)
+        change = None
+        if prev_count:
+            change = round(((current_count - prev_count) / prev_count) * 100, 1)
+
+        history_summary.append({
+            'label': status.label,
+            'value': status.value,
+            'count': current_count,
+            'change': change,
+        })
+
+    return history_summary
+
+
+def build_pipeline_data(queryset):
+    """Aggregate pipeline stats, stage summary, and history data."""
+    return {
+        'stats': build_pipeline_stats(queryset),
+        'stage_summary': build_stage_summary(queryset),
+        'history_summary': build_history_summary(queryset),
+    }
 
 
 class ApplicationOwnerMixin:
@@ -145,6 +237,8 @@ class JobApplyView(LoginRequiredMixin, PreventDuplicateApplicationMixin, CreateV
         primary_resume = self.request.user.resumes.filter(is_primary=True).first()
         if primary_resume:
             context['primary_resume'] = primary_resume
+            context['primary_resume_auto_select'] = True
+            context['primary_resume_url'] = primary_resume.file.url if getattr(primary_resume, 'file', None) else None
         
         return context
 
@@ -427,18 +521,11 @@ class ApplicationManageView(LoginRequiredMixin, JobOwnerMixin, ListView):
         if job_slug:
             context['job'] = get_object_or_404(Job, slug=job_slug)
         
-        # Add statistics
         queryset = self.get_queryset()
-        context['stats'] = {
-            'total': queryset.count(),
-            'pending': queryset.filter(status=ApplicationStatus.PENDING).count(),
-            'screening': queryset.filter(status=ApplicationStatus.SCREENING).count(),
-            'interview': queryset.filter(status=ApplicationStatus.INTERVIEW).count(),
-            'shortlisted': queryset.filter(is_shortlisted=True).count(),
-            'avg_match_score': queryset.exclude(match_score__isnull=True).aggregate(
-                avg=Avg('match_score')
-            )['avg'] or 0,
-        }
+        pipeline_data = build_pipeline_data(queryset)
+        context['stats'] = pipeline_data['stats']
+        context['stage_summary'] = pipeline_data['stage_summary']
+        context['history_summary'] = pipeline_data['history_summary']
         
         return context
 
@@ -858,6 +945,18 @@ class ApplicationStatsView(LoginRequiredMixin, View):
         return render(request, template, {'stats': stats})
 
 
+class CompanyPipelineDataView(LoginRequiredMixin, View):
+    """AJAX endpoint exposing company pipeline metrics."""
+
+    def get(self, request, *args, **kwargs):
+        if request.user.account_type != 'company':
+            return JsonResponse({'error': 'Unauthorized'}, status=403)
+
+        queryset = Application.objects.filter(job__company=request.user.company_profile)
+        pipeline = build_pipeline_data(queryset)
+        return JsonResponse({'success': True, 'pipeline': pipeline})
+
+
 # ===========================
 # AJAX Views
 # ===========================
@@ -882,11 +981,18 @@ class ApplicationStatusUpdateView(LoginRequiredMixin, View):
             
             logger.info(f"Application {application.id} status updated to {new_status} via AJAX")
             
+            pipeline_queryset = Application.objects.filter(
+                job=application.job,
+                job__company__user=request.user
+            )
+            pipeline_data = build_pipeline_data(pipeline_queryset)
+
             return JsonResponse({
                 'success': True,
                 'message': 'Status updated successfully',
                 'new_status': application.status,
-                'status_display': application.get_status_display()
+                'status_display': application.get_status_display(),
+                'pipeline': pipeline_data
             })
         except Exception as e:
             logger.error(f"Error in AJAX status update: {str(e)}", exc_info=True)

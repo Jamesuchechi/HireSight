@@ -53,6 +53,7 @@ class ApplicationForm(forms.ModelForm):
         self.applicant = kwargs.pop('applicant', None)
         super().__init__(*args, **kwargs)
         
+        self.primary_resume = None
         # Set resume choices to applicant's resumes
         if self.applicant:
             self.fields['resume'].queryset = self.applicant.resumes.all()
@@ -62,7 +63,8 @@ class ApplicationForm(forms.ModelForm):
             primary_resume = self.applicant.resumes.filter(is_primary=True).first()
             if primary_resume:
                 self.initial['resume'] = primary_resume
-        
+                self.primary_resume = primary_resume
+
         # Make fields required based on job requirements
         if self.job:
             if self.job.requires_cover_letter:

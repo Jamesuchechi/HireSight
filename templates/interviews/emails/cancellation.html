@@ -1,4 +1,13 @@
+{% extends 'interviews/emails/base_email.html' %}
+
+{% block subject %}Interview Cancelled{% endblock %}
+{% block heading %}Interview Cancelled{% endblock %}
+
+{% block content %}
 <p>Hi {{ candidate.get_full_name|default:candidate.email }},</p>
-<p>The interview for {{ interview.application.job.title }} has been cancelled.</p>
-{% if interview.cancellation_reason %}<p>Reason: {{ interview.cancellation_reason }}</p>{% endif %}
-<p>We will be in touch if a replacement slot is available.</p>
+<p class="meta">We&apos;re sorry to share that your interview for <strong>{{ interview.application.job.title }}</strong> was cancelled.</p>
+{% if interview.cancellation_reason %}
+<p><strong>Reason:</strong> {{ interview.cancellation_reason }}</p>
+{% endif %}
+<p>If you have questions, reply directly to this message and we will provide an update.</p>
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends 'interviews/emails/base_email.html' %}
+
+{% block subject %}Candidate Requested Reschedule{% endblock %}
+{% block heading %}Candidate Requested to Reschedule{% endblock %}
+
+{% block content %}
+<p>Hello {{ company.company_name }},</p>
+<p class="meta">{{ candidate_name }} has proposed a new time for <strong>{{ interview.application.job.title }}</strong>.</p>
+<p>
+    <strong>Current slot:</strong>
+    {{ interview.scheduled_date|date:"F j, Y" }} at {{ interview.scheduled_date|time:"g:i A" }}
+</p>
+<p>
+    <strong>Proposed slot:</strong>
+    {{ proposal_display }}
+</p>
+{% if proposal.reason %}
+<p><strong>Candidate note:</strong> {{ proposal.reason }}</p>
+{% endif %}
+<a class="cta-button" href="{{ detail_link }}">Review Interview</a>
+{% endblock %}

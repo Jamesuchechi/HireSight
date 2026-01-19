@@ -10,6 +10,7 @@ from reportlab.pdfgen import canvas
 
 from apps.accounts.decorators import personal_required, company_required
 from apps.applications.models import Application, ApplicationStatus
+from apps.applications.utils import build_pipeline_data
 from apps.assessments.analytics_helpers import get_company_candidate_insights
 from apps.assessments.models import SkillBadge, SkillTest
 from apps.assessments.recommendations import TestRecommendationEngine
@@ -191,20 +192,8 @@ def _get_company_context(request):
         'job'
     ).order_by('-match_score')[:5]
 
-    # Application pipeline data for visualization
-    pipeline_data = []
-    for status_choice in ApplicationStatus.choices:
-        status_key, status_label = status_choice
-        count = Application.objects.filter(
-            job__company=request.user.company_profile,
-            status=status_key
-        ).count()
-        pipeline_data.append({
-            'status': status_key,
-            'label': status_label,
-            'count': count,
-            'percentage': (count / total_apps * 100) if total_apps > 0 else 0
-        })
+    company_apps = Application.objects.filter(job__company=request.user.company_profile)
+    pipeline_data = build_pipeline_data(company_apps)
 
     # Recent activity (last 10 status changes)
     recent_activity = Application.objects.filter(
@@ -246,7 +235,9 @@ def _get_company_context(request):
         'candidates': top_candidates,
         'top_candidates': top_candidates,
         'active_jobs': jobs_with_apps,
-        'pipeline_data': pipeline_data,
+        'pipeline_stats': pipeline_data['stats'],
+        'pipeline_stage_summary': pipeline_data['stage_summary'],
+        'pipeline_history_summary': pipeline_data['history_summary'],
         'recent_activity': recent_activity,
         'applications_this_week': recent_apps,
         'applications_this_month': monthly_apps,

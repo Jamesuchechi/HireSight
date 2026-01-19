@@ -1,0 +1,11 @@
+{% extends 'interviews/emails/base_email.html' %}
+
+{% block subject %}Thanks for Interviewing{% endblock %}
+{% block heading %}Thank you for interviewing{% endblock %}
+
+{% block content %}
+<p>Hi {{ candidate.get_full_name|default:candidate.email }},</p>
+<p class="meta">Thanks again for taking the time to meet with {{ company.company_name }} for the {{ interview.application.job.title }} position.</p>
+<p>We&apos;ll wrap up the feedback and follow up with next steps shortly. Feel free to reply if you have questions.</p>
+<a class="cta-button" href="{{ detail_link|default:company.company_url }}">Visit Dashboard</a>
+{% endblock %}

@@ -1,0 +1,161 @@
+{% extends 'base.html' %}
+{% block title %}Interview Analytics{% endblock %}
+
+{% block interview_content %}
+<div class="space-y-6">
+    <div>
+        <h1 class="text-3xl font-bold text-gray-900">Interview Analytics</h1>
+        <p class="text-sm text-gray-500">Visualize interview trends over the last few weeks.</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {% for stat in highlighted_stats %}
+        <div class="bg-white rounded-2xl shadow p-5">
+            <p class="text-xs uppercase tracking-wide text-gray-500">{{ stat.label }}</p>
+            <p class="text-3xl font-semibold text-gray-900">
+                {% if stat.key == 'reschedule_rate' %}
+                {{ stat.value|floatformat:"1" }}%
+                {% else %}
+                {{ stat.value|floatformat:"0" }}
+                {% endif %}
+            </p>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-white rounded-2xl shadow p-6">
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="text-lg font-semibold text-gray-900">Interviews per Week</h2>
+                <span class="text-xs text-gray-500">Last 3 months</span>
+            </div>
+            <canvas id="weeklyChart" height="200"></canvas>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow p-6">
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="text-lg font-semibold text-gray-900">Conversion Funnel</h2>
+                <span class="text-xs text-gray-500">Completion vs. success</span>
+            </div>
+            <canvas id="funnelChart" height="200"></canvas>
+            <div class="mt-4 grid grid-cols-3 text-center text-sm text-gray-600">
+                <div>
+                    <p class="font-semibold text-gray-900">{{ funnel.scheduled }}</p>
+                    <p>Scheduled</p>
+                </div>
+                <div>
+                    <p class="font-semibold text-gray-900">{{ funnel.completed }}</p>
+                    <p>Completed</p>
+                </div>
+                <div>
+                    <p class="font-semibold text-gray-900">{{ funnel.high_rated }}</p>
+                    <p>High Rated</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-3">Interviews by Type</h2>
+        <div class="flex flex-wrap gap-3">
+            {% for entry in stats.by_type %}
+            <span class="px-3 py-1 rounded-full bg-gray-100 text-sm font-medium text-gray-700">
+                {{ entry.interview_type }} ({{ entry.count }})
+            </span>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-3">Recent Interviews</h2>
+        <ul class="space-y-3 text-sm text-gray-600">
+            {% for interview in stats.recent_interviews %}
+            <li class="flex items-center justify-between border-b border-dashed border-gray-200 pb-2 last:border-0 last:pb-0">
+                <div>
+                    <p class="font-semibold text-gray-900">{{ interview.application.job.title }}</p>
+                    <p class="text-xs text-gray-500">
+                        {{ interview.application.applicant.email }} · {{ interview.get_status_display }}
+                    </p>
+                </div>
+                <p class="text-xs text-gray-500">
+                    {{ interview.scheduled_date|date:"M d, Y h:i A" }}
+                </p>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+{{ interviews_by_week|json_script:"weekly-data" }}
+{{ funnel|json_script:"funnel-data" }}
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script>
+    const weeklyData = JSON.parse(document.getElementById('weekly-data').textContent);
+    const funnelData = JSON.parse(document.getElementById('funnel-data').textContent);
+
+    const weeklyLabels = weeklyData.map(item => {
+        const date = item.week ? new Date(item.week) : null;
+        return date ? date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : 'Unknown';
+    });
+    const weeklyCounts = weeklyData.map(item => item.count);
+
+    new Chart(document.getElementById('weeklyChart'), {
+        type: 'line',
+        data: {
+            labels: weeklyLabels,
+            datasets: [{
+                label: 'Interviews',
+                data: weeklyCounts,
+                borderColor: '#2563EB',
+                backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                borderWidth: 2,
+                pointRadius: 3,
+                fill: true,
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: context => `${context.parsed.y} interviews`
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { stepSize: 1 }
+                }
+            }
+        }
+    });
+
+    new Chart(document.getElementById('funnelChart'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Scheduled', 'Completed', 'High Rated'],
+            datasets: [{
+                data: [funnelData.scheduled, funnelData.completed, funnelData.high_rated],
+                backgroundColor: ['#14B8A6', '#2563EB', '#F97316']
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom' },
+                tooltip: {
+                    callbacks: {
+                        label: context => `${context.label}: ${context.parsed} interviews`
+                    }
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

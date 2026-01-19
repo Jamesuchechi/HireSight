@@ -1,0 +1,312 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+Interview Detail · {{ interview.application.job.title }}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .spark-bar {
+        height: 4px;
+        border-radius: 999px;
+        background: linear-gradient(90deg, rgba(0,102,255,0.9), rgba(0,212,255,0.8));
+    }
+    .glass-card {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 32px;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        box-shadow: 0 20px 60px rgba(15, 23, 42, 0.18);
+    }
+    .hero-gradient {
+        background: linear-gradient(145deg, #0066FF, #1493FF 40%, #00D4FF);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-slate-100 text-slate-900">
+    <div class="relative max-w-6xl mx-auto px-6 py-10 space-y-10">
+        {% url 'interviews:list' as interviews_list_url %}
+        {% include 'components/back_button.html' with fallback_url=interviews_list_url label='Back to Interviews' %}
+
+        <section class="glass-card rounded-3xl shadow-2xl overflow-hidden">
+            <div class="hero-gradient px-10 py-12 space-y-6 text-white">
+                <div class="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+                    <div>
+                        <p class="text-xs uppercase tracking-[0.5em] text-slate-200 mb-2">Interview experience</p>
+                        <h1 class="text-4xl lg:text-5xl font-semibold tracking-tight">
+                            {{ interview.application.job.title }}
+                        </h1>
+                        <p class="text-base text-slate-100 mt-1 max-w-2xl">
+                            {{ interview.application.applicant.get_full_name }} ·
+                            {{ interview.get_interview_type_display }} ·
+                            {{ interview.duration_minutes }} minutes
+                        </p>
+                    </div>
+                    <div class="space-y-1 text-right">
+                        <p class="text-xs uppercase tracking-[0.4em] text-slate-200">Status</p>
+                        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold bg-white/10 border border-white/20">
+                            <span class="h-2 w-2 rounded-full {% if interview.status == 'SCHEDULED' or interview.status == 'RESCHEDULED' %}bg-emerald-400{% elif interview.status == 'CANCELLED' %}bg-rose-500{% else %}bg-amber-400{% endif %}"></span>
+                            {{ interview.get_status_display }}
+                        </div>
+                        <div class="text-xs text-slate-200">
+                            {{ interview.scheduled_date|date:"F j, Y" }} at {{ interview.scheduled_date|time:"g:i A" }} ·
+                            {{ interview.timezone_name }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid gap-6 md:grid-cols-3 text-sm">
+                    <div class="space-y-1">
+                        <p class="text-xs uppercase tracking-[0.4em] text-slate-200">App status</p>
+                        <p class="text-lg font-semibold">{{ interview.application.get_status_display }}</p>
+                        <p class="text-xs text-slate-200">
+                            Last updated {{ interview.application.updated_at|default:interview.application.applied_at|date:"M j, Y" }}
+                        </p>
+                    </div>
+                    <div class="space-y-1">
+                        <p class="text-xs uppercase tracking-[0.4em] text-slate-200">Applicant email</p>
+                        <p class="text-lg font-semibold">{{ interview.application.applicant.email }}</p>
+                        <p class="text-xs text-slate-200">Candidate ID: {{ interview.application.applicant.id }}</p>
+                    </div>
+                    <div class="space-y-1">
+                        <p class="text-xs uppercase tracking-[0.4em] text-slate-200">Duration</p>
+                        <p class="text-lg font-semibold">{{ interview.duration_minutes }} min</p>
+                        <p class="text-xs text-slate-200">Timezone locked</p>
+                    </div>
+                </div>
+
+                <div class="spark-bar"></div>
+            </div>
+        </section>
+
+        <section class="space-y-8">
+            <div class="grid gap-8 lg:grid-cols-3">
+                <article class="glass-card rounded-3xl p-6 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <p class="text-xs uppercase tracking-[0.4em] text-slate-400">Video / location</p>
+                        {% if interview.video_link %}
+                        <span class="text-xs text-primary font-semibold">Live</span>
+                        {% endif %}
+                    </div>
+                    {% if interview.video_link %}
+                    <a href="{{ interview.video_link }}" target="_blank" rel="noreferrer" class="block bg-white shadow-sm border border-slate-200 p-4 rounded-2xl text-sm text-slate-900 hover:bg-slate-50 transition">
+                        <div class="flex items-center justify-between gap-3">
+                            <div>
+                                <p class="font-semibold">Video link</p>
+                                <p class="text-xs text-slate-500 truncate">{{ interview.video_link }}</p>
+                            </div>
+                            <svg class="w-6 h-6 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h8m-4-4l4 4-4 4" />
+                            </svg>
+                        </div>
+                    </a>
+                    {% endif %}
+                    {% if interview.location %}
+                        <div class="text-sm text-slate-600 space-y-1">
+                        <p class="font-semibold text-slate-900">Location</p>
+                        <p class="text-slate-500">{{ interview.location }}</p>
+                    </div>
+                    {% else %}
+                    <p class="text-sm text-slate-500">Location is handled virtually.</p>
+                    {% endif %}
+                    {% if interview.dial_in_number %}
+                    <div class="rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-600">
+                        <p class="font-semibold">Dial-in</p>
+                        <p>{{ interview.dial_in_number }}</p>
+                    </div>
+                    {% endif %}
+                </article>
+
+                <article class="glass-card rounded-3xl p-6 space-y-4">
+                    <p class="text-xs uppercase tracking-[0.4em] text-slate-500">Panel hosts</p>
+                    <div class="space-y-3 text-sm text-slate-600">
+                        <div>
+                            <p class="text-slate-900 font-semibold">{{ interview.interviewer_name }}</p>
+                            <p class="text-slate-500 text-xs">{{ interview.interviewer_email }}</p>
+                            <p class="text-xs text-slate-400">Primary host</p>
+                        </div>
+                        {% for extra in interview.additional_interviewers %}
+                        <div class="text-sm text-slate-600">
+                            <p class="font-semibold">{{ extra.name }}</p>
+                            <p class="text-slate-500 text-xs">{{ extra.email }}</p>
+                            <p class="text-xs text-slate-400">Panelist</p>
+                        </div>
+                        {% empty %}
+                        <p class="text-sm text-slate-500">No additional interviewers added.</p>
+                        {% endfor %}
+                    </div>
+                </article>
+
+                <article class="glass-card rounded-3xl p-6 space-y-4">
+                    <p class="text-xs uppercase tracking-[0.4em] text-slate-500">Candidate readiness</p>
+                    <div class="space-y-2 text-sm text-slate-600">
+                        <p>Checklist</p>
+                        <ul class="space-y-2 text-slate-500">
+                            <li class="flex items-center gap-2">
+                                <span class="h-2 w-2 rounded-full bg-emerald-400"></span>
+                                Resume verified
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <span class="h-2 w-2 rounded-full bg-emerald-400"></span>
+                                Assessment cleared
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <span class="h-2 w-2 rounded-full bg-emerald-400"></span>
+                                Interview prep emailed
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="flex items-center justify-between text-xs text-slate-500">
+                        <span>Reschedule attempts</span>
+                        <span>{{ interview.reschedule_count }} / 5</span>
+                    </div>
+                    <div class="h-2 bg-slate-200 rounded-full">
+                        <div class="h-full bg-gradient-to-r from-primary to-secondary rounded-full" style="width: {{ interview.reschedule_count|add:1|floatformat:0 }}0%;"></div>
+                    </div>
+                </article>
+            </div>
+
+            <div class="grid gap-8 lg:grid-cols-2">
+                <article class="glass-card rounded-3xl p-8 space-y-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs uppercase tracking-[0.4em] text-slate-500">Notes</p>
+                            <h2 class="text-2xl font-semibold text-slate-900">Instructions &amp; Logistics</h2>
+                        </div>
+                        <span class="text-xs text-slate-500">Updated now</span>
+                    </div>
+                    {% if interview.candidate_instructions %}
+                    <div class="space-y-3 text-sm text-slate-700 leading-relaxed">
+                        <p class="font-semibold text-slate-900">Candidate instructions</p>
+                        <p class="text-slate-600">{{ interview.candidate_instructions|linebreaksbr }}</p>
+                    </div>
+                    {% endif %}
+                    {% if interview.company_notes %}
+                    <div class="space-y-3 text-sm text-slate-700 leading-relaxed">
+                        <p class="font-semibold text-slate-900">Internal notes</p>
+                        <p class="text-slate-600">{{ interview.company_notes|linebreaksbr }}</p>
+                    </div>
+                    {% endif %}
+                </article>
+
+                <article class="glass-card rounded-3xl p-8 space-y-6">
+                    <div class="space-y-4">
+                        <p class="text-xs uppercase tracking-[0.4em] text-slate-500">Timeline</p>
+                        <h2 class="text-2xl font-semibold text-slate-900">Application history</h2>
+                    </div>
+                    <div class="space-y-5">
+                        {% for entry in interview.application.status_history.all|dictsortreversed:"changed_at" %}
+                        <div class="flex items-start gap-4">
+                            <span class="h-2 w-2 mt-1 rounded-full bg-gradient-to-br from-primary to-secondary"></span>
+                            <div>
+                                <p class="text-sm text-slate-700">
+                                    {{ entry.changed_at|date:"M j, Y g:i A" }} ·
+                                    <span class="font-semibold text-slate-900">{{ entry.get_new_status_display }}</span>
+                                </p>
+                                <p class="text-xs text-slate-500">{{ entry.notes|default:"No notes provided." }}</p>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <p class="text-sm text-slate-500">The application has limited history.</p>
+                        {% endfor %}
+                    </div>
+                    <div class="text-xs text-slate-500">
+                        Timeline keeps the latest {{ interview.application.status_history.count }} updates.
+                    </div>
+                </article>
+            </div>
+
+            <div class="glass-card rounded-3xl p-8 space-y-6">
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <p class="text-xs uppercase tracking-[0.4em] text-slate-500">Actions</p>
+                        <h2 class="text-2xl font-semibold text-slate-900">Next steps</h2>
+                    </div>
+                    <div class="flex flex-wrap gap-3">
+                        {% if request.user.account_type == 'company' %}
+                        <a href="{% url 'interviews:reschedule' interview.id %}" class="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-primary to-secondary text-sm font-semibold shadow-lg hover:shadow-2xl transition">
+                            Reschedule
+                        </a>
+                        <a href="{% url 'interviews:cancel' interview.id %}" class="inline-flex items-center px-4 py-3 rounded-2xl bg-white text-slate-900 font-semibold text-sm border border-white/30">
+                            Cancel
+                        </a>
+                        <a href="{% url 'interviews:complete' interview.id %}" class="inline-flex items-center px-4 py-3 rounded-2xl border border-slate-200 text-sm font-semibold text-slate-700">
+                            Mark Complete
+                        </a>
+                        <a href="{% url 'interviews:no_show' interview.id %}" class="inline-flex items-center px-4 py-3 rounded-2xl border border-rose-500 text-rose-500 text-sm font-semibold">
+                            Mark No-Show
+                        </a>
+                        {% else %}
+                        <a href="{% url 'interviews:respond' interview.id %}" class="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-white text-slate-900 font-semibold text-sm shadow-lg hover:shadow-2xl transition">
+                            Respond
+                        </a>
+                        <span class="text-xs text-slate-400">Need to reschedule? Use the reschedule request flow.</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="grid gap-6 sm:grid-cols-3 text-xs text-slate-500">
+                    <div>
+                        <p class="text-slate-600 font-semibold">Preparation</p>
+                        <p>Send reminder email 24h before interview.</p>
+                    </div>
+                    <div>
+                        <p class="text-slate-600 font-semibold">Checklist</p>
+                        <p>Confirm interviewer availability and share candidate instructions.</p>
+                    </div>
+                    <div>
+                        <p class="text-slate-600 font-semibold">Communication</p>
+                        <p>Log any follow-ups so stakeholders stay aligned.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid gap-6 lg:grid-cols-3">
+                <article class="glass-card rounded-3xl p-6 space-y-4">
+                    <p class="text-xs uppercase tracking-[0.4em] text-slate-500">Attachments</p>
+                    <div class="space-y-3 text-sm text-slate-600">
+                        <div class="flex items-center justify-between">
+                            <span>Resume</span>
+                            <span class="text-xs text-slate-500">Uploaded</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span>Portfolio</span>
+                            <span class="text-xs text-slate-500">None</span>
+                        </div>
+                        <div class="flex items-center justify-between text-xs text-slate-500">
+                            <span>Notes</span>
+                            <span>View in application file</span>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="glass-card rounded-3xl p-6 space-y-4">
+                    <p class="text-xs uppercase tracking-[0.4em] text-slate-500">Candidate insights</p>
+                    <div class="text-sm text-slate-600">
+                        <p class="font-semibold text-slate-900">{{ interview.application.applicant.get_full_name }}</p>
+                        <p class="text-xs text-slate-500">Member since {{ interview.application.applicant.date_joined|date:"M Y" }}</p>
+                        <p class="mt-2 text-slate-500">Current resume score: 88</p>
+                        <p class="text-slate-500">Talent match: High</p>
+                    </div>
+                </article>
+
+                <article class="glass-card rounded-3xl p-6 space-y-4">
+                    <p class="text-xs uppercase tracking-[0.4em] text-slate-500">Reminders</p>
+                    <div class="space-y-3 text-sm text-slate-600">
+                        <div class="flex items-center justify-between">
+                            <span>24h reminder</span>
+                            <span class="{% if interview.reminder_24h_sent %}text-emerald-400{% else %}text-slate-400{% endif %}">{{ interview.reminder_24h_sent|yesno:"Sent,Pending" }}</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span>1h reminder</span>
+                            <span class="{% if interview.reminder_1h_sent %}text-emerald-400{% else %}text-slate-400{% endif %}">{{ interview.reminder_1h_sent|yesno:"Sent,Pending" }}</span>
+                        </div>
+                        <p class="text-xs text-slate-500">Automations run via Celery tasks.</p>
+                    </div>
+                </article>
+            </div>
+        </section>
+    </div>
+</div>
+{% endblock %}

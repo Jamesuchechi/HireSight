@@ -1,0 +1,15 @@
+Hello {{ company.company_name }},
+
+{{ candidate_name }} has requested to reschedule the interview for {{ interview.application.job.title }}.
+
+Current schedule: {{ interview.scheduled_date|date:"M d, Y at h:i A" }} ({{ interview.timezone_name }})
+Proposed new time: {{ proposal_display }}
+
+{% if proposal.reason %}
+Candidate note: {{ proposal.reason }}
+{% endif %}
+
+View the interview: {{ detail_link }}
+
+Thanks,
+HireSight Team

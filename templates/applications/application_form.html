@@ -27,6 +27,12 @@
                         <p class="text-white/90 mt-1">{{ job.company.company_name }}</p>
                     </div>
                 </div>
+                <div class="flex items-center gap-3">
+                    <a href="{% url 'applications:my_applications' %}"
+                       class="px-4 py-2 rounded-full bg-white/20 hover:bg-white/30 text-white text-sm font-semibold transition">
+                        View My Applications
+                    </a>
+                </div>
             </div>
         </div>
     </div>
@@ -127,15 +133,33 @@
                 </div>
 
                 <div class="space-y-3">
-                    {{ form.resume }}
-                    {% if form.resume.errors %}
-                    <div class="flex items-center gap-2 text-sm text-red-600">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                        <span>{{ form.resume.errors.0 }}</span>
+                    {% if primary_resume %}
+                    <div class="bg-white/70 border border-blue-100 rounded-lg p-4 flex flex-col gap-3">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-semibold text-gray-900">Using primary resume</p>
+                                <p class="text-xs text-gray-500">{{ primary_resume.title }}</p>
+                            </div>
+                            <button type="button" id="resume-toggle-btn"
+                                class="text-sm text-primary hover:text-primary-dark font-semibold focus:outline-none">
+                                Choose another resume
+                            </button>
+                        </div>
+                        <p class="text-xs text-gray-500">You can select a different resume if this job requires it.</p>
                     </div>
                     {% endif %}
+
+                    <div id="resume-select-container" class="{% if primary_resume %}hidden{% endif %}">
+                        {{ form.resume }}
+                        {% if form.resume.errors %}
+                        <div class="flex items-center gap-2 text-sm text-red-600">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <span>{{ form.resume.errors.0 }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
 
                     <div class="bg-blue-50 border border-blue-100 rounded-lg p-3">
                         <div class="flex items-start gap-2">
@@ -260,6 +284,23 @@
                             }
                         });
                     }
+                });
+            </script>
+            {% endif %}
+
+            {% if primary_resume %}
+            <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    const toggleBtn = document.getElementById('resume-toggle-btn');
+                    const selectContainer = document.getElementById('resume-select-container');
+                    if (!toggleBtn || !selectContainer) {
+                        return;
+                    }
+
+                    toggleBtn.addEventListener('click', function() {
+                        const isHidden = selectContainer.classList.toggle('hidden');
+                        toggleBtn.textContent = isHidden ? 'Choose another resume' : 'Use primary resume';
+                    });
                 });
             </script>
             {% endif %}

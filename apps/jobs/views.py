@@ -8,9 +8,10 @@ from django.http import JsonResponse, HttpResponseForbidden, Http404, HttpRespon
 from django.db.models import Q, Count, Prefetch
 from django.utils import timezone
 from django.views.decorators.http import require_POST
-from datetime import timedelta
+from datetime import datetime, timedelta, date
 import uuid
 
+from apps.applications.models import ApplicationStatus
 from .models import Job, SavedJob, JobView, JobStatus
 from .forms import (
     JobCreateForm, JobEditForm, JobFilterForm,
@@ -564,7 +565,7 @@ class JobStatsView(LoginRequiredMixin, JobOwnerMixin, DetailView):
         
         # Get views over time (last 30 days)
         thirty_days_ago = timezone.now() - timedelta(days=30)
-        views_by_day = JobView.objects.filter(
+        views_query = JobView.objects.filter(
             job=job,
             viewed_at__gte=thirty_days_ago
         ).extra(
@@ -572,8 +573,27 @@ class JobStatsView(LoginRequiredMixin, JobOwnerMixin, DetailView):
         ).values('day').annotate(
             count=Count('id')
         ).order_by('day')
-        
-        context['views_by_day'] = list(views_by_day)
+
+        views_by_day = list(views_query)
+        max_views = max((entry['count'] for entry in views_by_day), default=0)
+        for entry in views_by_day:
+            entry['bar_width'] = round((entry['count'] / max_views) * 100, 2) if max_views else 0
+
+        context['views_by_day'] = views_by_day
+        context['views_by_day_max'] = max_views
+        context['daily_view_labels'] = [entry['day'].strftime('%b %d') if isinstance(entry['day'], date) else entry['day'] for entry in views_by_day]
+        context['daily_view_counts'] = [entry['count'] for entry in views_by_day]
+
+        # Application status distribution for charts
+        status_counts = {status.value: 0 for status in ApplicationStatus}
+        application_status_data = job.applications.values('status').annotate(
+            count=Count('id')
+        )
+        for entry in application_status_data:
+            status_counts[entry['status']] = entry['count']
+        context['status_labels'] = [label for _, label in ApplicationStatus.choices]
+        context['status_values'] = [value for value, _ in ApplicationStatus.choices]
+        context['status_counts'] = [status_counts[value] for value, _ in ApplicationStatus.choices]
         context['total_views'] = job.views_count
         context['total_applications'] = job.applications_count
         context['conversion_rate'] = job.application_rate

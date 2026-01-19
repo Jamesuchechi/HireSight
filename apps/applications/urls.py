@@ -7,6 +7,7 @@ from .views import (
     ApplicationManageView, ApplicantDetailView, ApplicationUpdateStatusView,
     ApplicationBulkActionView, ApplicationNoteCreateView, ApplicationExportView,
     ApplicationResumeDownloadView, ApplicationResumePreviewView, ApplicationRejectView,
+    CompanyPipelineDataView,
     
     # Shared Views
     ApplicationStatsView,
@@ -52,10 +53,13 @@ urlpatterns = [
     path('manage/<uuid:pk>/notes/', ApplicationNoteCreateView.as_view(), name='add_note'),
     
     # Export
-    path('manage/export/', ApplicationExportView.as_view(), name='export'),
-    
-    # Company stats
-    path('manage/stats/', ApplicationStatsView.as_view(), name='company_stats'),
+path('manage/export/', ApplicationExportView.as_view(), name='export'),
+
+# AJAX pipeline data refresh
+path('manage/pipeline-data/', CompanyPipelineDataView.as_view(), name='pipeline_data'),
+
+# Company stats
+path('manage/stats/', ApplicationStatsView.as_view(), name='company_stats'),
     
     # Resume download and preview for companies
     path('manage/resume/<uuid:pk>/download/', ApplicationResumeDownloadView.as_view(), name='resume_download'),

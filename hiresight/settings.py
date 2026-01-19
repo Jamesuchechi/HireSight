@@ -110,6 +110,7 @@ TEMPLATES = [
                 'apps.accounts.context_processors.unread_notifications_count',
                 'apps.accounts.context_processors.language_context',
                 'apps.messaging.context_processors.unread_messages_count',
+                'apps.interviews.context_processors.interview_navigation_context',
             ],
             'builtins': ['apps.screening.templatetags.filters'],
         },
@@ -264,6 +265,7 @@ CELERY_TASK_DEFAULT_ROUTING_KEY = 'default'
 
 
 CELERY_BEAT_SCHEDULE = {
+    # Application Tasks
     'update-application-analytics': {
         'task': 'apps.applications.tasks.update_application_analytics',
         'schedule': crontab(hour=0, minute=0),
@@ -272,10 +274,14 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'apps.applications.tasks.cleanup_old_applications',
         'schedule': crontab(day_of_week=0, hour=2, minute=0),
     },
+    
+    # Screening Tasks
     'cleanup-old-screening-files': {
         'task': 'apps.screening.tasks.cleanup_old_screening_files',
         'schedule': crontab(day_of_week=0, hour=3, minute=0),
     },
+    
+    # Analytics Tasks
     'analytics-weekly-report': {
         'task': 'apps.analytics.tasks.send_weekly_analytics_report',
         'schedule': crontab(day_of_week='mon', hour=9, minute=0),
@@ -308,16 +314,12 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'apps.analytics.tasks.kickoff_reference_checks',
         'schedule': crontab(day_of_week='thu', hour=4, minute=0),
     },
-    'interview-reminders': {
-        'task': 'apps.interviews.tasks.send_interview_reminders',
-        'schedule': crontab(minute='*/30'),
-    },
     
+    # Assessment Tasks
     'cleanup-expired-attempts': {
         'task': 'apps.assessments.tasks.cleanup_expired_attempts',
-        'schedule': crontab(hour='*/2'), # Every 2 hours
+        'schedule': crontab(hour='*/2'),  # Every 2 hours
     },
-    
     'send-test-recommendations': {
         'task': 'apps.assessments.tasks.send_test_recommendation_emails',
         'schedule': crontab(day_of_week='mon', hour=9, minute=0), 
@@ -325,6 +327,16 @@ CELERY_BEAT_SCHEDULE = {
     'send-test-reminders': {
         'task': 'apps.assessments.tasks.send_test_reminder_emails',
         'schedule': crontab(minute='0', hour='*/1'),
+    },
+    
+    # Interview Tasks
+    'send-interview-reminders': {
+        'task': 'apps.interviews.tasks.send_interview_reminders',
+        'schedule': crontab(minute='*/30'),  # Every 30 minutes
+    },
+    'cleanup-old-interviews': {
+        'task': 'apps.interviews.tasks.cleanup_old_interviews',
+        'schedule': crontab(day_of_month='1', hour=2, minute=0),  # 1st of month at 2 AM
     },
 }
 
@@ -416,6 +428,12 @@ LOGGING = {
             'filename': BASE_DIR / 'logs/security.log',
             'formatter': 'verbose',
         },
+        'celery_file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR / 'logs/celery.log',
+            'formatter': 'verbose',
+        },
     },
     'loggers': {
         'django': {
@@ -430,6 +448,16 @@ LOGGING = {
         },
         'axes': {
             'handlers': ['security_file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'celery': {
+            'handlers': ['celery_file'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'apps.interviews': {
+            'handlers': ['file', 'celery_file'],
             'level': 'INFO',
             'propagate': False,
         },

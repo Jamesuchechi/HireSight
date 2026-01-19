@@ -1,0 +1,256 @@
+{% extends 'base.html' %}
+
+{% block title %}Respond to Interview{% endblock %}
+
+{% block extra_css %}
+<style>
+    .response-pill {
+        transition: all 0.2s ease;
+    }
+
+    .response-pill input:checked + span {
+        background: linear-gradient(90deg, #2563eb, #7c3aed);
+        color: white;
+        box-shadow: 0 10px 25px -10px rgba(37, 99, 235, 0.8);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-slate-50">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div class="bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden">
+            <div class="px-6 py-8 border-b border-slate-100 bg-gradient-to-br from-primary to-secondary text-white">
+                <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    <div>
+                        {% url 'interviews:detail' interview.id as interview_detail_url %}
+                        {% include 'components/back_button.html' with fallback_url=interview_detail_url label='Back to Interview' %}
+                        <h1 class="text-3xl font-semibold">Respond to Interview</h1>
+                        <p class="mt-2 text-sm text-white/90">
+                            {{ interview.application.job.title }} · {{ interview.application.applicant.get_full_name }}
+                        </p>
+                    </div>
+                    <div class="text-sm text-white/80">
+                        <p>Scheduled for</p>
+                        <p class="text-xl font-bold">{{ interview.scheduled_date|date:"M d, Y" }}</p>
+                        <p>{{ interview.scheduled_date|time:"h:i A" }} · {{ interview.timezone_name }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <form method="post" class="px-6 py-8 space-y-8">
+                {% csrf_token %}
+                {{ form.non_field_errors }}
+
+                <section class="space-y-5">
+                    <h2 class="text-xl font-semibold text-slate-900">Choose your response</h2>
+                    <div class="grid gap-4 md:grid-cols-3">
+                        {% for choice in form.action %}
+                        <label class="response-pill flex cursor-pointer rounded-2xl border border-slate-200 p-4 transition hover:border-slate-400 focus-within:ring-2 focus-within:ring-primary">
+                            {{ choice.tag }}
+                            <span class="ml-3 text-sm font-semibold text-slate-700">{{ choice.choice_label }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </section>
+
+                <section class="grid gap-6 lg:grid-cols-2">
+                    <div>
+                        <label class="text-sm font-semibold text-slate-700">{{ form.reason.label }}</label>
+                        {{ form.reason }}
+                        {{ form.reason.errors }}
+                        <p class="text-xs text-slate-500 mt-1">Why are you choosing this response? This note is optional for accept but required for others.</p>
+                    </div>
+                    <div>
+                        <label class="text-sm font-semibold text-slate-700">{{ form.proposed_date.label }}</label>
+                        {{ form.proposed_date }}
+                        {{ form.proposed_date.errors }}
+                        <p class="text-xs text-slate-500 mt-1">Only required if proposing a new time.</p>
+                    </div>
+                </section>
+
+                <section class="bg-slate-900 text-white rounded-3xl p-6 space-y-4">
+                    <h3 class="text-lg font-semibold">What's next?</h3>
+                    <p class="text-sm text-white/80">
+                        - Accept: we confirm the slot and send calendar invites.
+                        - Decline: we notify the recruiter and cancel reminders.
+                        - Propose reschedule: we capture your preferred time and reason for the hiring team to review.
+                    </p>
+                    <p class="text-xs text-white/60">
+                        You can always revisit the interview detail page to see updates once the company responds.
+                    </p>
+                </section>
+
+                <section class="grid gap-6 lg:grid-cols-3">
+                    <div class="bg-gray-50 rounded-2xl p-4 border border-dashed border-slate-200">
+                        <p class="text-xs uppercase tracking-[0.4em] text-slate-500">Attempts</p>
+                        <p class="text-sm text-slate-700">Reschedules so far: {{ interview.reschedule_count }}</p>
+                    </div>
+                    <div class="bg-gray-50 rounded-2xl p-4 border border-dashed border-slate-200">
+                        <p class="text-xs uppercase tracking-[0.4em] text-slate-500">Panel</p>
+                        <p class="text-sm text-slate-700">
+                            {{ interview.interviewer_name }} · {{ interview.interviewer_email }}
+                        </p>
+                    </div>
+                    <div class="bg-gray-50 rounded-2xl p-4 border border-dashed border-slate-200">
+                        <p class="text-xs uppercase tracking-[0.4em] text-slate-500">Duration</p>
+                        <p class="text-sm text-slate-700">{{ interview.duration_minutes }} minutes</p>
+                    </div>
+                </section>
+
+                <section class="space-y-3 text-sm text-slate-600">
+                    <p class="font-semibold text-slate-900">Need to update any info?</p>
+                    <p>
+                        You can only propose one reschedule slot at a time. After sending a proposal, a member of the team will follow up with confirmation or additional slots.
+                    </p>
+                    <p class="text-xs text-slate-500">
+                        The system will automatically send a calendar invite once the company accepts or reschedules. Keep an eye on your inbox for updates.
+                    </p>
+                </section>
+
+                <section class="bg-slate-100 rounded-2xl p-6 space-y-4">
+                    <h3 class="text-lg font-semibold text-slate-900">Interview Logistics</h3>
+                    <div class="grid gap-4 md:grid-cols-3">
+                        <div>
+                            <p class="text-xs uppercase tracking-[0.4em] text-slate-500">Platform</p>
+                            <p class="text-sm font-semibold">{{ interview.get_interview_type_display }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs uppercase tracking-[0.4em] text-slate-500">Duration</p>
+                            <p class="text-sm font-semibold">{{ interview.duration_minutes }} minutes</p>
+                        </div>
+                        <div>
+                            <p class="text-xs uppercase tracking-[0.4em] text-slate-500">Inviter</p>
+                            <p class="text-sm font-semibold">{{ interview.interviewer_name }}</p>
+                        </div>
+                    </div>
+                    <div class="grid gap-4 md:grid-cols-3 text-xs text-slate-500">
+                        <div>Calendar invite automatically attached with reason below.</div>
+                        <div>Reminders still go out unless you decline.</div>
+                        <div>Need another slot? Contact us after submitting.</div>
+                    </div>
+                </section>
+
+                <section class="bg-white rounded-3xl shadow-sm border border-slate-100 p-5">
+                    <div class="flex items-baseline justify-between">
+                        <h3 class="text-lg font-semibold text-slate-900">Reschedule FAQ</h3>
+                        <span class="text-xs text-slate-500">Updated weekly</span>
+                    </div>
+                    <div class="space-y-4 text-sm text-slate-600 mt-4">
+                        <div>
+                            <p class="font-semibold text-slate-900">What if the company denies my request?</p>
+                            <p class="text-xs text-slate-500">You will receive a notification explaining why.</p>
+                        </div>
+                        <div>
+                            <p class="font-semibold text-slate-900">Can I propose multiple times?</p>
+                            <p class="text-xs text-slate-500">This form records one attempt. If you need multiple windows, please coordinate via email.</p>
+                        </div>
+                        <div>
+                            <p class="font-semibold text-slate-900">Need to cancel instead?</p>
+                            <p class="text-xs text-slate-500">Use the cancel action from the interview detail page to stay in sync.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="bg-slate-900 text-white rounded-3xl p-6 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-semibold">Communication Timeline</h3>
+                        <span class="text-xs uppercase tracking-[0.4em] text-white/60">Timeline</span>
+                    </div>
+                    <ol class="space-y-3 text-sm list-decimal list-inside text-white/80">
+                        <li>
+                            <span class="font-semibold text-white">Immediate:</span> Submit this response to trigger the notification to the recruiter.
+                        </li>
+                        <li>
+                            <span class="font-semibold text-white">Within 5 minutes:</span> Recruiter reviews your proposed slot and accepts/reschedules.
+                        </li>
+                        <li>
+                            <span class="font-semibold text-white">15 minutes later:</span> Candidate receives confirmation email with updated calendar invite.
+                        </li>
+                        <li>
+                            <span class="font-semibold text-white">Ongoing:</span> Panel hosts are reminded 24h/1h before using automated reminders.
+                        </li>
+                        <li>
+                            <span class="font-semibold text-white">Follow-up:</span> Check the interview detail page for further updates and completion status.
+                        </li>
+                    </ol>
+                </section>
+
+                <section class="grid gap-6 lg:grid-cols-2">
+                    <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-5 space-y-3">
+                        <h4 class="text-sm uppercase tracking-[0.3em] text-slate-500">Communication Tips</h4>
+                        <ul class="space-y-2 text-sm text-slate-600">
+                            <li>Focus on facts: share availability window and reason.</li>
+                            <li>Keep notes short to avoid email overload.</li>
+                            <li>Reference the job title & original date for clarity.</li>
+                            <li>Feel free to share alternative slots after the initial proposal.</li>
+                        </ul>
+                    </div>
+                    <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-5 space-y-3">
+                        <h4 class="text-sm uppercase tracking-[0.3em] text-slate-500">Reminders</h4>
+                        <ul class="space-y-2 text-sm text-slate-600">
+                            <li>Zoom link is reused unless you request a new link.</li>
+                            <li>On-site addresses remain active until cancelled.</li>
+                            <li>Reschedules maintain the same interviewers unless updated manually.</li>
+                        </ul>
+                        <div class="text-xs text-slate-400">
+                            If you need additional slots beyond this form, coordinate directly through your recruiter or hiring team channel.
+                        </div>
+                    </div>
+                </section>
+
+                <section class="space-y-5 border border-dashed border-slate-200 rounded-3xl p-6 bg-slate-50">
+                    <h3 class="text-lg font-semibold text-slate-900">Candidate Preparation Notes</h3>
+                    <p class="text-sm text-slate-600">
+                        Before the interview, make sure the candidate receives:
+                    </p>
+                    <ul class="list-disc list-inside text-sm text-slate-600 space-y-2">
+                        <li>A quick agenda outlining who will speak and expected duration.</li>
+                        <li>Any code or homework links needed ahead of time.</li>
+                        <li>Contact information for changes (email + phone).</li>
+                    </ul>
+                    <p class="text-xs text-slate-500">
+                        We automatically attach whatever is in the Candidate Instructions field of the interview record. Update that field before submitting if you need to share new details.
+                    </p>
+                </section>
+
+                <section class="bg-white rounded-3xl shadow-sm border border-slate-100 p-5 space-y-4">
+                    <h3 class="text-lg font-semibold text-slate-900">Accessibility & Amenities</h3>
+                    <div class="text-sm text-slate-600 space-y-2">
+                        <p>Let us know if you require disabilities accommodations or specific room setup so we can update the shared calendar invite.</p>
+                        <p class="text-xs text-slate-400">Tip: mention this in the reason field if it's the reason for rescheduling.</p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs text-slate-500">
+                        <div class="p-3 rounded-2xl bg-slate-50 border border-slate-200">
+                            <p class="font-semibold text-slate-700">Need AV support?</p>
+                            <p>Contact ops with the new time and we&apos;ll prep the room or dial-in.</p>
+                        </div>
+                        <div class="p-3 rounded-2xl bg-slate-50 border border-slate-200">
+                            <p class="font-semibold text-slate-700">Working across timezones?</p>
+                            <p>Add your timezone in the reason field and we will double-check both sides.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="bg-primary text-white rounded-3xl p-6 space-y-3">
+                    <h3 class="text-lg font-semibold">Need a different channel?</h3>
+                    <p class="text-sm text-white/90">
+                        You can always email the recruiter directly if you require multiple proposals or have additional questions.
+                        This form keeps everything documented but doesn&apos;t limit your ability to communicate outside the platform.
+                    </p>
+                    <div class="text-xs uppercase tracking-[0.3em] text-white/60">
+                        You may close this dialog once you submit your response.
+                    </div>
+                </section>
+
+                <div class="flex flex-col sm:flex-row gap-4 items-center">
+                    <button type="submit" class="w-full sm:w-auto px-8 py-3 bg-primary text-white rounded-2xl font-semibold shadow-lg hover:bg-primary-dark transition-all">
+                        Submit Response
+                    </button>
+                    <a href="{% url 'interviews:detail' interview.id %}" class="text-sm text-slate-500 hover:text-slate-900">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

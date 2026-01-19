@@ -1,46 +1,237 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Schedule Interview{% endblock %}
 
+{% block extra_css %}
+<style>
+    .duration-pill {
+        transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease;
+    }
+    .duration-pill.active {
+        transform: translateY(-2px);
+    }
+    .field-divider::after {
+        content: '';
+        display: block;
+        height: 1px;
+        background: linear-gradient(90deg, rgba(15,23,42,0), rgba(79,70,229,0.6), rgba(15,23,42,0));
+        margin: 2.5rem auto 0;
+        max-width: 240px;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="max-w-3xl mx-auto p-6">
-    <h1 class="text-3xl font-bold mb-6">Schedule Interview</h1>
-    <form method="post" class="space-y-4 bg-white shadow rounded-lg p-6">
-        {% csrf_token %}
-        {{ form.non_field_errors }}
-        <div>
-            <label class="font-semibold">Interview Type</label>
-            {{ form.interview_type }}
+<div class="min-h-screen bg-slate-50">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div class="bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-100">
+            <div class="px-6 py-8 border-b border-slate-100 bg-gradient-to-r from-primary to-secondary text-white">
+                <div class="flex items-center justify-between gap-6">
+                    <div>
+                        <p class="text-sm uppercase tracking-[0.3em]">Interview</p>
+                        <h1 class="text-4xl font-bold">Schedule an Interview</h1>
+                        <p class="mt-1 text-base text-white/80">Complete the details and invite the candidate instantly.</p>
+                    </div>
+                    <div class="text-sm text-white/80 leading-relaxed">
+                        <p class="font-semibold">Tip</p>
+                        <p>Use duration presets and timezone selection to avoid confusion.</p>
+                    </div>
+                </div>
+            </div>
+
+            {% include 'components/back_button.html' with fallback_url=application|default:'/' label='Back to Application' %}
+            <form method="post" class="space-y-8 px-6 py-10">
+                {% csrf_token %}
+                {{ form.non_field_errors }}
+
+                <!-- Section: Interview Type -->
+                <section class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-xl font-semibold text-slate-900">Interview Type</h2>
+                            <p class="text-sm text-slate-500">Choose the appropriate slate to match the hiring step.</p>
+                        </div>
+                        <div id="type-chip" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-slate-300 bg-slate-50 text-sm font-semibold text-slate-600">
+                            <span class="type-icon w-4 h-4"></span>
+                            <span class="type-label">Select type</span>
+                        </div>
+                    </div>
+                    <div class="space-y-3">
+                        {{ form.interview_type }}
+                        {{ form.interview_type.errors }}
+                    </div>
+                </section>
+
+                <!-- Section: Date & Time -->
+                <section class="grid gap-6 lg:grid-cols-2">
+                    <div class="space-y-2">
+                        <label class="font-semibold text-slate-700">Date &amp; Time</label>
+                        {{ form.scheduled_date }}
+                        {{ form.scheduled_date.errors }}
+                        <p class="text-xs text-slate-500">Pick a local datetime. We&apos;ll attach the timezone below.</p>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="font-semibold text-slate-700">Timezone</label>
+                        {{ form.timezone_name }}
+                        {{ form.timezone_name.errors }}
+                        <p class="text-xs text-slate-500">Select the timezone for the scheduling window.</p>
+                    </div>
+                </section>
+
+                <!-- Duration -->
+                <section class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-semibold text-slate-900">Duration</h3>
+                        <p class="text-sm text-slate-500">Default: 60 minutes</p>
+                    </div>
+                    <div class="flex flex-wrap gap-3">
+                        {% for minutes in durations %}
+                        <button type="button" class="duration-pill rounded-xl px-4 py-2 border border-slate-200 bg-white text-sm font-semibold text-slate-700 shadow-sm hover:bg-primary hover:text-white" data-duration="{{ minutes }}">
+                            {{ minutes }} min
+                        </button>
+                        {% endfor %}
+                    </div>
+                    <div class="mt-3">
+                        <label class="text-sm font-medium text-slate-700">Duration (minutes)</label>
+                        {{ form.duration_minutes }}
+                        {{ form.duration_minutes.errors }}
+                    </div>
+                </section>
+
+                <!-- Conditional Fields -->
+                <section class="grid gap-6 lg:grid-cols-2">
+                    <div id="video-block" class="space-y-2 hidden">
+                        <label class="font-semibold text-slate-700">Video Link</label>
+                        {{ form.video_link }}
+                        {{ form.video_link.errors }}
+                        <p class="text-xs text-slate-500">Populate this for Zoom/Meet/Teams.</p>
+                    </div>
+                    <div id="location-block" class="space-y-2 hidden">
+                        <label class="font-semibold text-slate-700">On-site Location</label>
+                        {{ form.location }}
+                        {{ form.location.errors }}
+                    </div>
+                    <div class="space-y-2">
+                        <label class="font-semibold text-slate-700">Dial-in Number</label>
+                        {{ form.dial_in_number }}
+                        {{ form.dial_in_number.errors }}
+                    </div>
+                    <div class="space-y-2">
+                        <label class="font-semibold text-slate-700">Timezone</label>
+                        <p class="text-xs text-slate-500">For reference only.</p>
+                    </div>
+                </section>
+
+                <!-- Interviewer Details -->
+                <section class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-lg font-semibold text-slate-900">Interviewer Details</h3>
+                            <p class="text-sm text-slate-500">Primary interviewer that candidates will reply to.</p>
+                        </div>
+                        <div class="text-xs font-semibold px-3 py-1 rounded-full bg-slate-100 text-slate-600 uppercase tracking-wider">
+                            Internal use only
+                        </div>
+                    </div>
+                    <div class="grid gap-4 md:grid-cols-2">
+                        <div class="space-y-2">
+                            <label class="font-semibold text-slate-700">Name</label>
+                            {{ form.interviewer_name }}
+                            {{ form.interviewer_name.errors }}
+                        </div>
+                        <div class="space-y-2">
+                            <label class="font-semibold text-slate-700">Email</label>
+                            {{ form.interviewer_email }}
+                            {{ form.interviewer_email.errors }}
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Instructions -->
+                <section class="grid gap-6 lg:grid-cols-2">
+                    <div class="space-y-3">
+                        <h3 class="text-lg font-semibold text-slate-900">Candidate Instructions</h3>
+                        {{ form.candidate_instructions }}
+                        {{ form.candidate_instructions.errors }}
+                        <p class="text-xs text-slate-500">Add prep notes, expected agenda, or materials.</p>
+                    </div>
+                    <div class="space-y-3">
+                        <h3 class="text-lg font-semibold text-slate-900">Company Notes</h3>
+                        {{ form.company_notes }}
+                        {{ form.company_notes.errors }}
+                        <p class="text-xs text-slate-500">Visible only to your team.</p>
+                    </div>
+                </section>
+
+                <!-- Actions -->
+                <div class="flex flex-col sm:flex-row items-center gap-4">
+                    <button type="submit" class="inline-flex items-center justify-center px-8 py-3 bg-primary text-white rounded-2xl shadow-lg hover:bg-primary-dark transition-all">
+                        Schedule Interview
+                    </button>
+                    <a href="{% url 'applications:detail' application.id %}" class="text-sm font-semibold text-slate-500 hover:text-slate-900">
+                        Cancel
+                    </a>
+                </div>
+
+                <div class="text-xs text-slate-500">
+                    All dates are stored in UTC and your participants will see the event in their local timezone.
+                </div>
+            </form>
         </div>
-        <div>
-            <label class="font-semibold">Scheduled Date</label>
-            {{ form.scheduled_date }}
-        </div>
-        <div>
-            <label class="font-semibold">Duration (minutes)</label>
-            {{ form.duration_minutes }}
-        </div>
-        <div>
-            <label class="font-semibold">Video Link</label>
-            {{ form.video_link }}
-        </div>
-        <div>
-            <label class="font-semibold">Location</label>
-            {{ form.location }}
-        </div>
-        <div>
-            <label class="font-semibold">Interviewer Name</label>
-            {{ form.interviewer_name }}
-        </div>
-        <div>
-            <label class="font-semibold">Interviewer Email</label>
-            {{ form.interviewer_email }}
-        </div>
-        <div>
-            <label class="font-semibold">Candidate Instructions</label>
-            {{ form.candidate_instructions }}
-        </div>
-        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Schedule Interview</button>
-    </form>
+    </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const typeSelector = document.querySelector('[name="interview_type"]');
+    const videoBlock = document.getElementById('video-block');
+    const locationBlock = document.getElementById('location-block');
+    const typeChip = document.getElementById('type-chip');
+    const typeIcon = typeChip.querySelector('.type-icon');
+    const typeLabel = typeChip.querySelector('.type-label');
+
+    const typeMap = {
+        'PHONE': { icon: '💬', label: 'Phone Screen' },
+        'VIDEO': { icon: '🎥', label: 'Video Call' },
+        'ONSITE': { icon: '🏢', label: 'On-site' },
+        'TECHNICAL': { icon: '🧠', label: 'Technical' },
+        'BEHAVIORAL': { icon: '🗣️', label: 'Behavioral' },
+        'PANEL': { icon: '👥', label: 'Panel' },
+        'CULTURE_FIT': { icon: '🤝', label: 'Culture Fit' },
+        'FINAL': { icon: '🏁', label: 'Final Interview' },
+    };
+
+    const updateTypeChip = () => {
+        const value = typeSelector.value;
+        const meta = typeMap[value] || { icon: '🎯', label: 'Interview' };
+        typeIcon.textContent = meta.icon;
+        typeLabel.textContent = meta.label;
+        videoBlock.classList.toggle('hidden', value !== 'VIDEO');
+        locationBlock.classList.toggle('hidden', value !== 'ONSITE');
+    };
+
+    typeSelector.addEventListener('change', updateTypeChip);
+    updateTypeChip();
+
+    const durationInput = document.querySelector('[name="duration_minutes"]');
+    const highlightDuration = () => {
+        const currentValue = durationInput.value || '60';
+        document.querySelectorAll('.duration-pill').forEach(btn => btn.classList.remove('active'));
+        const match = document.querySelector(`.duration-pill[data-duration="${currentValue}"]`);
+        if (match) {
+            match.classList.add('active');
+        }
+    };
+
+    document.querySelectorAll('.duration-pill').forEach((pill) => {
+        pill.addEventListener('click', () => {
+            durationInput.value = pill.dataset.duration;
+            highlightDuration();
+        });
+    });
+
+    highlightDuration();
+</script>
 {% endblock %}

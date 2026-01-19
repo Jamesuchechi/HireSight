@@ -1,0 +1,242 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ job.title }} Stats - HireSight{% endblock %}
+{% block meta_description %}See analytics for {{ job.title }} posted by {{ job.company.company_name }} on HireSight.{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-10">
+    <div class="max-w-6xl mx-auto space-y-6 px-4 sm:px-6 lg:px-8">
+        <section class="bg-white border border-gray-200 rounded-3xl shadow-sm px-6 py-6">
+            <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div class="space-y-1">
+                    <p class="text-xs uppercase tracking-[0.25em] text-gray-500">Job analytics</p>
+                    <h1 class="text-3xl font-display font-bold text-gray-900">{{ job.title }}</h1>
+                    <p class="text-gray-600">{{ job.company.company_name }}</p>
+                    <p class="text-sm text-gray-500">
+                        Status:
+                        <span class="font-semibold text-gray-900">{{ job.get_status_display }}</span>
+                        •
+                        {% if job.published_at %}
+                            Posted {{ job.published_at|date:"M j, Y" }}
+                        {% else %}
+                            Not published yet
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="flex flex-wrap items-center gap-3">
+                    <a href="{% url 'jobs:detail' job.slug %}" class="text-sm px-4 py-2 border border-gray-200 rounded-full font-semibold text-gray-700 hover:border-primary hover:text-primary transition">
+                        View job page
+                    </a>
+                    <a href="{% url 'jobs:manage' %}" class="text-sm px-4 py-2 bg-primary text-white rounded-full font-semibold shadow-sm hover:opacity-90 transition">
+                        Back to manage
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <section class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+            <article class="bg-white border border-gray-200 rounded-3xl shadow-sm p-5 space-y-2">
+                <p class="text-xs uppercase tracking-widest text-gray-500">Total views</p>
+                <h2 class="text-3xl font-semibold text-gray-900">{{ total_views|default:"0" }}</h2>
+                <p class="text-sm text-gray-500">Lifetime views for this posting</p>
+            </article>
+
+            <article class="bg-white border border-gray-200 rounded-3xl shadow-sm p-5 space-y-2">
+                <p class="text-xs uppercase tracking-widest text-gray-500">Applications</p>
+                <h2 class="text-3xl font-semibold text-gray-900">{{ total_applications|default:"0" }}</h2>
+                <p class="text-sm text-gray-500">Total candidates who applied</p>
+            </article>
+
+            <article class="bg-white border border-gray-200 rounded-3xl shadow-sm p-5 space-y-2">
+                <p class="text-xs uppercase tracking-widest text-gray-500">Conversion rate</p>
+                <h2 class="text-3xl font-semibold text-gray-900">
+                    {{ conversion_rate|default:"0"|floatformat:1 }}%
+                </h2>
+                <p class="text-sm text-gray-500">Applications per 100 views</p>
+            </article>
+
+            <article class="bg-white border border-gray-200 rounded-3xl shadow-sm p-5 space-y-2">
+                <p class="text-xs uppercase tracking-widest text-gray-500">Days active</p>
+                <h2 class="text-3xl font-semibold text-gray-900">
+                    {{ job.days_since_posted|default_if_none:"—" }}
+                </h2>
+                <p class="text-sm text-gray-500">Since this job was published</p>
+            </article>
+        </section>
+
+        <section class="bg-white border border-gray-200 rounded-3xl shadow-sm p-6 space-y-6">
+            <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div>
+                    <p class="text-xs uppercase tracking-[0.25em] text-gray-500">Performance</p>
+                    <h2 class="text-xl font-semibold text-gray-900">Daily views (last 30 days)</h2>
+                </div>
+                <p class="text-sm text-gray-500">Peak: {{ views_by_day_max|default:"0" }} views</p>
+            </div>
+
+            <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                <div class="bg-gray-50 rounded-2xl p-4 border border-gray-100 shadow-inner">
+                    <h3 class="text-sm font-semibold text-gray-600 mb-3">Daily views chart</h3>
+                    <canvas id="viewsChart" height="200"></canvas>
+                </div>
+                <div class="bg-gray-50 rounded-2xl p-4 border border-gray-100 shadow-inner">
+                    <h3 class="text-sm font-semibold text-gray-600 mb-3">Application status</h3>
+                    <canvas id="statusChart" height="200"></canvas>
+                </div>
+            </div>
+
+            {% if views_by_day %}
+                <div class="space-y-3">
+                    {% for entry in views_by_day %}
+                        <div class="flex items-center gap-3">
+                            <span class="w-24 text-xs font-semibold uppercase tracking-widest text-gray-500">
+                                {{ entry.day|date:"M j" }}
+                            </span>
+                            <div class="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
+                                <div class="h-full rounded-full bg-gradient-to-r from-primary to-secondary transition-all duration-200"
+                                     style="width: {{ entry.bar_width|default:"0"|floatformat:2 }}%;"></div>
+                            </div>
+                            <span class="w-16 text-right text-sm font-semibold text-gray-900">
+                                {{ entry.count }}
+                            </span>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-sm text-gray-500">This job has not received views in the past 30 days.</p>
+            {% endif %}
+        </section>
+
+        <section class="bg-white border border-gray-200 rounded-3xl shadow-sm p-6 space-y-6">
+            <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                <h2 class="text-xl font-semibold text-gray-900">Job overview</h2>
+                <p class="text-sm text-gray-500">Quick reference for the posting</p>
+            </div>
+
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div class="p-4 border border-gray-100 rounded-2xl">
+                <p class="text-xs text-gray-500 uppercase tracking-[0.3em]">Location</p>
+                <p class="text-base font-semibold text-gray-900">
+                        {% if job.is_remote %}
+                            {{ job.get_remote_type_display }}
+                        {% else %}
+                            {{ job.location|default:"—" }}
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="p-4 border border-gray-100 rounded-2xl">
+                    <p class="text-xs text-gray-500 uppercase tracking-[0.3em]">Employment</p>
+                    <p class="text-base font-semibold text-gray-900">{{ job.get_employment_type_display }}</p>
+                </div>
+                <div class="p-4 border border-gray-100 rounded-2xl">
+                    <p class="text-xs text-gray-500 uppercase tracking-[0.3em]">Experience level</p>
+                    <p class="text-base font-semibold text-gray-900">{{ job.get_experience_level_display }}</p>
+                </div>
+            </div>
+
+            <div>
+                <p class="text-xs text-gray-500 uppercase tracking-[0.3em]">Skills / tags</p>
+                <div class="mt-3 flex flex-wrap gap-2">
+                    {% if job.tags %}
+                        {% for tag in job.tags %}
+                            <span class="px-3 py-1 rounded-full text-sm bg-gray-100 text-gray-700">{{ tag }}</span>
+                        {% endfor %}
+                    {% else %}
+                        <span class="text-sm text-gray-500">No tags provided.</span>
+                    {% endif %}
+                </div>
+            </div>
+        </section>
+    </div>
+</div>
+
+{{ daily_view_labels|json_script:"daily-view-labels" }}
+{{ daily_view_counts|json_script:"daily-view-counts" }}
+{{ status_labels|json_script:"status-labels" }}
+{{ status_counts|json_script:"status-counts" }}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const viewLabelsElem = document.getElementById('daily-view-labels');
+        const viewCountsElem = document.getElementById('daily-view-counts');
+        const statusLabelsElem = document.getElementById('status-labels');
+        const statusCountsElem = document.getElementById('status-counts');
+
+        const viewLabels = viewLabelsElem ? JSON.parse(viewLabelsElem.textContent || '[]') : [];
+        const viewCounts = viewCountsElem ? JSON.parse(viewCountsElem.textContent || '[]') : [];
+        const statusLabels = statusLabelsElem ? JSON.parse(statusLabelsElem.textContent || '[]') : [];
+        const statusCounts = statusCountsElem ? JSON.parse(statusCountsElem.textContent || '[]') : [];
+
+        const viewsCtx = document.getElementById('viewsChart');
+        if (viewsCtx && viewLabels.length > 0) {
+            new Chart(viewsCtx, {
+                type: 'bar',
+                data: {
+                    labels: viewLabels,
+                    datasets: [{
+                        label: 'Daily views',
+                        data: viewCounts,
+                        backgroundColor: 'rgba(0, 102, 255, 0.7)',
+                        borderRadius: 6,
+                        borderSkipped: false,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: {
+                            ticks: { color: '#475467', font: { size: 12 } },
+                            grid: { display: false }
+                        },
+                        y: {
+                            ticks: { color: '#475467', precision: 0 },
+                            grid: { color: 'rgba(148, 163, 184, 0.2)' },
+                            beginAtZero: true
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { mode: 'index' }
+                    }
+                }
+            });
+        }
+
+        const statusCtx = document.getElementById('statusChart');
+        if (statusCtx && statusLabels.length > 0) {
+            new Chart(statusCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: statusLabels,
+                    datasets: [{
+                        data: statusCounts,
+                        backgroundColor: [
+                            '#FBBF24',
+                            '#60A5FA',
+                            '#A78BFA',
+                            '#34D399',
+                            '#10B981',
+                            '#EF4444',
+                            '#9CA3AF'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { color: '#475467', usePointStyle: true }
+                        },
+                        tooltip: { mode: 'nearest' }
+                    },
+                    cutout: '65%'
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

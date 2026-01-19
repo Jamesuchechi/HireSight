@@ -762,4 +762,156 @@
         </div>
     </div>
 </div>
+{{ pipeline_stage_summary|json_script:"dashboard-stage-data" }}
+{{ pipeline_history_summary|json_script:"dashboard-history-data" }}
+{{ pipeline_stats|json_script:"dashboard-stats-data" }}
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const stageCanvas = document.getElementById('companyStageChart');
+        const historyCanvas = document.getElementById('companyHistoryChart');
+        const pipelineEndpoint = "{% url 'applications:pipeline_data' %}";
+
+        const stageData = JSON.parse(document.getElementById('dashboard-stage-data').textContent || '[]');
+        const historyData = JSON.parse(document.getElementById('dashboard-history-data').textContent || '[]');
+        const statsData = JSON.parse(document.getElementById('dashboard-stats-data').textContent || '{}');
+
+        function buildStageChartValues(summary) {
+            return summary.map(entry => ({
+                label: entry.label,
+                value: entry.count
+            }));
+        }
+
+        function buildHistoryChartValues(summary) {
+            return summary.map(entry => ({
+                label: entry.label,
+                value: entry.count
+            }));
+        }
+
+        const stageChart = new Chart(stageCanvas, {
+            type: 'doughnut',
+            data: {
+                labels: buildStageChartValues(stageData).map(entry => entry.label),
+                datasets: [{
+                    data: buildStageChartValues(stageData).map(entry => entry.value),
+                    backgroundColor: ['#FBBF24','#60A5FA','#A78BFA','#34D399','#10B981','#EF4444','#9CA3AF'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'bottom', labels: { color: '#475467' } }
+                },
+                cutout: '60%'
+            }
+        });
+
+        const historyChart = new Chart(historyCanvas, {
+            type: 'line',
+            data: {
+                labels: buildHistoryChartValues(historyData).map(entry => entry.label),
+                datasets: [{
+                    label: 'Conversions',
+                    data: buildHistoryChartValues(historyData).map(entry => entry.value),
+                    borderColor: '#0EA5E9',
+                    backgroundColor: 'rgba(14, 165, 233, 0.2)',
+                    tension: 0.35,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { color: '#475467' }
+                    },
+                    x: {
+                        ticks: { color: '#475467' }
+                    }
+                },
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+
+        function updateStageCards(summary) {
+            summary.forEach(stage => {
+                const card = document.querySelector(`.stage-card[data-stage="${stage.value}"]`);
+                if (!card) return;
+                const countEl = card.querySelector(`#stage-count-${stage.value}`);
+                const percentEl = card.querySelector(`#stage-percent-${stage.value}`);
+                if (countEl) countEl.textContent = stage.count;
+                if (percentEl) percentEl.textContent = `${stage.percent}%`;
+            });
+        }
+
+        function updateHistoryCards(summary) {
+            summary.forEach(item => {
+                const card = document.querySelector(`.history-card[data-history="${item.value}"]`);
+                if (!card) return;
+                const countEl = card.querySelector(`#history-count-${item.value}`);
+                const changeEl = card.querySelector(`#history-change-${item.value}`);
+                if (countEl) countEl.textContent = item.count;
+                if (changeEl) {
+                    if (item.change === null) {
+                        changeEl.textContent = 'No prior data';
+                    } else {
+                        changeEl.textContent = `${item.change >= 0 ? '+' : ''}${item.change}% vs last week`;
+                    }
+                }
+            });
+        }
+
+        function updateStatsCards(stats) {
+            ['pending','screening','interview','offer','hired','rejected'].forEach(key => {
+                const badge = document.getElementById(`stat-${key}`);
+                if (badge && stats[key] !== undefined) {
+                    badge.textContent = stats[key];
+                }
+            });
+        }
+
+        function applyPipelineData(data) {
+            const pipeline = data.pipeline;
+            updateStageCards(pipeline.stage_summary);
+            updateHistoryCards(pipeline.history_summary);
+            updateStatsCards(pipeline.stats);
+
+            const stageValues = buildStageChartValues(pipeline.stage_summary);
+            stageChart.data.labels = stageValues.map(entry => entry.label);
+            stageChart.data.datasets[0].data = stageValues.map(entry => entry.value);
+            stageChart.update();
+
+            const historyValues = buildHistoryChartValues(pipeline.history_summary);
+            historyChart.data.labels = historyValues.map(entry => entry.label);
+            historyChart.data.datasets[0].data = historyValues.map(entry => entry.value);
+            historyChart.update();
+        }
+
+        function refreshPipeline() {
+            fetch(pipelineEndpoint)
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.success) return;
+                    applyPipelineData(data);
+                })
+                .catch(console.error);
+        }
+
+        document.getElementById('pipeline-refresh').addEventListener('click', refreshPipeline);
+        setInterval(refreshPipeline, 30000);
+        updateStageCards(stageData);
+        updateHistoryCards(historyData);
+        updateStatsCards(statsData);
+    });
+</script>
 {% endblock %}

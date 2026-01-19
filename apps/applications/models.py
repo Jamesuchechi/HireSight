@@ -331,16 +331,30 @@ class Application(models.Model):
         delta = timezone.now() - self.applied_at
         return delta.days
 
-    def update_status(self, new_status, changed_by=None):
-        """Update application status with validation."""
+    def update_status(self, new_status, changed_by=None, reason=None, notes=None):
+        """Update application status with validation and audit trail."""
         from .validators import validate_status_transition
-        
-        validate_status_transition(self.status, new_status)
-        
+
+        old_status = self.status
+        validate_status_transition(old_status, new_status)
+
+        if old_status == new_status:
+            # Nothing to do if status did not change
+            return
+
         self.status = new_status
         self.status_changed_at = timezone.now()
         self.status_changed_by = changed_by
         self.save()
+
+        ApplicationStatusHistory.objects.create(
+            application=self,
+            old_status=old_status,
+            new_status=self.status,
+            changed_by=changed_by,
+            reason=reason or '',
+            notes=notes or ''
+        )
 
     def mark_as_viewed(self):
         """Mark application as viewed by recruiter."""
