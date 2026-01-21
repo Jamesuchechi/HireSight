@@ -9,7 +9,7 @@
     <div class="bg-gradient-to-r from-primary via-secondary to-purple text-white py-8">
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center space-x-4">
-                <a href="{% url 'screening:session_detail' pk=criteria.session.pk %}" class="p-2 bg-white/10 backdrop-blur-sm rounded-lg hover:bg-white/20 transition-colors">
+                <a href="{% url 'screening:session_detail' session_id=criteria.session.pk %}" class="p-2 bg-white/10 backdrop-blur-sm rounded-lg hover:bg-white/20 transition-colors">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
                     </svg>
@@ -225,7 +225,7 @@
 
             <!-- Action Buttons -->
             <div class="flex justify-between items-center pt-6">
-                <a href="{% url 'screening:session_detail' pk=criteria.session.pk %}"
+                <a href="{% url 'screening:session_detail' session_id=criteria.session.pk %}"
                    class="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-colors">
                     Cancel
                 </a>

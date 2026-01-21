@@ -41,8 +41,8 @@ def handle_task_failure(sender=None, task_id=None, exception=None, args=None, kw
         extra={
             'task_id': task_id,
             'task_name': sender.name if sender else 'Unknown',
-            'args': args,
-            'kwargs': kwargs,
+            'task_input_args': args,
+            'task_input_kwargs': kwargs,
         }
     )
 

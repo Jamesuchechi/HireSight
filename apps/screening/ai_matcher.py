@@ -299,11 +299,61 @@ class AIScreener:
         similarity = cosine_similarity([embedding1], [embedding2])[0][0]
         return float(similarity)
 
+    def calculate_skills_match(self, resume_skills: List[str], job_skills: List[str]) -> Dict[str, Any]:
+        """Compute skill overlap metrics for testing and reporting."""
+        if not job_skills:
+            return {'match_count': 0, 'total_required': 0, 'match_percentage': 0.0}
+        normalized_resume = {skill.lower() for skill in (resume_skills or [])}
+        normalized_job = {skill.lower() for skill in job_skills}
+        matched = normalized_resume & normalized_job
+        total_required = len(normalized_job)
+        match_percentage = len(matched) / total_required if total_required else 0
+        return {
+            'match_count': len(matched),
+            'total_required': total_required,
+            'match_percentage': match_percentage
+        }
+
+    def calculate_experience_match(self, years: float, required_years: float, max_years: Optional[float] = None) -> float:
+        """Calculate experience score (0-1) capped by optional maximum."""
+        if required_years <= 0:
+            return 0.0
+        if years >= required_years:
+            if max_years and years > max_years and max_years > required_years:
+                return required_years / max_years
+            return 1.0
+        return max(0.0, years / required_years)
+
+    def calculate_education_match(self, candidate_degree: str, required_degrees: List[str]) -> float:
+        """Score educational alignment on a 0-1 scale."""
+        rank_map = {
+            'associate': 0.5,
+            'bachelor': 1.0,
+            'master': 1.2,
+            'doctorate': 1.3,
+        }
+        candidate_rank = rank_map.get((candidate_degree or '').lower(), 0.5)
+        required_ranks = [rank_map.get(degree.lower(), 0.5) for degree in (required_degrees or [])]
+        min_required = min(required_ranks) if required_ranks else 1.0
+        if candidate_rank >= min_required:
+            return 1.0
+        score = candidate_rank / min_required if min_required else 0.0
+        return min(max(score, 0.0), 1.0)
+
+    def calculate_keyword_match(self, text: str, keywords: List[str]) -> float:
+        """Return ratio of keywords found in text, clipped between 0 and 1."""
+        if not keywords:
+            return 0.0
+        lower_text = (text or '').lower()
+        count = sum(1 for keyword in keywords if keyword.lower() in lower_text)
+        return min(1.0, count / len(keywords))
+
     def calculate_match_score(
         self,
         resume_text: str,
         job_description: str,
-        criteria: Optional[Dict] = None
+        criteria: Optional[Dict] = None,
+        application_data: Optional[Dict] = None
     ) -> Dict[str, Any]:
         """
         Calculate comprehensive match score.
@@ -314,6 +364,7 @@ class AIScreener:
             resume_text: Resume text
             job_description: Job description
             criteria: Screening criteria
+            application_data: Optional application-specific data used for screening answers and assessment scoring
             
         Returns:
             Match score and detailed analysis
@@ -347,13 +398,14 @@ class AIScreener:
                 logger.warning(f"Mistral AI match calculation failed: {e}, using fallback")
         
         # Fallback to local calculation
-        return self._calculate_match_score_local(resume_text, job_description, criteria)
+        return self._calculate_match_score_local(resume_text, job_description, criteria, application_data)
 
     def _calculate_match_score_local(
         self,
         resume_text: str,
         job_description: str,
-        criteria: Dict
+        criteria: Dict,
+        application_data: Optional[Dict] = None
     ) -> Dict[str, Any]:
         """
         Calculate match score using local models.
@@ -362,6 +414,7 @@ class AIScreener:
             resume_text: Resume text
             job_description: Job description
             criteria: Screening criteria
+            application_data: Optional application context for screening/assessment scoring
             
         Returns:
             Match analysis
@@ -421,28 +474,264 @@ class AIScreener:
             'education': criteria.get('weight_education', 0.1)
         }
         
-        final_score = (
-            semantic_score * weights['semantic'] +
-            skills_score * weights['skills'] +
-            exp_score * weights['experience'] +
-            edu_score * weights['education']
-        ) * 100
-        
+        screening_answers_score = 0.0
+        assessments_score = 0.0
+        screening_analysis = {
+            'score': 0.0,
+            'answers_reviewed': 0,
+            'strengths': [],
+            'concerns': []
+        }
+        assessments_analysis = {
+            'score': 0.0,
+            'tests_taken': 0,
+            'skills_validated': [],
+            'skills_missing': [],
+            'recommendations': []
+        }
+
+        if application_data:
+            screening_eval = self.evaluate_screening_answers(
+                application_data.get('screening_answers', []),
+                criteria.get('screening_questions_config', {}) or {}
+            )
+            screening_answers_score = screening_eval.get('overall_score', 50) / 100
+            screening_analysis = screening_eval
+
+            assessment_results = application_data.get('assessment_results', [])
+            assessment_eval = self.evaluate_assessments(assessment_results, required_skills)
+            assessments_score = assessment_eval.get('overall_score', 0) / 100
+            assessments_analysis.update({
+                'score': assessments_score,
+                'tests_taken': assessment_eval.get('tests_taken', 0),
+                'skills_validated': assessment_eval.get('skills_validated', []),
+                'skills_missing': assessment_eval.get('skills_missing', []),
+                'recommendations': assessment_eval.get('recommendations', [])
+            })
+
+        # When application context exists, normalize the expanded weight set.
+        if application_data:
+            raw_weights = {
+                'semantic': 0.25,
+                'skills': criteria.get('weight_skills', 0.3),
+                'experience': criteria.get('weight_experience', 0.2),
+                'education': criteria.get('weight_education', 0.1),
+                'screening': criteria.get('weight_screening_questions', 0.1),
+                'assessments': criteria.get('weight_assessments', 0.1),
+            }
+            total_weight = sum(raw_weights.values())
+            normalized = {
+                key: (value / total_weight if total_weight else 0)
+                for key, value in raw_weights.items()
+            }
+
+            final_score = (
+                semantic_score * normalized['semantic'] +
+                skills_score * normalized['skills'] +
+                exp_score * normalized['experience'] +
+                edu_score * normalized['education'] +
+                screening_answers_score * normalized['screening'] +
+                assessments_score * normalized['assessments']
+            ) * 100
+        else:
+            final_score = (
+                semantic_score * weights['semantic'] +
+                skills_score * weights['skills'] +
+                exp_score * weights['experience'] +
+                edu_score * weights['education']
+            ) * 100
+
+        details = {
+            'semantic_similarity': semantic_score,
+            'skills_match': {
+                'matched': list(matched_skills),
+                'missing': list(set(required_skills) - matched_skills),
+                'score': skills_score * 100
+            },
+            'experience_match': exp_score,
+            'education_match': edu_score,
+            'resume_skills': resume_skills,
+            'resume_experience_years': resume_experience,
+            'resume_education': resume_education,
+            'screening_answers_analysis': screening_analysis,
+            'assessments_analysis': assessments_analysis
+        }
+
         return {
             'match_score': round(min(final_score, 100), 2),
-            'match_details': {
-                'semantic_similarity': semantic_score,
-                'skills_match': {
-                    'matched': list(matched_skills),
-                    'missing': list(set(required_skills) - matched_skills),
-                    'score': skills_score * 100
-                },
-                'experience_match': exp_score,
-                'education_match': edu_score,
-                'resume_skills': resume_skills,
-                'resume_experience_years': resume_experience,
-                'resume_education': resume_education
+            'match_details': details
+        }
+
+    def evaluate_screening_answers(self, answers_list, criteria_config):
+        """Evaluate screening answers against configured expectations.
+
+        Args:
+            answers_list (list[dict]): Candidate responses stored on the application.
+            criteria_config (dict): Screening question configuration (expected answers and keywords).
+
+        Returns:
+            dict: Contains overall_score (0-100), answers_breakdown, strengths, and red_flags.
+        """
+        if not answers_list:
+            return {
+                'overall_score': 50,
+                'answers_breakdown': [],
+                'red_flags': [],
+                'strengths': []
             }
+
+        if not isinstance(answers_list, list):
+            logger.warning("Invalid screening answers format: expected list, got %s", type(answers_list))
+            return {
+                'overall_score': 50,
+                'answers_breakdown': [],
+                'red_flags': [],
+                'strengths': []
+            }
+
+        expected_answers = (criteria_config or {}).get('expected_answers', {})
+        breakdown = []
+        strengths = []
+        red_flags = []
+
+        for entry in answers_list:
+            if not isinstance(entry, dict):
+                logger.warning("Skipping invalid screening answer entry: %s", entry)
+                continue
+
+            question_key = entry.get('question') or entry.get('label') or entry.get('question_text', 'Unknown question')
+            qtype = (entry.get('question_type') or entry.get('type') or 'text').lower()
+            answer = (entry.get('answer') or entry.get('response') or '') or ''
+            score = 0
+            feedback = ''
+
+            config = expected_answers.get(question_key, {})
+            expected_value = config.get('value')
+            keyword_list = config.get('keywords', [])
+
+            if qtype == 'multiple_choice':
+                if expected_value and answer.strip().lower() == expected_value.strip().lower():
+                    score = 100
+                    feedback = 'Matched expected choice'
+                elif answer:
+                    score = 60
+                    feedback = 'Answered but did not match expectation'
+                else:
+                    score = 0
+                    feedback = 'No response'
+
+            elif qtype == 'yes_no':
+                normalized = answer.strip().lower()
+                if expected_value and normalized == expected_value.strip().lower():
+                    score = 100
+                    feedback = 'Matched required yes/no'
+                elif normalized in ('yes', 'y', 'true', 'no', 'n', 'false'):
+                    score = 60
+                    feedback = 'Answered yes/no but not matching expectation'
+                else:
+                    score = 0
+                    feedback = 'Missing yes/no answer'
+
+            else:
+                tokens = len(answer.split())
+                score = min(100, tokens * 5)
+                feedback = 'Free-text response captured'
+                found_keyword = False
+                for keyword in keyword_list or []:
+                    if isinstance(keyword, str) and keyword.lower() in answer.lower():
+                        score = min(100, score + 20)
+                        found_keyword = True
+                        feedback = f'Included keyword: {keyword}'
+                if not answer:
+                    score = 0
+                    feedback = 'No response provided'
+                elif not found_keyword and keyword_list:
+                    feedback = 'Answer provided without matching keywords'
+
+            score = min(max(score, 0), 100)
+            breakdown.append({
+                'question': question_key,
+                'score': score,
+                'feedback': feedback
+            })
+
+            if score >= 80:
+                strengths.append(question_key)
+            if score < 40:
+                red_flags.append(question_key)
+
+        overall = 50
+        if breakdown:
+            overall = sum(item['score'] for item in breakdown) / len(breakdown)
+
+        return {
+            'overall_score': overall,
+            'answers_breakdown': breakdown,
+            'red_flags': list(dict.fromkeys(red_flags)),
+            'strengths': list(dict.fromkeys(strengths))
+        }
+
+    def evaluate_assessments(self, assessment_results, required_skills):
+        """Summarize assessment performance versus required skills.
+
+        Args:
+            assessment_results (list[dict]): Completed assessment payloads from ApplicationDataService.
+            required_skills (iterable): Skills defined on the screening criteria.
+
+        Returns:
+            dict: Summary with overall_score, tests_taken, skills_validated, missing skills, and recommendations.
+        """
+        required_skills = {skill.lower() for skill in (required_skills or [])}
+        if not assessment_results:
+            return {
+                'overall_score': 0,
+                'tests_taken': 0,
+                'skills_validated': [],
+                'skills_missing': sorted(list(required_skills)) if required_skills else [],
+                'recommendations': ["No assessments completed; consider assigning relevant tests."]
+            }
+
+        total_score = 0
+        validated_skills = set()
+        tests_taken = 0
+
+        for attempt in assessment_results:
+            tests_taken += 1
+            score = attempt.get('score') or 0
+            total_score += score
+            skills = attempt.get('skills_validated') or []
+            if isinstance(skills, str):
+                skills = [skills]
+            for skill in skills:
+                if isinstance(skill, str):
+                    validated_skills.add(skill.lower())
+
+        avg_score = total_score / tests_taken if tests_taken else 0
+        coverage = 0
+        if required_skills:
+            overlap = required_skills & validated_skills
+            coverage = len(overlap) / len(required_skills)
+        else:
+            overlap = set()
+            coverage = 1.0
+
+        boost = coverage * 10
+        final_score = min(100, avg_score + boost)
+
+        skills_missing = sorted(list(required_skills - overlap)) if required_skills else []
+
+        recommendations = []
+        if not coverage:
+            recommendations.append("Assessments did not cover the required skills; add relevant tests.")
+        if skills_missing:
+            recommendations.append(f"Consider assessments for: {', '.join(skills_missing)}")
+
+        return {
+            'overall_score': final_score,
+            'tests_taken': tests_taken,
+            'skills_validated': sorted(list(overlap)),
+            'skills_missing': skills_missing,
+            'recommendations': recommendations or ["Assessments focused on required skills."]
         }
 
     def generate_match_explanation(self, match_result: Dict[str, Any]) -> str:

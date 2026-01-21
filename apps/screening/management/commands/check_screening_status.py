@@ -92,7 +92,7 @@ class Command(BaseCommand):
                 for result in pending_results:
                     try:
                         if result.file_path:
-                            process_resume_screening.delay(result.id, result.file_path)
+                            process_resume_screening.delay(result.id)
                             self.stdout.write(f'    ✓ Requeued: {result.id}')
                         else:
                             self.stdout.write(self.style.ERROR(f'    ✗ No file_path: {result.id}'))

@@ -218,6 +218,44 @@ Interview Detail · {{ interview.application.job.title }}
                 </article>
             </div>
 
+            {% if interview.proposed_times %}
+            <article class="glass-card rounded-3xl p-8 space-y-6">
+                <div class="flex items-center justify-between gap-3">
+                    <div>
+                        <p class="text-xs uppercase tracking-[0.4em] text-slate-500">Candidate responses</p>
+                        <h2 class="text-2xl font-semibold text-slate-900">Reschedule requests</h2>
+                    </div>
+                    <span class="text-sm font-semibold text-amber-600">
+                        Current status: {{ interview.get_candidate_response_display }}
+                    </span>
+                </div>
+                <div class="space-y-5">
+                    {% for proposal in interview.proposed_times reversed %}
+                    <div class="rounded-2xl border border-slate-200 p-5 bg-slate-50">
+                        <div class="flex items-center justify-between text-xs text-slate-500">
+                            <span>Requested</span>
+                            <span>{{ proposal.proposed_at|default:"Unknown time" }}</span>
+                        </div>
+                        <p class="text-sm text-slate-900 font-semibold mt-2">
+                            {{ proposal.date|default:"Requested slot not provided" }}
+                        </p>
+                        {% if proposal.reason %}
+                        <p class="text-sm text-slate-600 mt-1">
+                            <span class="font-semibold text-slate-900">Reason:</span>
+                            {{ proposal.reason }}
+                        </p>
+                        {% else %}
+                        <p class="text-sm text-slate-500 mt-1">No reason provided.</p>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                <p class="text-xs text-slate-500">
+                    Candidates can propose a new slot from their interview response form; review each card before confirming.
+                </p>
+            </article>
+            {% endif %}
+
             <div class="glass-card rounded-3xl p-8 space-y-6">
                 <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>

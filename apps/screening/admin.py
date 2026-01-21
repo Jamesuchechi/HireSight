@@ -4,9 +4,14 @@ Admin interface for screening system.
 from django.contrib import admin
 from django.utils.html import format_html
 from django.urls import reverse
+import json
+
+from apps.applications.models import Application
+from apps.assessments.models import SkillAssessmentAttempt
+from apps.screening.tasks import process_resume_screening
 from .models import (
     ScreeningSession, ScreeningResult, ScreeningCriteria, 
-    PipelineIntegration, PipelineStatus, ProgressUpdate, ProgressUpdateType,
+    ScreeningResultStatus, PipelineIntegration, PipelineStatus, ProgressUpdate, ProgressUpdateType,
     AIInsight, InsightFeedback, InsightType
 )
 
@@ -42,10 +47,13 @@ class ScreeningSessionAdmin(admin.ModelAdmin):
         'status_badge',
         'progress_display',
         'average_score_display',
+        'application_results_count',
         'created_at',
     )
     
-    list_filter = ('status', 'created_at', 'company')
+    list_filter = ('status', 'created_at', 'company', 'job')
+    
+    actions = ('rescreen_with_latest_data', 'link_results_to_applications')
     
     search_fields = ('id', 'title', 'company__company_name', 'job__title')
     
@@ -152,6 +160,101 @@ class ScreeningSessionAdmin(admin.ModelAdmin):
         )
     average_score_display.short_description = 'Avg Score'
 
+    def application_results_count(self, obj):
+        return obj.results.filter(application__isnull=False).count()
+    application_results_count.short_description = 'Application-linked results'
+
+    def rescreen_with_latest_data(self, request, queryset):
+        total = 0
+        for session in queryset:
+            for result in session.results.filter(status=ScreeningResultStatus.COMPLETED):
+                if result.resume and result.file_path:
+                    process_resume_screening.delay(result.id)
+                    total += 1
+        self.message_user(request, f"Re-queued {total} completed results to re-screen.")
+    rescreen_with_latest_data.short_description = 'Re-screen with latest data'
+
+    def link_results_to_applications(self, request, queryset):
+        linked = 0
+        for session in queryset:
+            for result in session.results.filter(application__isnull=True):
+                application = _link_result_to_application(result)
+                if application:
+                    result.application = application
+                    result.screening_answers = application.screening_answers or {}
+                    result.assessment_data = _build_assessment_payload(application.applicant)
+                    result.save(update_fields=['application', 'screening_answers', 'assessment_data'])
+                    linked += 1
+        self.message_user(request, f"Linked {linked} results to applications.")
+    link_results_to_applications.short_description = 'Link results to applications'
+
+
+class HasApplicationFilter(admin.SimpleListFilter):
+    title = 'has application'
+    parameter_name = 'has_application'
+
+    def lookups(self, request, model_admin):
+        return (
+            ('yes', 'Has Application'),
+            ('no', 'Missing Application'),
+        )
+
+    def queryset(self, request, queryset):
+        if self.value() == 'yes':
+            return queryset.filter(application__isnull=False)
+        if self.value() == 'no':
+            return queryset.filter(application__isnull=True)
+        return queryset
+
+
+def _link_result_to_application(result):
+    candidate_email = None
+    if result.resume and getattr(result.resume, 'user', None):
+        candidate_email = result.resume.user.email
+
+    job_id = result.job_id or getattr(result.session, 'job_id', None)
+
+    if result.resume:
+        app = Application.objects.filter(resume=result.resume).first()
+        if app:
+            return app
+
+    if job_id and candidate_email:
+        app = Application.objects.filter(
+            job_id=job_id,
+            applicant__email__iexact=candidate_email
+        ).first()
+        if app:
+            return app
+
+    if candidate_email:
+        return Application.objects.filter(applicant__email__iexact=candidate_email).first()
+
+    return None
+
+
+def _build_assessment_payload(user):
+    attempts = SkillAssessmentAttempt.objects.filter(
+        user=user,
+        status='COMPLETED'
+    ).select_related('test').order_by('-completed_at')
+
+    payload = []
+    for attempt in attempts:
+        test = attempt.test
+        skills = getattr(test, 'skills_tested', None) or []
+        if skills is None:
+            skills = []
+        payload.append({
+            'test_name': test.title if test else 'Unknown Test',
+            'score': attempt.score,
+            'passed': attempt.passed,
+            'skills_validated': skills if isinstance(skills, list) else [skills],
+            'completed_at': attempt.completed_at,
+            'time_taken': getattr(attempt, 'time_taken_minutes', None) or getattr(attempt, 'time_taken', None),
+        })
+    return payload
+
 
 @admin.register(ScreeningResult)
 class ScreeningResultAdmin(admin.ModelAdmin):
@@ -160,24 +263,31 @@ class ScreeningResultAdmin(admin.ModelAdmin):
     list_display = (
         'id_short',
         'session_link',
+        'application_link',
         'match_score_display',
         'status_badge',
         'shortlisted_badge',
         'processed_at',
     )
     
-    list_filter = ('status', 'is_shortlisted', 'processed_at')
+    list_filter = ('status', 'is_shortlisted', 'processed_at', HasApplicationFilter)
     
     search_fields = ('id', 'session__title', 'resume__user__email')
     
-    readonly_fields = ('id', 'processed_at', 'match_details_display')
+    readonly_fields = (
+        'id', 'processed_at', 'match_details_display',
+        'show_screening_answers', 'show_assessment_summary'
+    )
     
     fieldsets = (
         ('Basic Information', {
-            'fields': ('id', 'session', 'resume', 'job')
+            'fields': ('id', 'session', 'resume', 'job', 'application')
         }),
         ('Match Analysis', {
             'fields': ('match_score', 'match_details_display')
+        }),
+        ('Screening Data', {
+            'fields': ('show_screening_answers', 'show_assessment_summary')
         }),
         ('Status', {
             'fields': ('status', 'processed_at', 'error_message')
@@ -199,6 +309,13 @@ class ScreeningResultAdmin(admin.ModelAdmin):
         url = reverse('admin:screening_screeningsession_change', args=[obj.session.id])
         return format_html('<a href="{}">{}</a>', url, obj.session.title)
     session_link.short_description = 'Session'
+
+    def application_link(self, obj):
+        if obj.application:
+            url = reverse('admin:applications_application_change', args=[obj.application.id])
+            return format_html('<a href="{}">{}</a>', url, obj.application.id)
+        return '-'
+    application_link.short_description = 'Application'
     
     def match_score_display(self, obj):
         score = float(obj.match_score or 0)
@@ -241,9 +358,26 @@ class ScreeningResultAdmin(admin.ModelAdmin):
     shortlisted_badge.short_description = 'Shortlisted'
     
     def match_details_display(self, obj):
-        import json
         return format_html('<pre>{}</pre>', json.dumps(obj.match_details, indent=2))
     match_details_display.short_description = 'Match Details'
+
+    def show_screening_answers(self, obj):
+        if not obj.screening_answers:
+            return '-'
+        return format_html('<pre>{}</pre>', json.dumps(obj.screening_answers, indent=2))
+    show_screening_answers.short_description = 'Screening Answers'
+
+    def show_assessment_summary(self, obj):
+        assessments = obj.assessment_data or []
+        if not assessments:
+            return '-'
+        lines = []
+        for entry in assessments:
+            score = entry.get('score')
+            skills = entry.get('skills_validated') or []
+            lines.append(f"{entry.get('test_name', 'Test')}: {score}% [{', '.join(skills)}]")
+        return format_html('<pre>{}</pre>', "\n".join(lines))
+    show_assessment_summary.short_description = 'Assessments'
 
 
 @admin.register(ScreeningCriteria)

@@ -12,126 +12,143 @@ logger = logging.getLogger(__name__)
 
 
 @shared_task(bind=True, max_retries=3)
-def process_resume_screening(self, result_id, file_path):
-    """
-    Process a single resume for screening.
-    
+def process_resume_screening(self, result_id, file_path=None):
+    """Process or re-process a single screening result.
+
+    This task supports both the new application-linked flow and the legacy resume-only flow.
+
     Args:
-        result_id: UUID of ScreeningResult
-        file_path: Path to resume file
+        result_id (UUID): ScreeningResult identifier.
+
+    Raises:
+        Exception: Propagated after marking the result failed to avoid silent drops.
     """
     result = None
     try:
         from .models import ScreeningResult, ScreeningResultStatus
         from .ai_matcher import ai_screener
+        from .services import ApplicationDataService
         from apps.resumes.parsers import ResumeParser
-        
-        # Get result with related objects - add error handling
+
         try:
             result = ScreeningResult.objects.select_related(
                 'session',
                 'session__criteria',
-                'job'
+                'job',
+                'application__applicant'
             ).get(id=result_id)
         except ScreeningResult.DoesNotExist:
             logger.error(f"ScreeningResult {result_id} does not exist")
-            # Don't retry for this error - record doesn't exist
             return f"Failed: ScreeningResult {result_id} not found"
-        
-        # Mark as processing
+
         result.mark_as_processing()
-        
-        # Read file
-        try:
-            with default_storage.open(file_path, 'rb') as file:
-                file_content = file.read()
-            logger.info(f"File read successfully: {file_path}")
-        except Exception as e:
-            logger.error(f"Error reading file {file_path}: {e}", exc_info=True)
-            result.mark_as_failed(f"Failed to read file: {str(e)}")
-            raise
-        
-        # Parse resume
-        try:
-            parser = ResumeParser()
-            filename = file_path.split('/')[-1]
-            
-            logger.info(f"Parsing resume file: {filename}")
-            
-            # Parse the file content directly - this returns a dict with 'success', 'text', and other fields
-            parsed_result = parser.parse_content(file_content, filename)
-            
-            if not parsed_result.get('success'):
-                error_msg = parsed_result.get('error', 'Unknown error')
-                logger.error(f"Resume parsing failed for {filename}: {error_msg}")
-                result.mark_as_failed(f"Failed to parse resume: {error_msg}")
-                raise Exception(error_msg)
-            
-            resume_text = parsed_result.get('text', '')
-            if not resume_text or len(resume_text.strip()) < 50:
-                error_msg = "Insufficient text extracted from resume"
-                logger.error(f"{error_msg} for {filename}")
+
+        resume_text = ''
+        application_data = None
+        if result.application:
+            # Application-based screening path: enrich candidates with stored data.
+            logger.info(f"Screening application {result.application.id} for job {result.job.title if result.job else 'General'}")
+            application_data = ApplicationDataService.get_application_screening_data(result.application)
+            resume_text = application_data.get('resume_text') or ''
+        else:
+            # Legacy resume-only path: parse the uploaded file for text extraction.
+            source_file_path = file_path or result.file_path or (result.resume.file.name if result.resume and result.resume.file else None)
+            if not source_file_path:
+                error_msg = "No resume file attached"
+                logger.error(error_msg)
                 result.mark_as_failed(error_msg)
                 raise Exception(error_msg)
-            
-            # Parse resume with AI screener to extract structured data
-            parsed_data = ai_screener.parse_resume(resume_text)
-            
-            logger.info(f"Resume parsed successfully for result {result_id}. Text length: {len(resume_text)}")
-            
-        except Exception as e:
-            logger.error(f"Error parsing resume: {e}", exc_info=True)
-            result.mark_as_failed(f"Failed to parse resume: {str(e)}")
-            raise
-        
-        # Get job description
-        if result.job:
-            job_description = result.job.description
-            logger.info(f"Using job description from job: {result.job.title}")
-        else:
-            job_description = "General screening for multiple positions"
-            logger.info("No specific job - using general screening")
-        
-        # Get screening criteria
-        try:
+            try:
+                with default_storage.open(source_file_path, 'rb') as file:
+                    file_content = file.read()
+                filename = source_file_path.split('/')[-1]
+                parser = ResumeParser()
+                parsed_result = parser.parse_content(file_content, filename)
+
+                if not parsed_result.get('success'):
+                    error_msg = parsed_result.get('error', 'Unknown parsing error')
+                    logger.error(f"Resume parsing failed for {filename}: {error_msg}")
+                    result.mark_as_failed(f"Failed to parse resume: {error_msg}")
+                    raise Exception(error_msg)
+
+                resume_text = parsed_result.get('text', '')
+                if not resume_text or len(resume_text.strip()) < 50:
+                    error_msg = "Insufficient text extracted from resume"
+                    logger.error(f"{error_msg} for {filename}")
+                    result.mark_as_failed(error_msg)
+                    raise Exception(error_msg)
+            except Exception as e:
+                logger.error(f"Error parsing resume for result {result_id}: {e}", exc_info=True)
+                if not getattr(result, 'status', None) == ScreeningResultStatus.FAILED:
+                    result.mark_as_failed(f"Failed to parse resume: {str(e)}")
+                # Re-raise so Celery can record the failure for retries.
+                raise
+
+            if not resume_text:
+                error_msg = "Unable to obtain resume text"
+                logger.error(error_msg)
+                result.mark_as_failed(error_msg)
+                raise Exception(error_msg)
+
+            job_description = result.job.description if result.job else "General screening results"
             criteria = result.session.criteria
-            logger.info(f"Retrieved criteria for session {result.session.id}")
-        except Exception as e:
-            logger.error(f"No criteria found for session {result.session.id}: {e}")
-            result.mark_as_failed("Screening criteria not set up for this session")
-            raise
-        
-        criteria_dict = {
-            'required_skills': criteria.required_skills,
-            'nice_to_have_skills': criteria.nice_to_have_skills,
-            'min_experience_years': criteria.min_experience_years,
-            'max_experience_years': criteria.max_experience_years,
-            'required_education': criteria.required_education,
-            'custom_keywords': criteria.custom_keywords,
-            'weight_skills': criteria.weight_skills,
-            'weight_experience': criteria.weight_experience,
-            'weight_education': criteria.weight_education,
-            'weight_keywords': criteria.weight_keywords,
-        }
-        
-        # Calculate match score
-        try:
-            logger.info(f"Calculating match score for result {result_id}")
-            match_result = ai_screener.calculate_match_score(
-                resume_text=resume_text,
-                job_description=job_description,
-                criteria=criteria_dict
-            )
-            
-            result.match_score = match_result['match_score']
-            result.match_details = match_result['match_details']
-            
-            logger.info(f"Match score calculated: {result.match_score}%")
-        except Exception as e:
-            logger.error(f"Error calculating match score: {e}", exc_info=True)
-            result.mark_as_failed(f"Failed to calculate match: {str(e)}")
-            raise
-        
+            criteria_dict = {
+                'required_skills': criteria.required_skills,
+                'nice_to_have_skills': criteria.nice_to_have_skills,
+                'min_experience_years': criteria.min_experience_years,
+                'max_experience_years': criteria.max_experience_years,
+                'required_education': criteria.required_education,
+                'custom_keywords': criteria.custom_keywords,
+                'weight_skills': criteria.weight_skills,
+                'weight_experience': criteria.weight_experience,
+                'weight_education': criteria.weight_education,
+                'weight_keywords': criteria.weight_keywords,
+                'weight_screening_questions': criteria.weight_screening_questions,
+                'weight_assessments': criteria.weight_assessments,
+                'screening_questions_config': criteria.screening_questions_config
+            }
+
+            if application_data:
+                candidate_name = application_data['candidate_info']['name']
+                logger.info(f"Screening application {result.application.id} for job {result.job.title if result.job else 'General'} (Candidate: {candidate_name})")
+                try:
+                    match_result = ai_screener.calculate_match_score(
+                        resume_text=resume_text,
+                        job_description=job_description,
+                        criteria=criteria_dict,
+                        application_data=application_data
+                    )
+
+                    result.match_score = match_result['match_score']
+                    result.match_details = match_result['match_details']
+                    result.screening_answers = application_data.get('screening_answers', [])
+                    result.assessment_data = application_data.get('assessment_results', [])
+                    result.save(update_fields=[
+                        'match_score', 'match_details', 'screening_answers', 'assessment_data'
+                    ])
+                    logger.info(f"Candidate: {candidate_name}, Match Score: {result.match_score}%")
+                except Exception as e:
+                    logger.error(f"Error calculating match score: {e}", exc_info=True)
+                    result.mark_as_failed(f"Failed to calculate match: {str(e)}")
+                    raise
+            else:
+                logger.info(f"Screening result {result_id} for job {result.job.title if result.job else 'General'} (no application link)")
+                try:
+                    match_result = ai_screener.calculate_match_score(
+                        resume_text=resume_text,
+                        job_description=job_description,
+                        criteria=criteria_dict
+                    )
+
+                    result.match_score = match_result['match_score']
+                    result.match_details = match_result['match_details']
+                    result.save(update_fields=['match_score', 'match_details'])
+                    logger.info(f"Match score calculated: {result.match_score}%")
+                except Exception as e:
+                    logger.error(f"Error calculating match score: {e}", exc_info=True)
+                    result.mark_as_failed(f"Failed to calculate match: {str(e)}")
+                    raise
+
         # Mark as completed
         result.mark_as_completed()
         
@@ -220,7 +237,7 @@ def process_screening_session(self, session_id):
         
         # Queue each result for processing
         for result in pending_results:
-            process_resume_screening.delay(result.id, result.file_path)
+            process_resume_screening.delay(result.id)
         
         return f"Queued {pending_results.count()} resumes for processing"
         

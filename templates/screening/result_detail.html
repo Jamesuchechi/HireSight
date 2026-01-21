@@ -9,13 +9,13 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
             <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-6">
-                    <a href="{% url 'screening:results' result.session.pk %}" class="p-3 bg-white/10 backdrop-blur-sm rounded-xl hover:bg-white/20 transition-all hover:scale-105">
+                    <a href="{% url 'screening:results' session_id=result.session.pk %}" class="p-3 bg-white/10 backdrop-blur-sm rounded-xl hover:bg-white/20 transition-all hover:scale-105">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
                         </svg>
                     </a>
-                    {% if result.resume and result.resume.user.personalprofile.avatar %}
-                    <img src="{{ result.resume.user.personalprofile.avatar.url }}" alt="{{ result.resume.user.get_full_name }}" class="w-20 h-20 rounded-2xl object-cover border-4 border-white/30 shadow-xl">
+                    {% if result.resume and result.resume.user.personal_profile.avatar %}
+                    <img src="{{ result.resume.user.personal_profile.avatar.url }}" alt="{{ result.resume.user.get_full_name }}" class="w-20 h-20 rounded-2xl object-cover border-4 border-white/30 shadow-xl">
                     {% else %}
                     <div class="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center text-white text-3xl font-bold border-4 border-white/30 shadow-xl">
                         {% if result.resume %}
@@ -49,10 +49,127 @@
                     </button>
                     {% endif %}
                 </div>
+                </div>
             </div>
         </div>
-    </div>
 
+        {% if result.application %}
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 space-y-3">
+            <div class="flex items-center justify-between">
+                <h3 class="text-xl font-semibold text-gray-900">Application Information</h3>
+                <span class="text-sm text-gray-500 uppercase tracking-wide">{{ result.application.get_status_display }}</span>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-gray-700">
+                <div>
+                    <p class="text-xs uppercase tracking-wide text-gray-500">Applied on</p>
+                    <p class="font-semibold">{{ result.application.applied_at|date:"M d, Y" }}</p>
+                </div>
+                <div>
+                    <p class="text-xs uppercase tracking-wide text-gray-500">Source</p>
+                    <p class="font-semibold">{{ result.application.source|default:"Direct Apply" }}</p>
+                </div>
+                <div class="md:col-span-2">
+                    <p class="text-xs uppercase tracking-wide text-gray-500">Cover letter</p>
+                    <p class="text-gray-800">{{ result.application.cover_letter|default:"No cover letter provided"|truncatechars:200 }}</p>
+                </div>
+                <div class="md:col-span-2">
+                    <p class="text-xs uppercase tracking-wide text-gray-500">Application link</p>
+                    <a href="{% url 'applications:detail' result.application.id %}" class="text-primary hover:underline text-sm">View full application</a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 space-y-4">
+            <h3 class="text-xl font-semibold text-gray-900">Screening Answers</h3>
+            {% if result.screening_answers %}
+            <div class="space-y-4">
+                {% for answer in result.screening_answers %}
+                <div class="border-l-4 border-blue-500 pl-4">
+                    <p class="font-semibold text-gray-900">{{ answer.question }}</p>
+                    <p class="text-gray-700">{{ answer.answer }}</p>
+                    {% if answer.score %}
+                    <span class="text-sm text-green-600">Score: {{ answer.score }}/100</span>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-gray-500">No screening answers available</p>
+            {% endif %}
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 space-y-4">
+            <h3 class="text-xl font-semibold text-gray-900">Assessment Results</h3>
+            {% if result.assessment_data %}
+            <div class="overflow-x-auto">
+                <table class="min-w-full text-sm">
+                    <thead class="bg-gray-50 text-xs uppercase text-gray-500">
+                        <tr>
+                            <th class="px-3 py-2 text-left">Test</th>
+                            <th class="px-3 py-2 text-center">Score</th>
+                            <th class="px-3 py-2 text-center">Passed</th>
+                            <th class="px-3 py-2 text-center">Skills</th>
+                            <th class="px-3 py-2 text-center">Date</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        {% for attempt in result.assessment_data %}
+                        {% with score=attempt.score|default:0 %}
+                        <tr>
+                            <td class="px-3 py-2 font-medium text-gray-900">{{ attempt.test_name }}</td>
+                            <td class="px-3 py-2 text-center">
+                                <span class="px-2 py-1 rounded-full text-xs font-semibold {% if score|floatformat:0|add:0 >= 80 %}bg-green-100 text-green-800{% elif score|floatformat:0|add:0 >= 60 %}bg-yellow-100 text-yellow-800{% else %}bg-red-100 text-red-800{% endif %}">
+                                    {{ score }}%
+                                </span>
+                            </td>
+                            <td class="px-3 py-2 text-center">
+                                {% if attempt.passed %}
+                                <span class="text-green-600 font-semibold">Yes</span>
+                                {% else %}
+                                <span class="text-red-500 font-semibold">No</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-3 py-2 text-center">
+                                <div class="flex flex-wrap justify-center gap-1">
+                                    {% for skill in attempt.skills_validated %}
+                                    <span class="px-2 py-0.5 rounded-full bg-gray-100 text-gray-800 text-xs">{{ skill }}</span>
+                                    {% endfor %}
+                                </div>
+                            </td>
+                            <td class="px-3 py-2 text-center text-gray-600">
+                                {{ attempt.completed_at|default:result.processed_at|date:"M d, Y" }}
+                            </td>
+                        </tr>
+                        {% endwith %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-gray-500">No assessments taken</p>
+            {% endif %}
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <h3 class="text-xl font-semibold text-gray-900 mb-4">Match Breakdown</h3>
+            <div class="space-y-4">
+                {% for metric in match_metrics %}
+                <div>
+                    <div class="flex items-center justify-between text-sm text-gray-600">
+                        <span>{{ metric.label }}</span>
+                        <span>{{ metric.value|floatformat:0 }}%</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2.5 mt-1">
+                        <div class="{{ metric.color }} h-2.5 rounded-full" style="width: {{ metric.value|floatformat:0 }}%"></div>
+                    </div>
+                </div>
+                {% endfor %}
+                <div class="text-xs text-gray-500">
+                    Weights: Skills {{ match_weights.skills }}%, Experience {{ match_weights.experience }}%, Education {{ match_weights.education }}%, Screening Qs {{ match_weights.screening }}%, Assessments {{ match_weights.assessments }}%
+                </div>
+            </div>
+        </div>
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <!-- Main Content -->
@@ -60,8 +177,8 @@
                 <!-- Candidate Info -->
                 <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
                     <div class="flex items-start space-x-6">
-                        {% if result.resume and result.resume.user.personalprofile.avatar %}
-                        <img src="{{ result.resume.user.personalprofile.avatar.url }}" alt="{{ result.resume.user.get_full_name }}" class="w-20 h-20 rounded-xl object-cover border-2 border-gray-200">
+                        {% if result.resume and result.resume.user.personal_profile.avatar %}
+                        <img src="{{ result.resume.user.personal_profile.avatar.url }}" alt="{{ result.resume.user.get_full_name }}" class="w-20 h-20 rounded-xl object-cover border-2 border-gray-200">
                         {% else %}
                         <div class="w-20 h-20 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center text-white text-3xl font-bold">
                             {% if result.resume %}
@@ -80,21 +197,21 @@
                             <p class="text-gray-600 text-lg"></p>
                             {% endif %}
                             <div class="flex flex-wrap items-center gap-4 mt-3">
-                                {% if result.resume and result.resume.user.personalprofile.phone %}
+                                {% if result.resume and result.resume.user.personal_profile.phone %}
                                 <div class="flex items-center text-gray-500">
                                     <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
                                     </svg>
-                                    {{ result.resume.user.personalprofile.phone }}
+                                    {{ result.resume.user.personal_profile.phone }}
                                 </div>
                                 {% endif %}
-                                {% if result.resume and result.resume.user.personalprofile.location %}
+                                {% if result.resume and result.resume.user.personal_profile.location %}
                                 <div class="flex items-center text-gray-500">
                                     <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                     </svg>
-                                    {{ result.resume.user.personalprofile.location }}
+                                    {{ result.resume.user.personal_profile.location }}
                                 </div>
                                 {% endif %}
                                 <div class="flex items-center text-gray-500">

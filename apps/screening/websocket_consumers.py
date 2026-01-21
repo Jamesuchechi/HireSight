@@ -111,7 +111,7 @@ class ScreeningProgressConsumer(AsyncWebsocketConsumer):
         try:
             screening = ScreeningSession.objects.get(id=screening_id)
             return screening.job.recruiter == self.user or self.user.is_staff
-        except Screening.DoesNotExist:
+        except ScreeningSession.DoesNotExist:
             return False
     
     @database_sync_to_async
@@ -120,26 +120,28 @@ class ScreeningProgressConsumer(AsyncWebsocketConsumer):
         try:
             screening = ScreeningSession.objects.select_related('job').get(id=self.screening_id)
             progress_updates = ProgressUpdate.objects.filter(
-                screening=screening
+                session=screening
             ).order_by('-created_at')[:10]
             
             return {
                 'screening_id': str(screening.id),
                 'status': screening.status,
-                'job_title': screening.job.title,
+                'job_title': screening.job.title if screening.job else None,
                 'created_at': screening.created_at.isoformat(),
-                'updated_at': screening.updated_at.isoformat(),
+                'completed_at': screening.completed_at.isoformat() if screening.completed_at else None,
                 'progress_updates': [
                     {
-                        'event': p.event,
-                        'description': p.description,
-                        'progress': p.progress,
-                        'created_at': p.created_at.isoformat()
+                        'update_type': update.update_type,
+                        'title': update.title,
+                        'message': update.message,
+                        'progress_percent': update.progress_percent,
+                        'status': update.status,
+                        'created_at': update.created_at.isoformat(),
                     }
-                    for p in progress_updates
+                    for update in progress_updates
                 ]
             }
-        except Screening.DoesNotExist:
+        except ScreeningSession.DoesNotExist:
             return None
 
 

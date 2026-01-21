@@ -9,6 +9,8 @@ from django.core.validators import MinValueValidator, MaxValueValidator, Validat
 from django.db.models import Q, JSONField, Avg  
 from django.urls import reverse
 
+from apps.applications.models import Application
+
 
 class ScreeningStatus(models.TextChoices):
     """Screening session status choices."""
@@ -139,7 +141,7 @@ class ScreeningSession(models.Model):
 
     def get_absolute_url(self):
         """Get screening session detail URL."""
-        return reverse('screening:session_detail', kwargs={'pk': self.pk})
+        return reverse('screening:session_detail', kwargs={'session_id': self.pk})
 
     @property
     def progress_percentage(self):
@@ -248,6 +250,15 @@ class ScreeningResult(models.Model):
         help_text="Job being matched against (if applicable)"
     )
 
+    application = models.ForeignKey(
+        Application,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='screening_results',
+        help_text="Application being screened"
+    )
+
     # Match Score
     match_score = models.IntegerField(
         default=0,
@@ -260,6 +271,18 @@ class ScreeningResult(models.Model):
         default=dict,
         blank=True,
         help_text="Detailed match analysis"
+    )
+
+    screening_answers = JSONField(
+        default=dict,
+        blank=True,
+        help_text="Candidate's answers to job screening questions"
+    )
+
+    assessment_data = JSONField(
+        default=dict,
+        blank=True,
+        help_text="Skill assessment results and scores"
     )
 
     # File Path
@@ -331,6 +354,9 @@ class ScreeningResult(models.Model):
         ]
 
     def __str__(self):
+        if self.application:
+            name = self.application.user.get_full_name() or self.application.user.email
+            return f"{name} - {self.match_score}% match"
         if self.resume:
             return f"{self.resume.user.email} - {self.match_score}% match"
         return f"Result {str(self.id)[:8]} - {self.match_score}% match"
@@ -382,6 +408,16 @@ class ScreeningResult(models.Model):
     def semantic_similarity(self):
         """Get semantic similarity score."""
         return self.match_details.get('semantic_similarity', 0)
+
+    @property
+    def candidate_name(self):
+        """Return candidate name from application if available."""
+        if self.application:
+            name = self.application.user.get_full_name()
+            if name:
+                return name
+            return self.application.user.email
+        return "Unknown Candidate"
 
 
 class ScreeningCriteria(models.Model):
@@ -445,12 +481,12 @@ class ScreeningCriteria(models.Model):
 
     # Scoring Weights
     weight_skills = models.FloatField(
-        default=0.4,
+        default=0.3,
         validators=[MinValueValidator(0), MaxValueValidator(1)],
         help_text="Weight for skills in scoring (0-1)"
     )
     weight_experience = models.FloatField(
-        default=0.3,
+        default=0.2,
         validators=[MinValueValidator(0), MaxValueValidator(1)],
         help_text="Weight for experience in scoring (0-1)"
     )
@@ -464,6 +500,22 @@ class ScreeningCriteria(models.Model):
         validators=[MinValueValidator(0), MaxValueValidator(1)],
         help_text="Weight for keywords in scoring (0-1)"
     )
+    weight_screening_questions = models.FloatField(
+        default=0.1,
+        validators=[MinValueValidator(0), MaxValueValidator(1)],
+        help_text="Weight for screening question answers in scoring (0-1)"
+    )
+    weight_assessments = models.FloatField(
+        default=0.1,
+        validators=[MinValueValidator(0), MaxValueValidator(1)],
+        help_text="Weight for skill assessments in scoring (0-1)"
+    )
+
+    screening_questions_config = JSONField(
+        default=dict,
+        blank=True,
+        help_text="Configuration for how to score screening questions"
+    )
 
     class Meta:
         verbose_name_plural = 'Screening Criteria'
@@ -473,8 +525,18 @@ class ScreeningCriteria(models.Model):
 
     def validate_weights(self):
         """Validate that weights sum to 1."""
-        total = (self.weight_skills + self.weight_experience + 
-                self.weight_education + self.weight_keywords)
+        weights = [
+            0 if value is None else value
+            for value in (
+                self.weight_skills,
+                self.weight_experience,
+                self.weight_education,
+                self.weight_keywords,
+                self.weight_screening_questions,
+                self.weight_assessments,
+            )
+        ]
+        total = sum(weights)
         
         if not (0.99 <= total <= 1.01):  # Allow small floating point rounding
             raise ValidationError("Weights must sum to 1.0")
@@ -778,10 +840,10 @@ class AIInsight(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
     # Relations
-    result = models.OneToOneField(
+    result = models.ForeignKey(
         ScreeningResult,
         on_delete=models.CASCADE,
-        related_name='ai_insight',
+        related_name='ai_insights',
         help_text='The screening result this insight is for'
     )
 

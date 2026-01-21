@@ -1,0 +1,13 @@
+Hi {{ candidate.get_full_name|default:candidate.email }},
+
+This is a reminder that your interview for {{ interview.application.job.title }} is coming up in {{ timeframe }}.
+
+Details:
+Date: {{ interview.scheduled_date|date:"F j, Y" }}
+Time: {{ interview.scheduled_date|time:"g:i A" }} ({{ interview.timezone_name }})
+
+Join link: {{ interview.video_link|default:"Not provided" }}
+Add to calendar: {{ calendar_url }}
+
+Good luck!
+HireSight Team

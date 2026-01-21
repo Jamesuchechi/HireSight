@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+
+{% block title %}Upload Missing Resumes | HireSight{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <div class="bg-gradient-to-r from-primary via-secondary to-purple text-white shadow">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-2">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-display font-bold">Supplement Missing Resumes</h1>
+                    <p class="text-white/80 mt-1">Only upload resumes for candidates who did not attach one.</p>
+                </div>
+                <a href="{% url 'screening:session_detail' session_id=session.pk %}" class="px-4 py-2 bg-white/20 border border-white/30 rounded-xl text-white font-semibold hover:bg-white/30 transition">
+                    Back to session
+                </a>
+            </div>
+            <p class="text-sm text-white/80">
+                {{ missing_count }} applicant{% if missing_count|pluralize %}s{% endif %} still need resumes uploaded.
+            </p>
+        </div>
+    </div>
+
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">Candidates Without Resumes</h2>
+            {% if missing_applications %}
+            <div class="divide-y divide-gray-200 space-y-4">
+                {% for application in missing_applications %}
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between space-y-2 md:space-y-0">
+                    <div>
+                        <p class="font-semibold text-gray-900">
+                            {{ application.applicant.get_full_name|default:application.applicant.email }}
+                        </p>
+                        <p class="text-sm text-gray-500">
+                            {{ application.applicant.email }} · Applied {{ application.applied_at|timesince }} ago
+                        </p>
+                    </div>
+                    <div class="text-sm text-gray-500 flex items-center space-x-2">
+                        <span class="px-3 py-1 bg-yellow-50 rounded-full text-yellow-700 font-medium">Resume missing</span>
+                        <span>Application ID: {{ application.id|slice:":8" }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-gray-500">All applicants already attached resumes.</p>
+            {% endif %}
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 space-y-6">
+            <div>
+                <h3 class="text-lg font-semibold text-gray-900">Upload a Resume</h3>
+                <p class="text-sm text-gray-500">Provide the email used during application along with a PDF/DOC/DOCX file.</p>
+            </div>
+            <form method="post" enctype="multipart/form-data" class="space-y-4">
+                {% csrf_token %}
+                {{ form.non_field_errors }}
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700">Applicant Email</label>
+                    {{ form.email }}
+                    {% if form.email.errors %}
+                    <p class="text-xs text-red-600 mt-1">{{ form.email.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700">Resume File</label>
+                    {{ form.resume }}
+                    {% if form.resume.errors %}
+                    <p class="text-xs text-red-600 mt-1">{{ form.resume.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                <button type="submit" class="w-full px-4 py-3 bg-gradient-to-r from-primary to-secondary text-white font-semibold rounded-xl shadow hover:shadow-lg transition-all">
+                    Submit &amp; Queue for Screening
+                </button>
+            </form>
+            <p class="text-xs text-gray-500">
+                Uploading a resume will immediately queue that application for screening. Use the search above if you would like to filter applicants.
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

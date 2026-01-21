@@ -1,0 +1,317 @@
+{% extends 'base.html' %}
+
+{% block title %}Screen Applicants for {{ job.title }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-6">
+
+        <!-- Header -->
+        <div class="bg-white rounded-3xl shadow-lg border border-gray-100 p-6 space-y-3">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+                <div>
+                    <p class="text-xs uppercase tracking-wider text-gray-500">Screen Applicants</p>
+                    <h1 class="text-3xl font-bold text-gray-900">Screen Applicants for {{ job.title }}</h1>
+                    <p class="text-sm text-gray-600 mt-1">{{ job.company.company_name }} &middot; {{ job.location }}</p>
+                </div>
+                <div class="text-sm">
+                    <a href="{% url 'jobs:detail' job.slug %}" class="text-primary hover:underline">Back to job detail</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                <p class="text-xs uppercase tracking-wider text-gray-500">Total applicants</p>
+                <p class="text-3xl font-bold">{{ summary.total_applicants|default:0 }}</p>
+            </div>
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                <p class="text-xs uppercase tracking-wider text-gray-500">Ready to screen</p>
+                <p class="text-3xl font-bold text-green-600">{{ summary.ready_to_screen|default:0 }}</p>
+            </div>
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                <p class="text-xs uppercase tracking-wider text-gray-500">Missing data</p>
+                <p class="text-3xl font-bold text-amber-500">{{ summary.pending_data|default:0 }}</p>
+            </div>
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                <p class="text-xs uppercase tracking-wider text-gray-500">Already screened</p>
+                <p class="text-3xl font-bold text-blue-600">{{ summary.screened_count|default:0 }}</p>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4">
+            <h2 class="text-lg font-semibold text-gray-900">Filters</h2>
+            <form method="get" class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <label class="text-xs text-gray-500 flex flex-col space-y-1">
+                    <span>Has resume</span>
+                    <select name="has_resume" class="form-select w-full border-gray-300 rounded-md">
+                        <option value="">All</option>
+                        <option value="1" {% if active_filters.has_resume == '1' %}selected{% endif %}>Yes</option>
+                        <option value="0" {% if active_filters.has_resume == '0' %}selected{% endif %}>No</option>
+                    </select>
+                </label>
+                <label class="text-xs text-gray-500 flex flex-col space-y-1">
+                    <span>Screening answers</span>
+                    <select name="screening_answers" class="form-select w-full border-gray-300 rounded-md">
+                        <option value="">All</option>
+                        <option value="complete" {% if active_filters.screening_answers == 'complete' %}selected{% endif %}>Complete</option>
+                        <option value="incomplete" {% if active_filters.screening_answers == 'incomplete' %}selected{% endif %}>Incomplete</option>
+                    </select>
+                </label>
+                <label class="text-xs text-gray-500 flex flex-col space-y-1">
+                    <span>Assessments taken</span>
+                    <select name="assessments" class="form-select w-full border-gray-300 rounded-md">
+                        <option value="">All</option>
+                        <option value="taken" {% if active_filters.assessments == 'taken' %}selected{% endif %}>Yes</option>
+                        <option value="none" {% if active_filters.assessments == 'none' %}selected{% endif %}>No</option>
+                    </select>
+                </label>
+                <label class="text-xs text-gray-500 flex flex-col space-y-1">
+                    <span>Application status</span>
+                    <select name="status" class="form-select w-full border-gray-300 rounded-md">
+                        <option value="">All</option>
+                        {% for value,label in status_choices %}
+                        <option value="{{ value }}" {% if active_filters.status == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <div class="flex items-end md:col-span-4">
+                    <button type="submit" class="w-full px-4 py-2 bg-primary text-white rounded-xl font-semibold hover:bg-primary-dark">Apply Filters</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Screening form -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-6">
+            <h2 class="text-lg font-semibold text-gray-900">Prepare Screening</h2>
+            <form method="post" id="screening-form" class="space-y-6">
+                {% csrf_token %}
+                {% if form.non_field_errors %}
+                <div class="rounded-xl bg-rose-50 border border-rose-200 p-4 text-sm text-rose-700">
+                    {{ form.non_field_errors }}
+                </div>
+                {% endif %}
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <label class="text-xs text-gray-500 flex flex-col space-y-2">
+                        <span class="font-semibold">Session title</span>
+                        {{ form.title }}
+                    </label>
+                    <label class="text-xs text-gray-500 flex flex-col space-y-2">
+                        <span class="font-semibold">Required skills (comma-separated)</span>
+                        {{ form.required_skills }}
+                    </label>
+                    <label class="text-xs text-gray-500 flex flex-col space-y-2">
+                        <span class="font-semibold">Nice-to-have skills</span>
+                        {{ form.nice_to_have_skills }}
+                    </label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <label class="text-xs text-gray-500 flex flex-col space-y-2">
+                            <span class="font-semibold">Min years experience</span>
+                            {{ form.min_experience_years }}
+                        </label>
+                        <label class="text-xs text-gray-500 flex flex-col space-y-2">
+                            <span class="font-semibold">Max years experience</span>
+                            {{ form.max_experience_years }}
+                        </label>
+                    </div>
+                    <label class="text-xs text-gray-500 flex flex-col space-y-2 md:col-span-2">
+                        <span class="font-semibold">Custom keywords</span>
+                        {{ form.custom_keywords }}
+                    </label>
+                    <label class="text-xs text-gray-500 flex flex-col space-y-2 md:col-span-2">
+                        <span class="font-semibold">Screening question configuration (JSON)</span>
+                        {{ form.screening_questions_config }}
+                    </label>
+                </div>
+
+                <div class="overflow-x-auto border border-gray-100 rounded-2xl">
+                    <table class="min-w-full text-sm">
+                        <thead class="bg-gray-50 text-xs uppercase text-gray-500">
+                            <tr>
+                                <th class="px-3 py-2"><span class="sr-only">Select</span></th>
+                                <th class="px-3 py-2 text-left">Name</th>
+                                <th class="px-3 py-2 text-left">Email</th>
+                                <th class="px-3 py-2 text-left">Applied</th>
+                                <th class="px-3 py-2 text-center">Resume</th>
+                                <th class="px-3 py-2 text-center">Answers</th>
+                                <th class="px-3 py-2 text-center">Assessments</th>
+                                <th class="px-3 py-2 text-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            {% for row in applications_data %}
+                            <tr>
+                                <td class="px-3 py-2 text-center">
+                                    <input type="checkbox" name="selected_applications" value="{{ row.application.id }}" class="app-checkbox form-checkbox">
+                                </td>
+                                <td class="px-3 py-2 text-gray-900 font-medium">
+                                    {{ row.application.applicant.personal_profile.full_name|default:row.application.applicant.email }}
+                                </td>
+                                <td class="px-3 py-2 text-gray-600">{{ row.application.applicant.email }}</td>
+                                <td class="px-3 py-2 text-gray-600">{{ row.application.applied_at|date:"M d, Y" }}</td>
+                                <td class="px-3 py-2 text-center">
+                                    {% if row.has_resume %}
+                                    <span class="text-green-600 font-bold">✓</span>
+                                    {% else %}
+                                    <span class="text-red-500 font-bold">✗</span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-3 py-2 text-center">
+                                    {% with answers=row.screening_data.screening_answers %}
+                                        {{ answers|length }} /
+                                        {{ job.screening_questions|length|default:0 }}
+                                    {% endwith %}
+                                </td>
+                                <td class="px-3 py-2 text-center">{{ row.screening_data.assessment_results|length }}</td>
+                                <td class="px-3 py-2 text-center">
+                                    {% if row.application.status == 'pending' %}
+                                    <span class="px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">Pending</span>
+                                    {% elif row.application.status == 'screening' %}
+                                    <span class="px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">Screening</span>
+                                    {% elif row.application.status == 'interview' %}
+                                    <span class="px-3 py-1 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800">Interview</span>
+                                    {% elif row.application.status == 'hired' %}
+                                    <span class="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">Hired</span>
+                                    {% else %}
+                                    <span class="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800">{{ row.application.get_status_display }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="8" class="px-3 py-6 text-center text-gray-500">No applicants match the filters.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="flex items-center justify-between">
+                    <label class="inline-flex items-center text-sm text-gray-500">
+                        <input type="checkbox" id="select-all" class="form-checkbox">
+                        <span class="ml-2">Select All</span>
+                    </label>
+                    <p class="text-sm text-gray-500">{{ applications_data|length }} applicants shown</p>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <label class="text-xs text-gray-500 flex flex-col">
+                            <span class="font-semibold">Skills weight (%)</span>
+                            <input type="range" min="0" max="100" value="30" class="weight-slider" data-target="skills" id="weight-skills">
+                            <span id="label-skills" class="text-sm text-gray-500">30%</span>
+                        </label>
+                        <label class="text-xs text-gray-500 flex flex-col">
+                            <span class="font-semibold">Experience weight (%)</span>
+                            <input type="range" min="0" max="100" value="20" class="weight-slider" data-target="experience" id="weight-experience">
+                            <span id="label-experience" class="text-sm text-gray-500">20%</span>
+                        </label>
+                        <label class="text-xs text-gray-500 flex flex-col">
+                            <span class="font-semibold">Education weight (%)</span>
+                            <input type="range" min="0" max="100" value="20" class="weight-slider" data-target="education" id="weight-education">
+                            <span id="label-education" class="text-sm text-gray-500">20%</span>
+                        </label>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <label class="text-xs text-gray-500 flex flex-col">
+                            <span class="font-semibold">Screening questions weight (%)</span>
+                            <input type="range" min="0" max="100" value="15" class="weight-slider" data-target="screening" id="weight-screening">
+                            <span id="label-screening" class="text-sm text-gray-500">15%</span>
+                        </label>
+                        <label class="text-xs text-gray-500 flex flex-col">
+                            <span class="font-semibold">Assessments weight (%)</span>
+                            <input type="range" min="0" max="100" value="15" class="weight-slider" data-target="assessments" id="weight-assessments">
+                            <span id="label-assessments" class="text-sm text-gray-500">15%</span>
+                        </label>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <p class="text-sm font-semibold text-gray-700">
+                            Total: <span id="weight-total" class="text-lg font-bold">100%</span>
+                        </p>
+                        <p id="weight-warning" class="text-sm text-red-500 hidden">Total must equal 100%</p>
+                    </div>
+                    <div class="grid grid-cols-1 gap-3">
+                        <input type="hidden" name="weight_skills" id="input-weight-skills" value="{{ form.weight_skills.value|default:0.3 }}">
+                        <input type="hidden" name="weight_experience" id="input-weight-experience" value="{{ form.weight_experience.value|default:0.2 }}">
+                        <input type="hidden" name="weight_education" id="input-weight-education" value="{{ form.weight_education.value|default:0.2 }}">
+                        <input type="hidden" name="weight_keywords" id="input-weight-keywords" value="0">
+                        <input type="hidden" name="weight_screening_questions" id="input-weight-screening" value="{{ form.weight_screening_questions.value|default:0.1 }}">
+                        <input type="hidden" name="weight_assessments" id="input-weight-assessments" value="{{ form.weight_assessments.value|default:0.1 }}">
+                    </div>
+                </div>
+
+                <div>
+                    <button type="submit" class="w-full px-5 py-3 bg-primary text-white font-semibold rounded-xl shadow-lg flex items-center justify-center space-x-2">
+                        <span>Start Screening</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const sliders = document.querySelectorAll('.weight-slider');
+        const totalElem = document.getElementById('weight-total');
+        const warning = document.getElementById('weight-warning');
+        const hiddenInputs = {
+            skills: document.getElementById('input-weight-skills'),
+            experience: document.getElementById('input-weight-experience'),
+            education: document.getElementById('input-weight-education'),
+            screening: document.getElementById('input-weight-screening'),
+            assessments: document.getElementById('input-weight-assessments')
+        };
+
+        function updateTotal() {
+            let total = 0;
+            sliders.forEach(slider => total += parseInt(slider.value, 10));
+            totalElem.textContent = total + '%';
+            warning.classList.toggle('hidden', total === 100);
+        }
+
+        function syncSlider(slider) {
+            const value = parseInt(slider.value, 10);
+            const label = document.getElementById('label-' + slider.dataset.target);
+            const hidden = hiddenInputs[slider.dataset.target];
+            if (label) {
+                label.textContent = `${value}%`;
+            }
+            if (hidden) {
+                hidden.value = (value / 100).toFixed(2);
+            }
+        }
+
+        sliders.forEach(slider => {
+            slider.addEventListener('input', function () {
+                syncSlider(this);
+                updateTotal();
+            });
+            syncSlider(slider);
+        });
+
+        const selectAll = document.getElementById('select-all');
+        if (selectAll) {
+            selectAll.addEventListener('change', function () {
+                const checked = this.checked;
+                document.querySelectorAll('.app-checkbox').forEach(box => box.checked = checked);
+            });
+        }
+
+        const form = document.getElementById('screening-form');
+        form.addEventListener('submit', function (event) {
+            const total = Array.from(sliders).reduce((sum, slider) => sum + parseInt(slider.value, 10), 0);
+            if (total !== 100) {
+                event.preventDefault();
+                warning.classList.remove('hidden');
+                warning.textContent = 'Total weight must equal 100%';
+            }
+        });
+    });
+</script>
+{% endblock %}

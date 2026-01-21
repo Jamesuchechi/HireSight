@@ -1,0 +1,12 @@
+Hi {{ candidate.get_full_name|default:candidate.email }},
+
+We’re sorry to let you know that the interview for {{ interview.application.job.title }} has been cancelled.
+
+{% if interview.cancellation_reason %}
+Reason: {{ interview.cancellation_reason }}
+{% endif %}
+
+If you have questions, reply to this message or check your HireSight dashboard.
+
+Thanks,
+HireSight Team

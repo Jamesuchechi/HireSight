@@ -40,7 +40,7 @@
                         Setup Criteria
                     </a>
                     {% elif session.criteria %}
-                    <a href="{% url 'screening:bulk_upload' session.pk %}" class="px-6 py-2 bg-white text-primary rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all hover:scale-105 inline-flex items-center space-x-2">
+                    <a href="{% url 'screening:supplement_resumes' session.pk %}" class="px-6 py-2 bg-white text-primary rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all hover:scale-105 inline-flex items-center space-x-2">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
                         </svg>
@@ -162,7 +162,7 @@
                     </h3>
                     <div class="space-y-3">
                         {% if session.status == 'completed' %}
-                        <a href="{% url 'screening:results' session.pk %}" class="w-full px-4 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-xl font-semibold hover:shadow-lg transition-all inline-flex items-center justify-center space-x-2">
+                        <a href="{% url 'screening:results' session_id=session.pk %}" class="w-full px-4 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-xl font-semibold hover:shadow-lg transition-all inline-flex items-center justify-center space-x-2">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
@@ -183,12 +183,36 @@
                             <span>Setup Criteria</span>
                         </a>
                         {% elif session.criteria %}
-                        <a href="{% url 'screening:bulk_upload' session.pk %}" class="w-full px-4 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-xl font-semibold hover:shadow-lg transition-all inline-flex items-center justify-center space-x-2">
+                        <a href="{% url 'screening:supplement_resumes' session.pk %}" class="w-full px-4 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-xl font-semibold hover:shadow-lg transition-all inline-flex items-center justify-center space-x-2">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
                             </svg>
                             <span>Upload Resumes</span>
                         </a>
+                        {% endif %}
+                        {% if session.criteria and ready_applications_count > 0 and session.status != 'completed' %}
+                        <form method="post" action="{% url 'screening:start_processing' session.pk %}">
+                            {% csrf_token %}
+                            <button type="submit" class="w-full px-4 py-3 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 transition-colors inline-flex items-center justify-center space-x-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6l4 2"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13a8 8 0 10-7 7"></path>
+                                </svg>
+                                <span>Start Screening</span>
+                            </button>
+                        </form>
+                        {% elif session.criteria and session.status == 'completed' %}
+                        <form method="post" action="{% url 'screening:start_processing' session.pk %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="reprocess_all" value="1">
+                            <button type="submit" class="w-full px-4 py-3 bg-gradient-to-r from-secondary to-primary text-white rounded-xl font-semibold hover:shadow-lg transition-all inline-flex items-center justify-center space-x-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12a8 8 0 11-16 0 8 8 0 0116 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12l3 3 5-5"></path>
+                                </svg>
+                                <span>Re-run Screening</span>
+                            </button>
+                        </form>
                         {% endif %}
                         <a href="{% url 'screening:criteria_update' session.pk %}" class="w-full px-4 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors inline-flex items-center justify-center space-x-2">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -274,7 +298,7 @@
                     </svg>
                     Top Matches
                 </h3>
-                <a href="{% url 'screening:results' session.pk %}" class="text-primary hover:text-primary-dark font-semibold inline-flex items-center space-x-1 group">
+                <a href="{% url 'screening:results' session_id=session.pk %}" class="text-primary hover:text-primary-dark font-semibold inline-flex items-center space-x-1 group">
                     <span>View All Results</span>
                     <svg class="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
@@ -331,7 +355,7 @@
                         {% if result.is_shortlisted %}
                         <span class="px-3 py-1.5 bg-blue-100 text-blue-800 text-xs font-semibold rounded-full">Shortlisted</span>
                         {% endif %}
-                        <a href="{% url 'screening:result_detail' result.pk %}" class="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors">
+                        <a href="{% url 'screening:result_detail' result_id=result.pk %}" class="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>

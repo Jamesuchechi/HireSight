@@ -74,6 +74,22 @@ class ScreeningCriteriaForm(forms.ModelForm):
         label='Nice-to-Have Skills',
         help_text='Enter skills separated by commas'
     )
+
+    weight_screening_questions = forms.FloatField(
+        required=False,
+        min_value=0,
+        max_value=100,
+        initial=10,
+        widget=forms.HiddenInput()
+    )
+
+    weight_assessments = forms.FloatField(
+        required=False,
+        min_value=0,
+        max_value=100,
+        initial=10,
+        widget=forms.HiddenInput()
+    )
     
     class Meta:
         model = ScreeningCriteria
@@ -83,7 +99,9 @@ class ScreeningCriteriaForm(forms.ModelForm):
             'weight_skills',
             'weight_experience',
             'weight_education',
-            'weight_keywords'
+            'weight_keywords',
+            'weight_screening_questions',
+            'weight_assessments'
         ]
         widgets = {
             'min_experience_years': forms.NumberInput(attrs={
@@ -138,6 +156,8 @@ class ScreeningCriteriaForm(forms.ModelForm):
             self.fields['weight_experience'].initial = 30
             self.fields['weight_education'].initial = 20
             self.fields['weight_keywords'].initial = 10
+            self.fields['weight_screening_questions'].initial = 10
+            self.fields['weight_assessments'].initial = 10
         else:
             # Convert stored decimal values to percentages for display
             if self.instance.weight_skills:
@@ -148,6 +168,10 @@ class ScreeningCriteriaForm(forms.ModelForm):
                 self.fields['weight_education'].initial = self.instance.weight_education * 100
             if self.instance.weight_keywords:
                 self.fields['weight_keywords'].initial = self.instance.weight_keywords * 100
+            if self.instance.weight_screening_questions:
+                self.fields['weight_screening_questions'].initial = self.instance.weight_screening_questions * 100
+            if self.instance.weight_assessments:
+                self.fields['weight_assessments'].initial = self.instance.weight_assessments * 100
         
         # Pre-fill skills if instance exists
         if self.instance.pk:
@@ -177,10 +201,27 @@ class ScreeningCriteriaForm(forms.ModelForm):
         cleaned_data = super().clean()
         
         # Get weights (they come as percentages from the form, convert to decimals)
-        weight_skills = cleaned_data.get('weight_skills', 0)
-        weight_experience = cleaned_data.get('weight_experience', 0)
-        weight_education = cleaned_data.get('weight_education', 0)
-        weight_keywords = cleaned_data.get('weight_keywords', 0)
+        weight_skills = cleaned_data.get('weight_skills')
+        weight_experience = cleaned_data.get('weight_experience')
+        weight_education = cleaned_data.get('weight_education')
+        weight_keywords = cleaned_data.get('weight_keywords')
+        weight_screening_questions = cleaned_data.get('weight_screening_questions')
+        weight_assessments = cleaned_data.get('weight_assessments')
+
+        # Treat missing weights as zero to avoid None math errors and persist sanitized values.
+        weight_skills = 0 if weight_skills is None else weight_skills
+        weight_experience = 0 if weight_experience is None else weight_experience
+        weight_education = 0 if weight_education is None else weight_education
+        weight_keywords = 0 if weight_keywords is None else weight_keywords
+        weight_screening_questions = 0 if weight_screening_questions is None else weight_screening_questions
+        weight_assessments = 0 if weight_assessments is None else weight_assessments
+
+        cleaned_data['weight_skills'] = weight_skills
+        cleaned_data['weight_experience'] = weight_experience
+        cleaned_data['weight_education'] = weight_education
+        cleaned_data['weight_keywords'] = weight_keywords
+        cleaned_data['weight_screening_questions'] = weight_screening_questions
+        cleaned_data['weight_assessments'] = weight_assessments
         
         # Convert percentages to decimals if they're > 1 (user entered 0-100 range)
         if weight_skills and weight_skills > 1:
@@ -199,8 +240,23 @@ class ScreeningCriteriaForm(forms.ModelForm):
             weight_keywords = weight_keywords / 100
             cleaned_data['weight_keywords'] = weight_keywords
         
+        if weight_screening_questions and weight_screening_questions > 1:
+            weight_screening_questions = weight_screening_questions / 100
+            cleaned_data['weight_screening_questions'] = weight_screening_questions
+        
+        if weight_assessments and weight_assessments > 1:
+            weight_assessments = weight_assessments / 100
+            cleaned_data['weight_assessments'] = weight_assessments
+        
         # Validate weights sum to approximately 1.0
-        total_weight = weight_skills + weight_experience + weight_education + weight_keywords
+        total_weight = (
+            weight_skills +
+            weight_experience +
+            weight_education +
+            weight_keywords +
+            weight_screening_questions +
+            weight_assessments
+        )
         if not (0.99 <= total_weight <= 1.01):
             raise ValidationError(
                 f"Weights must sum to 100%. Current sum: {(total_weight * 100):.1f}%"

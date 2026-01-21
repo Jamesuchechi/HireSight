@@ -28,7 +28,7 @@
                     </div>
                 </div>
                 <div class="flex items-center space-x-3">
-                    <a href="{% url 'screening:results' screening_session.pk %}" class="px-4 py-2 bg-white/15 border border-white/25 rounded-xl text-white font-semibold hover:bg-white/25 transition-all">
+                    <a href="{% url 'screening:results' session_id=screening_session.pk %}" class="px-4 py-2 bg-white/15 border border-white/25 rounded-xl text-white font-semibold hover:bg-white/25 transition-all">
                         View Results
                     </a>
                     <a href="{% url 'screening:export' screening_session.pk %}" class="px-4 py-2 bg-white text-primary rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all hover:scale-105">
@@ -189,15 +189,16 @@
                 <p class="text-sm text-gray-500 mt-4 text-center">Breakdown of candidate experience levels</p>
             </div>
 
-            <!-- Top Skills Chart -->
-            <div class="bg-white rounded-2xl shadow-sm p-6 border border-gray-200">
-                <div class="flex items-center justify-between mb-6">
-                    <h2 class="text-lg font-display font-bold text-gray-900 flex items-center">
-                        <svg class="w-5 h-5 mr-2 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path>
-                        </svg>
-                        Top Matched Skills
-                    </h2>
+        <!-- Top Skills Chart -->
+        <div class="bg-white rounded-2xl shadow-sm p-6 border border-gray-200">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-lg font-display font-bold text-gray-900 flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path>
+                    </svg>
+                    Top Matched Skills
+                </h2>
+
                     <button class="p-2 hover:bg-gray-100 rounded-lg transition-colors" title="More info">
                         <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -245,8 +246,8 @@
                 </div>
             </div>
 
-            <!-- Processing Metrics -->
-            <div class="bg-white rounded-2xl shadow-sm p-6 border border-gray-200">
+        <!-- Processing Metrics -->
+        <div class="bg-white rounded-2xl shadow-sm p-6 border border-gray-200">
                 <h2 class="text-lg font-display font-bold text-gray-900 mb-6 flex items-center">
                     <svg class="w-5 h-5 mr-2 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
@@ -296,6 +297,170 @@
                             {% endif %}
                         </div>
                     </div>
+            </div>
+        </div>
+        </div>
+
+        <!-- Advanced Screening Insights -->
+        <div class="space-y-8">
+            <!-- Screening Questions Performance -->
+            <div class="bg-white rounded-2xl shadow-sm p-6 border border-gray-200 space-y-4">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-lg font-display font-bold text-gray-900">Screening Questions Performance</h2>
+                    <button class="text-sm text-primary hover:underline">Export data</button>
+                </div>
+                <div class="grid gap-4 lg:grid-cols-3">
+                    {% for question in screening_questions %}
+                    <div class="bg-gray-50 rounded-2xl border border-gray-100 p-4">
+                        <p class="text-sm font-semibold text-gray-700 mb-1 truncate">{{ question.question_text }}</p>
+                        <p class="text-2xl font-bold text-gray-900">{{ question.avg_score|default:0|floatformat:1 }}%</p>
+                        <p class="text-xs text-gray-500">Avg answer score</p>
+                        <p class="text-xs text-gray-500 mt-2">{{ question.correct_pct|default:0|floatformat:1 }}% answered correctly</p>
+                        {% if question.distribution %}
+                        <div class="mt-3 space-y-2 text-xs">
+                            {% for option in question.distribution %}
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">{{ option.label }}</span>
+                                <span class="font-semibold text-gray-800">{{ option.pct }}%</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% empty %}
+                    <p class="text-sm text-gray-500">No screening question data yet.</p>
+                    {% endfor %}
+                </div>
+                <div class="relative h-80">
+                    <canvas id="screeningQuestionChart"></canvas>
+                </div>
+                <p class="text-xs text-gray-500 italic">Higher bars indicate questions that best differentiate strong matches.</p>
+            </div>
+
+            <!-- Assessment Correlation Analysis -->
+            <div class="bg-white rounded-2xl shadow-sm p-6 border border-gray-200 space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-lg font-display font-bold text-gray-900">Assessment vs Match Score</h2>
+                        <p class="text-sm text-gray-500">Pearson r = {{ assessment_correlation.coefficient|default:"N/A" }}</p>
+                    </div>
+                    <div class="text-right text-xs text-gray-500">
+                        {{ assessment_correlation.insight|default:"More data will make this more precise." }}
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    <div class="bg-emerald-50 rounded-2xl p-4 border border-emerald-100">
+                        <p class="text-xs uppercase tracking-wider text-emerald-600">High scoring candidates</p>
+                        <p class="text-2xl font-bold text-emerald-800">{{ assessment_correlation.high_pct|default:0 }}%</p>
+                        <p class="text-xs text-emerald-600 mt-1">Have strong match scores</p>
+                    </div>
+                    <div class="bg-amber-50 rounded-2xl p-4 border border-amber-100">
+                        <p class="text-xs uppercase tracking-wider text-amber-600">Low scoring candidates</p>
+                        <p class="text-2xl font-bold text-amber-800">{{ assessment_correlation.low_pct|default:0 }}%</p>
+                        <p class="text-xs text-amber-600 mt-1">Need coaching</p>
+                    </div>
+                    <div class="bg-purple-50 rounded-2xl p-4 border border-purple-100">
+                        <p class="text-xs uppercase tracking-wider text-purple-600">Insight</p>
+                        <p class="text-sm text-gray-700">{{ assessment_correlation.insight_line|default:"Link high assessment scores to strong matches." }}</p>
+                    </div>
+                </div>
+                <div class="relative h-80">
+                    <canvas id="assessmentCorrelationChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Application Source Analysis -->
+            <div class="grid lg:grid-cols-2 gap-6">
+                <div class="bg-white rounded-2xl shadow-sm p-6 border border-gray-200 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-lg font-display font-bold text-gray-900">Application Source Analysis</h2>
+                        <span class="text-xs text-gray-500">Recommendation: Focus on {{ best_source }}</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full text-sm text-left">
+                            <thead class="text-xs text-gray-500 uppercase bg-gray-100">
+                                <tr>
+                                    <th class="px-3 py-2">Source</th>
+                                    <th class="px-3 py-2">Total Apps</th>
+                                    <th class="px-3 py-2">Avg Match</th>
+                                    <th class="px-3 py-2">Top 10% Rate</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                {% for source in source_analysis %}
+                                <tr>
+                                    <td class="px-3 py-2 font-medium text-gray-900">{{ source.name }}</td>
+                                    <td class="px-3 py-2">{{ source.total }}</td>
+                                    <td class="px-3 py-2">{{ source.avg_score|floatformat:1 }}%</td>
+                                    <td class="px-3 py-2">{{ source.top_rate|floatformat:1 }}%</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="px-3 py-4 text-center text-gray-500">No source data</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="bg-white rounded-2xl shadow-sm p-6 border border-gray-200">
+                    <h2 class="text-lg font-display font-bold text-gray-900 mb-4">Avg Score by Source</h2>
+                    <div class="relative h-80">
+                        <canvas id="sourceBarChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Completeness Metrics -->
+            <div class="bg-white rounded-2xl shadow-sm p-6 border border-gray-200 space-y-4">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-lg font-display font-bold text-gray-900">Data Completeness Metrics</h2>
+                    <span class="text-xs text-gray-500">Correlation: {{ completeness.match_correlation|default:"N/A" }}</span>
+                </div>
+                <div class="space-y-3 text-sm">
+                    <div>
+                        <p class="text-xs text-gray-500 mb-1">Resumes uploaded</p>
+                        <div class="w-full bg-gray-100 rounded-full h-2.5">
+                            <div class="bg-gradient-to-r from-blue-500 to-blue-300 h-2.5 rounded-full" style="width: {{ completeness.resumes_pct|default:0 }}%"></div>
+                        </div>
+                        <p class="text-xs text-gray-600 mt-1">{{ completeness.resumes_pct|default:0 }}% of applicants</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500 mb-1">Screening questions completed</p>
+                        <div class="w-full bg-gray-100 rounded-full h-2.5">
+                            <div class="bg-gradient-to-r from-emerald-500 to-emerald-300 h-2.5 rounded-full" style="width: {{ completeness.screening_pct|default:0 }}%"></div>
+                        </div>
+                        <p class="text-xs text-gray-600 mt-1">{{ completeness.screening_pct|default:0 }}% of applicants</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500 mb-1">Assessments taken</p>
+                        <div class="w-full bg-gray-100 rounded-full h-2.5">
+                            <div class="bg-gradient-to-r from-purple-500 to-purple-300 h-2.5 rounded-full" style="width: {{ completeness.assessment_pct|default:0 }}%"></div>
+                        </div>
+                        <p class="text-xs text-gray-600 mt-1">{{ completeness.assessment_pct|default:0 }}% of applicants</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Time-to-Screen Analytics -->
+            <div class="grid lg:grid-cols-2 gap-6">
+                <div class="bg-white rounded-2xl shadow-sm p-6 border border-gray-200 space-y-4">
+                    <h2 class="text-lg font-display font-bold text-gray-900">Time-to-Screen</h2>
+                    <div class="text-sm text-gray-600">
+                        <p>Average time: <span class="font-semibold text-gray-900">{{ time_to_screen.average|default:"N/A" }}</span></p>
+                        <p>Median: <span class="font-semibold text-gray-900">{{ time_to_screen.median|default:"N/A" }}</span></p>
+                        <p class="text-xs text-gray-500 mt-2">{{ time_to_screen.bottleneck|default:"No bottlenecks detected yet." }}</p>
+                    </div>
+                    <div class="text-sm text-gray-500">
+                        <span class="font-semibold text-gray-900">Histogram:</span>
+                        <span>{{ time_to_screen.histogram_summary|default:"Gathering data" }}</span>
+                    </div>
+                </div>
+                <div class="bg-white rounded-2xl shadow-sm p-6 border border-gray-200">
+                    <h2 class="text-lg font-display font-bold text-gray-900 mb-4">Screening Time Distribution</h2>
+                    <div class="relative h-80">
+                        <canvas id="timeToScreenHistogram"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
@@ -303,7 +468,7 @@
         <!-- Action Buttons -->
         <div class="bg-white rounded-2xl shadow-sm p-6 border border-gray-200">
             <div class="flex flex-wrap gap-4">
-                <a href="{% url 'screening:results' screening_session.pk %}" class="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-xl hover:shadow-lg transition-all font-semibold inline-flex items-center space-x-2">
+                <a href="{% url 'screening:results' session_id=screening_session.pk %}" class="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-xl hover:shadow-lg transition-all font-semibold inline-flex items-center space-x-2">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
@@ -338,6 +503,10 @@
         statusPie: {{ pie_data|safe }},
         experienceDistribution: {{ experience_distribution|safe }},
         topSkills: {{ top_matched_skills|safe }},
+        screeningQuestions: {{ screening_question_chart|safe }},
+        assessmentCorrelation: {{ assessment_correlation.chart_data|safe }},
+        sourceBar: {{ source_chart|safe }},
+        timeToScreen: {{ time_to_screen.histogram|safe }},
     };
     
     // Initialize charts with improved styling
@@ -412,6 +581,102 @@
                         x: {
                             grid: {
                                 display: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Screening Question Chart
+        if (analyticsData.screeningQuestions) {
+            const ctxSQ = document.getElementById('screeningQuestionChart');
+            new Chart(ctxSQ, {
+                type: 'bar',
+                data: analyticsData.screeningQuestions,
+                options: {
+                    ...commonOptions,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Assessment Correlation Scatter
+        if (analyticsData.assessmentCorrelation) {
+            const ctxAC = document.getElementById('assessmentCorrelationChart');
+            new Chart(ctxAC, {
+                type: 'scatter',
+                data: analyticsData.assessmentCorrelation,
+                options: {
+                    ...commonOptions,
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Assessment Score'
+                            },
+                            min: 0,
+                            max: 100
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Match Score'
+                            },
+                            min: 0,
+                            max: 100
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: context => `Match ${context.parsed.y}%`
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Source bar chart
+        if (analyticsData.sourceBar) {
+            const ctxSource = document.getElementById('sourceBarChart');
+            new Chart(ctxSource, {
+                type: 'bar',
+                data: analyticsData.sourceBar,
+                options: {
+                    ...commonOptions,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Avg Match Score (%)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Time-to-screen histogram
+        if (analyticsData.timeToScreen) {
+            const ctxTime = document.getElementById('timeToScreenHistogram');
+            new Chart(ctxTime, {
+                type: 'bar',
+                data: analyticsData.timeToScreen,
+                options: {
+                    ...commonOptions,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Candidates'
                             }
                         }
                     }

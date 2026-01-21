@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Screen {{ application.applicant.get_full_name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-10 space-y-6">
+    <div class="bg-white p-6 rounded-xl shadow-sm">
+        <h1 class="text-2xl font-semibold">{{ application.applicant.get_full_name }}</h1>
+        <p class="text-sm text-gray-500">{{ application.applicant.email }}</p>
+        <p class="text-sm">Applied on {{ application.applied_at|date:"M d, Y" }} &middot; {{ application.get_status_display }}</p>
+    </div>
+    <div class="grid gap-6 lg:grid-cols-2">
+        <div class="bg-white p-6 rounded-xl shadow-sm space-y-3">
+            <h2 class="text-lg font-semibold">Resume Snapshot</h2>
+            <p class="text-sm text-gray-500">Primary resume: {{ application.resume.title if application.resume else "None" }}</p>
+            <p class="text-xs text-gray-700">{{ screening_data.resume_text|truncatewords:120 }}</p>
+        </div>
+        <div class="bg-white p-6 rounded-xl shadow-sm space-y-3">
+            <h2 class="text-lg font-semibold">Screening Answers</h2>
+            <ul class="text-sm space-y-2">
+                {% for answer in screening_data.screening_answers %}
+                <li>
+                    <p class="font-semibold">{{ answer.question }}</p>
+                    <p class="text-gray-700">{{ answer.answer }}</p>
+                </li>
+                {% empty %}
+                <p class="text-gray-500">No answers submitted yet.</p>
+                {% endfor %}
+            </ul>
+            <a href="{% url 'screening:screen_job_applicants' job.id %}" class="text-primary underline text-sm">Back to applicant list</a>
+        </div>
+    </div>
+    <div class="bg-white p-6 rounded-xl shadow-sm">
+        <h2 class="text-lg font-semibold">Assessment Results</h2>
+        <ul class="text-sm space-y-2">
+            {% for assessment in screening_data.assessment_results %}
+            <li class="border-b border-gray-100 pb-2">
+                <p class="font-semibold">{{ assessment.test_name }}</p>
+                <p class="text-gray-600">Score: {{ assessment.score }}% &middot; Skills: {{ assessment.skills_validated|join:", " }}</p>
+            </li>
+            {% empty %}
+            <p class="text-gray-500">No assessments completed.</p>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endblock %}

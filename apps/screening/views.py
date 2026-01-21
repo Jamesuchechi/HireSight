@@ -5,7 +5,7 @@ import logging
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views import View
 from django.views.generic import (
-    CreateView, ListView, DetailView, UpdateView, FormView
+    CreateView, ListView, DetailView, UpdateView, FormView, TemplateView
 )
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
@@ -16,6 +16,8 @@ from django.db import transaction
 from django.utils import timezone
 from django.core.exceptions import PermissionDenied
 from django.core.files.storage import default_storage
+from django import forms
+from django.core.validators import FileExtensionValidator
 
 from .models import (
     ScreeningSession, ScreeningResult, ScreeningCriteria,
@@ -31,8 +33,194 @@ from .forms import (
 from apps.resumes.models import Resume
 from apps.jobs.models import Job
 from apps.accounts.models import CompanyProfile
+from apps.applications.models import Application, ApplicationStatus
+from .services import ApplicationDataService
+from apps.screening.tasks import process_resume_screening
+
+
+class JobApplicationScreeningForm(forms.Form):
+    """Form backing the job application screening UI."""
+
+    title = forms.CharField(
+        max_length=255,
+        label="Screening Session Title",
+        widget=forms.TextInput(attrs={'class': 'form-input w-full'})
+    )
+    required_skills = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-input w-full'}),
+        help_text="Comma-separated required skills"
+    )
+    nice_to_have_skills = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-input w-full'}),
+        help_text="Comma-separated nice-to-have skills"
+    )
+    min_experience_years = forms.FloatField(
+        required=False,
+        min_value=0,
+        widget=forms.NumberInput(attrs={'class': 'form-input w-full', 'step': 0.5})
+    )
+    max_experience_years = forms.FloatField(
+        required=False,
+        min_value=0,
+        widget=forms.NumberInput(attrs={'class': 'form-input w-full', 'step': 0.5})
+    )
+    weight_skills = forms.FloatField(
+        min_value=0,
+        max_value=1,
+        initial=0.3,
+        required=False,
+        widget=forms.NumberInput(attrs={'class': 'form-input w-full', 'step': 0.05})
+    )
+    weight_experience = forms.FloatField(
+        min_value=0,
+        max_value=1,
+        initial=0.2,
+        required=False,
+        widget=forms.NumberInput(attrs={'class': 'form-input w-full', 'step': 0.05})
+    )
+    weight_education = forms.FloatField(
+        min_value=0,
+        max_value=1,
+        initial=0.2,
+        required=False,
+        widget=forms.NumberInput(attrs={'class': 'form-input w-full', 'step': 0.05})
+    )
+    weight_keywords = forms.FloatField(
+        min_value=0,
+        max_value=1,
+        initial=0.1,
+        required=False,
+        widget=forms.NumberInput(attrs={'class': 'form-input w-full', 'step': 0.05})
+    )
+    weight_screening_questions = forms.FloatField(
+        min_value=0,
+        max_value=1,
+        initial=0.1,
+        required=False,
+        widget=forms.NumberInput(attrs={'class': 'form-input w-full', 'step': 0.05})
+    )
+    weight_assessments = forms.FloatField(
+        min_value=0,
+        max_value=1,
+        initial=0.1,
+        required=False,
+        widget=forms.NumberInput(attrs={'class': 'form-input w-full', 'step': 0.05})
+    )
+    custom_keywords = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-input w-full'}),
+        help_text="Comma-separated keywords to boost"
+    )
+    screening_questions_config = forms.JSONField(
+        required=False,
+        widget=forms.Textarea(attrs={'class': 'form-textarea w-full', 'rows': 3}),
+        help_text="Optional screening question configuration (JSON)"
+    )
+
+    def clean_required_skills(self):
+        return [skill.strip() for skill in (self.cleaned_data.get('required_skills') or "").split(',') if skill.strip()]
+
+    def clean_nice_to_have_skills(self):
+        return [skill.strip() for skill in (self.cleaned_data.get('nice_to_have_skills') or "").split(',') if skill.strip()]
+
+    def clean_custom_keywords(self):
+        return [keyword.strip() for keyword in (self.cleaned_data.get('custom_keywords') or "").split(',') if keyword.strip()]
+
 
 logger = logging.getLogger(__name__)
+
+
+def _resolve_nested_value(source, path, default=0):
+    """Safely resolve nested dict/object attributes for match details."""
+    current = source
+    for key in path.split('.'):
+        if isinstance(current, dict):
+            current = current.get(key)
+        else:
+            current = getattr(current, key, None)
+        if current is None:
+            return default
+    return current if current is not None else default
+
+
+def queue_screening_for_session(session, requeue_pending=False, applications=None):
+    """Create screening results for job applications and queue processing tasks."""
+    response = {
+        'created': 0,
+        'queued_new': 0,
+        'requeued': 0,
+        'info': None,
+        'error': None
+    }
+
+    if session.job is None:
+        response['error'] = "Session must be tied to a job before screening candidates."
+        return response
+
+    if applications is None:
+        applications = Application.objects.filter(job=session.job).select_related('resume').order_by('-applied_at')
+
+    if not applications.exists():
+        response['info'] = "No applications exist for this job yet."
+        return response
+
+    existing_application_ids = set(session.results.values_list('application_id', flat=True))
+    new_result_ids = []
+    for application in applications:
+        if application.id in existing_application_ids:
+            continue
+
+        file_path = ''
+        if application.resume and getattr(application.resume, 'file', None):
+            file_path = application.resume.file.name
+
+        result = ScreeningResult.objects.create(
+            session=session,
+            application=application,
+            resume=application.resume,
+            job=session.job,
+            file_path=file_path,
+            status=ScreeningResultStatus.PENDING
+        )
+        response['created'] += 1
+        new_result_ids.append(result.id)
+
+        if file_path:
+            process_resume_screening.delay(result.id)
+            response['queued_new'] += 1
+        else:
+            logger.warning("Application %s has no resume file; screening task skipped", application.id)
+
+    statuses_to_requeue = [ScreeningResultStatus.FAILED]
+    if requeue_pending:
+        statuses_to_requeue.append(ScreeningResultStatus.PENDING)
+
+    pending_results = session.results.filter(status__in=statuses_to_requeue)
+    if new_result_ids:
+        pending_results = pending_results.exclude(id__in=new_result_ids)
+
+    for pending in pending_results:
+        if not pending.resume and not pending.file_path:
+            continue
+
+        process_resume_screening.delay(pending.id)
+        response['requeued'] += 1
+
+    total_results = session.results.count()
+    session.total_resumes = total_results
+    session.save(update_fields=['total_resumes'])
+
+    if response['queued_new'] or response['requeued']:
+        session.start_processing()
+        response['info'] = None
+    elif response['created'] and not response['queued_new']:
+        response['info'] = "Results created but no resume files were available to process yet."
+    elif not response['created']:
+        response['info'] = "All applicants have already been queued for screening."
+
+    return response
 
 
 class CompanyOnlyMixin:
@@ -101,6 +289,7 @@ class ScreeningSessionListView(LoginRequiredMixin, CompanyOnlyMixin, ScreeningOw
         return queryset.order_by('-created_at')
 
     def get_context_data(self, **kwargs):
+        """Provide job-specific applications, summary stats, and current filter state."""
         context = super().get_context_data(**kwargs)
         
         # Add statistics
@@ -172,10 +361,12 @@ class ScreeningSessionCreateView(LoginRequiredMixin, CompanyOnlyMixin, CreateVie
                 min_experience_years=0,
                 required_education=[],
                 custom_keywords=[],
-                weight_skills=0.4,
-                weight_experience=0.3,
+                weight_skills=0.3,
+                weight_experience=0.2,
                 weight_education=0.2,
-                weight_keywords=0.1
+                weight_keywords=0.1,
+                weight_screening_questions=0.1,
+                weight_assessments=0.1
             )
             
             logger.info(f"Screening session created: {session.id} by user {self.request.user.id}")
@@ -185,7 +376,7 @@ class ScreeningSessionCreateView(LoginRequiredMixin, CompanyOnlyMixin, CreateVie
             self.request.session['current_screening_session'] = str(session.id)
             
             # Redirect to criteria setup
-            return redirect('screening:criteria_setup', pk=session.pk)
+            return redirect('screening:criteria_setup', session_id=session.pk)
             
         except Exception as e:
             logger.error(f"Error creating screening session: {str(e)}", exc_info=True)
@@ -200,6 +391,177 @@ class ScreeningSessionCreateView(LoginRequiredMixin, CompanyOnlyMixin, CreateVie
         return super().form_invalid(form)
 
 
+class JobApplicationScreeningView(LoginRequiredMixin, CompanyOnlyMixin, FormView):
+    """View that lets a recruiter select a job's applications and trigger screening."""
+
+    template_name = 'screening/job_application_screening.html'
+    form_class = JobApplicationScreeningForm
+
+    def dispatch(self, request, *args, **kwargs):
+        self.job = get_object_or_404(
+            Job,
+            pk=self.kwargs.get('job_id'),
+            company__user=request.user
+        )
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        applications_data = self._assemble_applications()
+        filtered = self._apply_filters(applications_data)
+
+        context.update({
+            'job': self.job,
+            'applications_data': filtered,
+            'summary': self._build_summary(applications_data),
+            'active_filters': self._get_filter_params(),
+            'status_choices': ApplicationStatus.choices
+        })
+        return context
+
+    def _assemble_applications(self):
+        """Build the context rows by enriching each application."""
+        rows = []
+        queryset = ApplicationDataService.get_job_applications(self.job.id)
+        for application in queryset:
+            screening_data = ApplicationDataService.get_application_screening_data(application)
+            rows.append({
+                'application': application,
+                'screening_data': screening_data,
+                'has_resume': bool(application.resume),
+                'answers_completed': bool(screening_data.get('screening_answers')),
+                'assessments_count': len(screening_data.get('assessment_results', [])),
+            })
+        return rows
+
+    def _get_filter_params(self):
+        return {
+            'has_resume': self.request.GET.get('has_resume'),
+            'screening_answers': self.request.GET.get('screening_answers'),
+            'assessments': self.request.GET.get('assessments'),
+            'status': self.request.GET.get('status')
+        }
+
+    def _apply_filters(self, rows):
+        """Filter the assembled applications based on the active query parameters."""
+        params = self._get_filter_params()
+        filtered = rows
+
+        if params['has_resume'] == '1':
+            filtered = [row for row in filtered if row['has_resume']]
+        if params['screening_answers'] == 'complete':
+            filtered = [row for row in filtered if row['answers_completed']]
+        elif params['screening_answers'] == 'incomplete':
+            filtered = [row for row in filtered if not row['answers_completed']]
+        if params['assessments'] == 'taken':
+            filtered = [row for row in filtered if row['assessments_count'] > 0]
+        elif params['assessments'] == 'none':
+            filtered = [row for row in filtered if row['assessments_count'] == 0]
+        if params['status']:
+            filtered = [row for row in filtered if row['application'].status == params['status']]
+
+        return filtered
+
+    def _build_summary(self, rows):
+        total = len(rows)
+        ready = sum(1 for row in rows if row['has_resume'] and row['answers_completed'])
+        pending = total - ready
+        return {
+            'total_applicants': total,
+            'ready_to_screen': ready,
+            'pending_data': pending,
+            'screened_count': total - pending
+        }
+
+    def form_valid(self, form):
+        selected_ids = self.request.POST.getlist('selected_applications')
+        if not selected_ids:
+            form.add_error(None, "Select at least one application to screen.")
+            return self.form_invalid(form)
+
+        applications = list(Application.objects.filter(
+            id__in=selected_ids,
+            job=self.job
+        ).select_related('resume'))
+
+        if not applications:
+            form.add_error(None, "No valid applications selected.")
+            return self.form_invalid(form)
+
+        session = ScreeningSession.objects.create(
+            title=form.cleaned_data['title'],
+            company=self.job.company,
+            job=self.job,
+            created_by=self.request.user,
+            status=ScreeningStatus.PENDING
+        )
+
+        criteria = ScreeningCriteria.objects.create(
+            session=session,
+            required_skills=form.cleaned_data['required_skills'],
+            nice_to_have_skills=form.cleaned_data['nice_to_have_skills'],
+            min_experience_years=form.cleaned_data.get('min_experience_years') or 0,
+            max_experience_years=form.cleaned_data.get('max_experience_years'),
+            custom_keywords=form.cleaned_data.get('custom_keywords') or [],
+            weight_skills=form.cleaned_data.get('weight_skills') or 0.3,
+            weight_experience=form.cleaned_data.get('weight_experience') or 0.2,
+            weight_education=form.cleaned_data.get('weight_education') or 0.2,
+            weight_keywords=form.cleaned_data.get('weight_keywords') or 0.1,
+            weight_screening_questions=form.cleaned_data.get('weight_screening_questions') or 0.1,
+            weight_assessments=form.cleaned_data.get('weight_assessments') or 0.1,
+            screening_questions_config=form.cleaned_data.get('screening_questions_config') or {}
+        )
+
+        results_created = 0
+        for application in applications:
+            file_path = ''
+            if application.resume and application.resume.file:
+                file_path = application.resume.file.name
+
+            result = ScreeningResult.objects.create(
+                session=session,
+                application=application,
+                resume=application.resume,
+                job=self.job,
+                file_path=file_path,
+                status=ScreeningResultStatus.PENDING
+            )
+            results_created += 1
+
+            if file_path:
+                process_resume_screening.delay(result.id)
+            else:
+                logger.warning("No resume file for application %s; skipping background task", application.id)
+
+        session.total_resumes = results_created
+        session.status = ScreeningStatus.PROCESSING if results_created else ScreeningStatus.PENDING
+        session.save(update_fields=['total_resumes', 'status'])
+
+        messages.success(self.request, f"{results_created} candidate(s) queued for screening.")
+        return redirect('screening:session_detail', session_id=session.pk)
+
+
+class ScreenSingleApplicationView(LoginRequiredMixin, CompanyOnlyMixin, TemplateView):
+    """Render screening details for a single application and allow manual review."""
+
+    template_name = 'screening/screen_single_application.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        self.application = get_object_or_404(
+            Application.objects.select_related('job__company', 'applicant__personal_profile'),
+            id=self.kwargs.get('application_id')
+        )
+        if self.application.job.company.user_id != request.user.id:
+            raise PermissionDenied("You do not own the job tied to this application.")
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['application'] = self.application
+        context['screening_data'] = ApplicationDataService.get_application_screening_data(self.application)
+        return context
+
+
 class ScreeningCriteriaSetupView(LoginRequiredMixin, CompanyOnlyMixin, FormView):
     """Set up screening criteria for a session."""
     
@@ -208,15 +570,15 @@ class ScreeningCriteriaSetupView(LoginRequiredMixin, CompanyOnlyMixin, FormView)
 
     def get_session(self):
         """Get the screening session."""
-        pk = self.kwargs.get('pk')
+        session_id = self.kwargs.get('session_id')
         try:
             session = ScreeningSession.objects.select_related('company').get(
-                pk=pk,
+                pk=session_id,
                 company__user=self.request.user
             )
             return session
         except ScreeningSession.DoesNotExist:
-            logger.error(f"Session {pk} not found for user {self.request.user.id}")
+            logger.error(f"Session {session_id} not found for user {self.request.user.id}")
             messages.error(self.request, "Screening session not found.")
             return None
 
@@ -281,7 +643,7 @@ class ScreeningCriteriaSetupView(LoginRequiredMixin, CompanyOnlyMixin, FormView)
             if 'current_screening_session' in self.request.session:
                 del self.request.session['current_screening_session']
             
-            return redirect('screening:bulk_upload', pk=session.pk)
+            return redirect('screening:supplement_resumes', session_id=session.pk)
             
         except Exception as e:
             logger.error(f"Error saving criteria: {str(e)}", exc_info=True)
@@ -295,221 +657,169 @@ class ScreeningCriteriaSetupView(LoginRequiredMixin, CompanyOnlyMixin, FormView)
         return super().form_invalid(form)
 
 
-class BulkResumeUploadView(LoginRequiredMixin, CompanyOnlyMixin, FormView):
-    """Upload multiple resumes for screening."""
+class SupplementResumeForm(forms.Form):
+    email = forms.EmailField(
+        label="Applicant email",
+        widget=forms.EmailInput(attrs={'class': 'form-input w-full'}),
+        help_text="Email used during application"
+    )
+    resume = forms.FileField(
+        label="Resume file",
+        widget=forms.FileInput(attrs={'class': 'form-input w-full'}),
+        help_text="Upload resumes only for applicants who applied without one",
+        validators=[FileExtensionValidator(allowed_extensions=['pdf', 'doc', 'docx'])]
+    )
+
+
+class SupplementMissingResumesView(LoginRequiredMixin, CompanyOnlyMixin, FormView):
+    """Supplement missing resumes for a screening session."""
     
-    form_class = BulkResumeUploadForm
-    template_name = 'screening/bulk_upload.html'
+    form_class = SupplementResumeForm
+    template_name = 'screening/supplement_missing_resumes.html'
 
     def get_session(self):
-        """Get the screening session."""
-        pk = self.kwargs.get('pk')
+        session_id = self.kwargs.get('session_id')
         return get_object_or_404(
             ScreeningSession,
-            pk=pk,
+            pk=session_id,
             company__user=self.request.user
         )
 
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs['session'] = self.get_session()
-        return kwargs
+    def dispatch(self, request, *args, **kwargs):
+        """Only show the supplement page when missing resumes exist."""
+        session = self.get_session()
+        self.missing_applications = Application.objects.filter(
+            job=session.job,
+            resume__isnull=True
+        ).select_related('applicant__personal_profile').order_by('-applied_at')
+
+        if self.missing_applications.count() == 0:
+            queue_result = queue_screening_for_session(session)
+            if queue_result['error']:
+                messages.error(request, queue_result['error'])
+            elif queue_result['queued_new'] or queue_result['requeued']:
+                message_parts = []
+                if queue_result['queued_new']:
+                    message_parts.append(f"{queue_result['queued_new']} resume(s) queued for screening.")
+                if queue_result['requeued']:
+                    message_parts.append(f"{queue_result['requeued']} previous result(s) requeued.")
+                messages.success(request, " ".join(message_parts))
+            else:
+                messages.info(request, queue_result.get('info') or "No resumes were queued for screening.")
+            return redirect('screening:session_detail', session_id=session.pk)
+
+        return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         session = self.get_session()
-        context['session'] = session
-        
-        # Get active jobs for job selection
-        from apps.jobs.models import Job
-        context['active_jobs'] = Job.objects.filter(
-            company=session.company,
-            status='open'
-        ).order_by('-created_at')
-        
-        # Check if criteria exists
-        try:
-            context['criteria'] = session.criteria
-        except ScreeningCriteria.DoesNotExist:
-            context['criteria'] = None
-        
+        missing_apps = getattr(self, 'missing_applications', None)
+        if missing_apps is None:
+            missing_apps = Application.objects.filter(
+                job=session.job,
+                resume__isnull=True
+            ).select_related('applicant__personal_profile').order_by('-applied_at')
+
+        context.update({
+            'session': session,
+            'missing_applications': missing_apps,
+            'missing_count': missing_apps.count()
+        })
         return context
 
     def post(self, request, *args, **kwargs):
-        """Handle both form and AJAX file uploads."""
-        # Check if this is an AJAX Dropzone request
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return self.handle_ajax_upload()
-        
-        # Regular form submission
         return super().post(request, *args, **kwargs)
 
     @transaction.atomic
     def handle_ajax_upload(self):
-        """Handle AJAX file uploads from Dropzone."""
         session = self.get_session()
-        files = self.request.FILES.getlist('file')  # Dropzone sends file as 'file'
-        
-        successful_uploads = []
-        failed_uploads = []
-        
-        try:
-            job_id = self.request.POST.get('job_id', session.job.id if session.job else None)
-            priority = self.request.POST.get('priority', 'skills')
-            min_score = self.request.POST.get('min_score', '60')
-            
-            # Get the job
-            from apps.jobs.models import Job
-            try:
-                job = Job.objects.get(
-                    id=job_id,
-                    company=session.company
-                )
-            except Job.DoesNotExist:
-                job = session.job
-            
-            for uploaded_file in files:
-                try:
-                    # Validate file
-                    if not self.validate_file(uploaded_file):
-                        failed_uploads.append({
-                            'filename': uploaded_file.name,
-                            'error': 'Invalid file type or size'
-                        })
-                        continue
-                    
-                    # Save file
-                    file_path = default_storage.save(
-                        f'screening_resumes/{session.id}/{uploaded_file.name}',
-                        uploaded_file
-                    )
-                    
-                    # Create screening result
-                    result = ScreeningResult.objects.create(
-                        session=session,
-                        job=job,
-                        file_path=file_path,
-                        status=ScreeningResultStatus.PENDING,
-                    )
-                    
-                    # Queue for processing
-                    from .tasks import process_resume_screening
-                    process_resume_screening.delay(result.id, file_path)
-                    
-                    successful_uploads.append({
-                        'filename': uploaded_file.name,
-                        'result_id': str(result.id)
-                    })
-                    
-                    logger.info(f"File {uploaded_file.name} queued for processing: {result.id}")
-                    
-                except Exception as e:
-                    logger.error(f"Error processing file {uploaded_file.name}: {str(e)}")
-                    failed_uploads.append({
-                        'filename': uploaded_file.name,
-                        'error': str(e)[:100]  # Truncate error message
-                    })
-            
-            # Update session statistics
-            session.total_resumes += len(successful_uploads)
-            # Mark as processing if this is the first upload
-            if len(successful_uploads) > 0 and session.status == ScreeningStatus.PENDING:
-                session.status = ScreeningStatus.PROCESSING
-            session.save()
-            
-            return JsonResponse({
-                'success': len(failed_uploads) == 0,
-                'successful': len(successful_uploads),
-                'failed': len(failed_uploads),
-                'files': successful_uploads,
-                'errors': failed_uploads,
-                'message': f'{len(successful_uploads)} file(s) uploaded successfully!' if successful_uploads else 'No files uploaded.'
-            })
-            
-        except Exception as e:
-            logger.error(f"Error in AJAX upload: {str(e)}", exc_info=True)
+        email = self.request.POST.get('email', '').strip()
+        uploaded_file = self.request.FILES.get('resume')
+
+        if not uploaded_file or not email:
             return JsonResponse({
                 'success': False,
-                'error': 'An error occurred during upload',
-                'details': str(e)[:100]
+                'message': 'Email and resume file are required.'
             }, status=400)
 
-    @staticmethod
-    def validate_file(file):
-        """Validate file before processing."""
-        # Check file size (10MB max)
-        if file.size > 10 * 1024 * 1024:
-            return False
-        
-        # Check file extension
-        valid_extensions = ['pdf', 'doc', 'docx']
-        file_ext = file.name.split('.')[-1].lower()
-        if file_ext not in valid_extensions:
-            return False
-        
-        return True
+        return self._process_resume_for_application(session, email, uploaded_file, ajax=True)
 
-    @transaction.atomic
     def form_valid(self, form):
-        """Process uploaded resumes."""
         session = self.get_session()
-        files = self.request.FILES.getlist('resumes')
-        
-        successful = 0
-        failed = 0
-        
-        try:
-            for uploaded_file in files:
-                try:
-                    # Save file
-                    file_path = default_storage.save(
-                        f'screening_resumes/{session.id}/{uploaded_file.name}',
-                        uploaded_file
-                    )
-                    
-                    # Create resume record
-                    result = ScreeningResult.objects.create(
-                        session=session,
-                        resume=None,  # Will be filled by parser
-                        job=session.job,
-                        file_path=file_path,
-                        status=ScreeningResultStatus.PENDING,
-                    )
-                    
-                    # Queue for processing
-                    from .tasks import process_resume_screening
-                    process_resume_screening.delay(result.id, file_path)
-                    
-                    successful += 1
-                    
-                except Exception as e:
-                    logger.error(f"Error processing file {uploaded_file.name}: {str(e)}")
-                    failed += 1
-            
-            # Update session statistics
-            session.total_resumes = successful
-            # Mark as processing if files were uploaded
-            if successful > 0 and session.status == ScreeningStatus.PENDING:
-                session.status = ScreeningStatus.PROCESSING
-            session.save()
-            
-            if successful > 0:
-                messages.success(
-                    self.request,
-                    f"{successful} resumes uploaded successfully! Processing will begin shortly."
-                )
-            
-            if failed > 0:
-                messages.warning(self.request, f"{failed} files failed to upload.")
-            
-            logger.info(f"Bulk upload for session {session.id}: {successful} success, {failed} failed")
-            
-            return redirect('screening:session_detail', pk=session.pk)
-            
-        except Exception as e:
-            logger.error(f"Error in bulk upload: {str(e)}", exc_info=True)
-            messages.error(self.request, "An error occurred during upload.")
+        email = form.cleaned_data['email']
+        uploaded_file = form.cleaned_data['resume']
+
+        result = self._process_resume_for_application(session, email, uploaded_file)
+        if isinstance(result, JsonResponse):
+            form.add_error(None, result.json().get('message'))
             return self.form_invalid(form)
+
+        messages.success(self.request, result['message'])
+        return redirect('screening:supplement_resumes', session_id=session.pk)
+
+    def _process_resume_for_application(self, session, email, uploaded_file, ajax=False):
+        application = Application.objects.filter(
+            job=session.job,
+            applicant__email__iexact=email
+        ).select_related('applicant').first()
+
+        if not application:
+            payload = {
+                'success': False,
+                'message': 'No application found for this candidate.'
+            }
+            if ajax:
+                return JsonResponse(payload, status=404)
+            return payload
+
+        resume = Resume.objects.create(
+            user=application.applicant,
+            title=f"Supplemented Resume ({application.job.title})",
+            original_filename=uploaded_file.name,
+            status='uploaded',
+            file_size=uploaded_file.size
+        )
+        resume.file.save(uploaded_file.name, uploaded_file, save=True)
+
+        application.resume = resume
+        tags = application.tags or []
+        if 'resume_supplemented' not in tags:
+            tags.append('resume_supplemented')
+        application.tags = tags
+        application.last_activity_at = timezone.now()
+        application.save(update_fields=['resume', 'tags', 'last_activity_at'])
+
+        # Ensure there is a screening result available for this application
+        result = ScreeningResult.objects.filter(session=session, application=application).first()
+        file_path = resume.file.name if resume.file else ''
+        if result:
+            result.resume = resume
+            result.file_path = file_path
+            result.error_message = ''
+            result.status = ScreeningResultStatus.PENDING
+            result.save(update_fields=['resume', 'file_path', 'status', 'error_message'])
+        else:
+            result = ScreeningResult.objects.create(
+                session=session,
+                application=application,
+                resume=resume,
+                job=session.job,
+                file_path=file_path,
+                status=ScreeningResultStatus.PENDING
+            )
+            session.total_resumes = session.results.count()
+            session.save(update_fields=['total_resumes'])
+
+        # Kick off processing immediately
+        process_resume_screening.delay(result.id)
+        session.start_processing()
+
+        message = 'Resume linked to application successfully.'
+        if ajax:
+            return JsonResponse({'success': True, 'message': message})
+        return {'success': True, 'message': message}
 
 
 class ScreeningSessionDetailView(LoginRequiredMixin, CompanyOnlyMixin, ScreeningOwnerMixin, DetailView):
@@ -518,6 +828,7 @@ class ScreeningSessionDetailView(LoginRequiredMixin, CompanyOnlyMixin, Screening
     model = ScreeningSession
     template_name = 'screening/session_detail.html'
     context_object_name = 'session'
+    pk_url_kwarg = 'session_id'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -551,8 +862,65 @@ class ScreeningSessionDetailView(LoginRequiredMixin, CompanyOnlyMixin, Screening
             context['criteria'] = session.criteria
         except ScreeningCriteria.DoesNotExist:
             context['criteria'] = None
+
+
+        if session.job:
+            job_apps = Application.objects.filter(job=session.job)
+            context['missing_applications_count'] = job_apps.filter(resume__isnull=True).count()
+            context['ready_applications_count'] = job_apps.filter(resume__isnull=False).count()
+        else:
+            context['missing_applications_count'] = 0
+            context['ready_applications_count'] = 0
         
         return context
+
+
+class ScreeningSessionStartProcessingView(LoginRequiredMixin, CompanyOnlyMixin, View):
+    """Trigger processing for all ready resumes belonging to a session."""
+
+    def post(self, request, *args, **kwargs):
+        session = get_object_or_404(
+            ScreeningSession,
+            pk=self.kwargs.get('session_id'),
+            company__user=request.user
+        )
+
+        if not getattr(session, 'criteria', None):
+            messages.error(request, "Set up screening criteria before starting processing.")
+            return redirect('screening:criteria_setup', session_id=session.pk)
+
+        reprocess_all = request.POST.get('reprocess_all') == '1'
+        if reprocess_all:
+            session.results.filter(status=ScreeningResultStatus.COMPLETED).update(
+                status=ScreeningResultStatus.PENDING,
+                match_score=0,
+                match_details={},
+                screening_answers=[],
+                assessment_data=[],
+                error_message='',
+                processed_at=None
+            )
+            session.processed_resumes = 0
+            session.failed_resumes = 0
+            session.average_match_score = None
+            session.status = ScreeningStatus.PENDING
+            session.save(update_fields=['processed_resumes', 'failed_resumes', 'average_match_score', 'status'])
+            messages.info(request, "All completed results have been reset and will be reprocessed.")
+
+        queue_result = queue_screening_for_session(session, requeue_pending=True)
+        if queue_result['error']:
+            messages.error(request, queue_result['error'])
+        elif queue_result['queued_new'] or queue_result['requeued']:
+            message_parts = []
+            if queue_result['queued_new']:
+                message_parts.append(f"{queue_result['queued_new']} resume(s) queued for screening.")
+            if queue_result['requeued']:
+                message_parts.append(f"{queue_result['requeued']} previous result(s) requeued.")
+            messages.success(request, " ".join(message_parts))
+        else:
+            messages.info(request, queue_result.get('info') or "No resumes were queued for screening.")
+
+        return redirect('screening:session_detail', session_id=session.pk)
 
 
 class ScreeningResultsView(LoginRequiredMixin, CompanyOnlyMixin, ListView):
@@ -565,10 +933,10 @@ class ScreeningResultsView(LoginRequiredMixin, CompanyOnlyMixin, ListView):
 
     def get_session(self):
         """Get the screening session."""
-        pk = self.kwargs.get('pk')
+        session_id = self.kwargs.get('session_id')
         return get_object_or_404(
             ScreeningSession,
-            pk=pk,
+            pk=session_id,
             company__user=self.request.user
         )
 
@@ -652,6 +1020,7 @@ class ScreeningResultDetailView(LoginRequiredMixin, CompanyOnlyMixin, DetailView
     model = ScreeningResult
     template_name = 'screening/result_detail.html'
     context_object_name = 'result'
+    pk_url_kwarg = 'result_id'
 
     def get_object(self, queryset=None):
         obj = super().get_object(queryset)
@@ -671,6 +1040,41 @@ class ScreeningResultDetailView(LoginRequiredMixin, CompanyOnlyMixin, DetailView
         
         # Parse match details
         context['match_details'] = result.match_details
+        details = result.match_details or {}
+        context['match_metrics'] = [
+            {
+                'label': 'Skills',
+                'value': _resolve_nested_value(details, 'skills_match.score', 0) * 100,
+                'color': 'bg-green-500'
+            },
+            {
+                'label': 'Experience',
+                'value': _resolve_nested_value(details, 'experience_match', 0) * 100,
+                'color': 'bg-blue-500'
+            },
+            {
+                'label': 'Education',
+                'value': _resolve_nested_value(details, 'education_match', 0) * 100,
+                'color': 'bg-purple-500'
+            },
+            {
+                'label': 'Screening Answers',
+                'value': _resolve_nested_value(details, 'screening_answers_analysis.score', 0) * 100,
+                'color': 'bg-indigo-500'
+            },
+            {
+                'label': 'Assessments',
+                'value': _resolve_nested_value(details, 'assessments_analysis.score', 0) * 100,
+                'color': 'bg-emerald-500'
+            }
+        ]
+        context['match_weights'] = {
+            'skills': _resolve_nested_value(details, 'skills_match.score', 0.4) * 100,
+            'experience': _resolve_nested_value(details, 'experience_match', 0.2) * 100,
+            'education': _resolve_nested_value(details, 'education_match', 0.2) * 100,
+            'screening': _resolve_nested_value(details, 'screening_answers_analysis.score', 0.1) * 100,
+            'assessments': _resolve_nested_value(details, 'assessments_analysis.score', 0.1) * 100
+        }
         
         # Get resume data if available
         if result.resume:
@@ -720,7 +1124,7 @@ class ScreeningSessionUpdateView(LoginRequiredMixin, CompanyOnlyMixin, Screening
             return self.form_invalid(form)
 
     def get_success_url(self):
-        return reverse('screening:session_detail', kwargs={'pk': self.object.pk})
+        return reverse('screening:session_detail', kwargs={'session_id': self.object.pk})
 
 
 class ScreeningCriteriaUpdateView(LoginRequiredMixin, CompanyOnlyMixin, UpdateView):
@@ -761,7 +1165,7 @@ class ScreeningCriteriaUpdateView(LoginRequiredMixin, CompanyOnlyMixin, UpdateVi
             return self.form_invalid(form)
 
     def get_success_url(self):
-        return reverse('screening:session_detail', kwargs={'pk': self.object.session.pk})
+        return reverse('screening:session_detail', kwargs={'session_id': self.object.session.pk})
 
 
 class ScreeningResultExportView(LoginRequiredMixin, CompanyOnlyMixin, FormView):
@@ -984,7 +1388,7 @@ class ScreeningResultExportView(LoginRequiredMixin, CompanyOnlyMixin, FormView):
         except Exception as e:
             logger.error(f"PDF export failed: {str(e)}", exc_info=True)
             messages.error(self.request, f"PDF export failed: {str(e)}")
-            return redirect('screening:results', pk=session.pk)
+            return redirect('screening:results', session_id=session.pk)
 
 
 # ===========================
@@ -1436,7 +1840,7 @@ class BulkPushToPipelineView(LoginRequiredMixin, CompanyOnlyMixin, FormView):
         
         messages.success(self.request, message)
         
-        return redirect('screening:results', pk=session.pk)
+        return redirect('screening:results', session_id=session.pk)
 
     def _find_best_job(self, result, jobs):
         """Find best matching job for result."""

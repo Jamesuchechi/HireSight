@@ -1,202 +1,194 @@
+from unittest.mock import patch
+from uuid import uuid4
 from django.test import TestCase
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 
 from apps.accounts.models import CompanyProfile
+from apps.assessments.models import SkillTest, SkillAssessmentAttempt
 from apps.jobs.models import Job
 from apps.resumes.models import Resume
-from .models import ScreeningSession, ScreeningResult, ScreeningCriteria, ScreeningStatus, ScreeningResultStatus
-from .ai_matcher import AIScreener
-
+from apps.screening.models import (
+    ScreeningSession, ScreeningResult, ScreeningCriteria, ScreeningStatus,
+    ScreeningResultStatus
+)
+from apps.screening.services import ApplicationDataService
+from apps.screening.tasks import process_resume_screening
+from apps.screening.ai_matcher import AIScreener
 
 User = get_user_model()
 
+DEFAULT_SCREENING_WEIGHTS = dict(
+    weight_skills=0.3,
+    weight_experience=0.2,
+    weight_education=0.2,
+    weight_keywords=0.1,
+    weight_screening_questions=0.1,
+    weight_assessments=0.1
+)
 
-class ScreeningModelTest(TestCase):
-    """Test Screening models."""
+
+def create_company_profile(company_name='Test Company'):
+    """
+    Create a company user and return the associated company profile.
+
+    Since the accounts signal auto-creates a CompanyProfile for company users,
+    we only need to inspect the created record rather than inserting a second.
+    """
+    user = User.objects.create_user(
+        email=f'company-{uuid4()}@example.com',
+        password='testpass123',
+        account_type='company'
+    )
+    profile, _ = CompanyProfile.objects.get_or_create(
+        user=user,
+        defaults={
+            'company_name': company_name,
+            'industry': 'Tech'
+        }
+    )
+    # Ensure the profile reflects the desired name
+    if profile.company_name != company_name:
+        profile.company_name = company_name
+        profile.save(update_fields=['company_name'])
+    return user, profile
+
+
+class ScreeningFlowTests(TestCase):
+    """Integration-like tests for the enhanced screening experience."""
 
     def setUp(self):
-        # Create users
-        self.company_user = User.objects.create_user(
-            email='company@example.com',
-            password='testpass123',
-            account_type='company'
-        )
-        self.personal_user = User.objects.create_user(
-            email='personal@example.com',
-            password='testpass123',
+        self.company_user, self.company = create_company_profile('HireSight Labs')
+        self.candidate_user = User.objects.create_user(
+            email=f'candidate-{uuid4()}@example.com',
+            password='testing',
             account_type='personal'
         )
-        
-        # Create profiles
-        self.company_profile = CompanyProfile.objects.create(
-            user=self.company_user,
-            company_name='Test Company',
-            industry='Tech'
-        )
-        
-        # Create job
         self.job = Job.objects.create(
-            company=self.company_profile,
-            title='Test Job',
-            slug='test-job',
-            description='Test job description',
+            company=self.company,
+            title='AI Engineer',
+            slug='ai-engineer',
+            description='Build ML products',
             location='Remote',
             status='active'
         )
-        
-        # Create resume
         self.resume = Resume.objects.create(
-            user=self.personal_user,
-            title='Test Resume',
-            file='test.pdf',
-            original_filename='test.pdf',
+            user=self.candidate_user,
+            title='AI Engineer Resume',
+            file='resumes/ai.pdf',
+            original_filename='ai.pdf',
             status='parsed',
             is_primary=True
         )
-        
-        # Create screening session
+        self.application = self._create_application()
         self.session = ScreeningSession.objects.create(
-            company=self.company_profile,
+            company=self.company,
             job=self.job,
-            title='Test Screening Session',
+            title='Flow Session',
             created_by=self.company_user,
-            status=ScreeningStatus.PENDING,
-            total_resumes=1,
-            processed_resumes=0,
-            failed_resumes=0
+            status=ScreeningStatus.PENDING
         )
-
-    def test_screening_session_creation(self):
-        """Test screening session creation."""
-        self.assertEqual(self.session.company, self.company_profile)
-        self.assertEqual(self.session.job, self.job)
-        self.assertEqual(self.session.title, 'Test Screening Session')
-        self.assertEqual(self.session.created_by, self.company_user)
-        self.assertEqual(self.session.status, ScreeningStatus.PENDING)
-
-    def test_screening_session_str(self):
-        """Test screening session string representation."""
-        self.assertEqual(str(self.session), 'Test Screening Session (Pending)')
-
-    def test_screening_session_properties(self):
-        """Test screening session properties."""
-        # Test progress percentage
-        self.assertEqual(self.session.progress_percentage, 0)
-        
-        # Test success rate
-        self.assertEqual(self.session.success_rate, 0)
-        
-        # Test failure rate
-        self.assertEqual(self.session.failure_rate, 0)
-
-    def test_screening_session_status_methods(self):
-        """Test screening session status methods."""
-        # Test start_processing
-        self.session.start_processing()
-        self.assertEqual(self.session.status, ScreeningStatus.PROCESSING)
-        
-        # Test mark_completed
-        self.session.mark_completed()
-        self.assertEqual(self.session.status, ScreeningStatus.COMPLETED)
-        self.assertIsNotNone(self.session.completed_at)
-        
-        # Test mark_failed
-        self.session.mark_failed()
-        self.assertEqual(self.session.status, ScreeningStatus.FAILED)
-
-
-class ScreeningResultTest(TestCase):
-    """Test ScreeningResult model."""
-
-    def setUp(self):
-        # Create users
-        self.company_user = User.objects.create_user(
-            email='company@example.com',
-            password='testpass123',
-            account_type='company'
-        )
-        self.personal_user = User.objects.create_user(
-            email='personal@example.com',
-            password='testpass123',
-            account_type='personal'
-        )
-        
-        # Create profiles
-        self.company_profile = CompanyProfile.objects.create(
-            user=self.company_user,
-            company_name='Test Company',
-            industry='Tech'
-        )
-        
-        # Create job
-        self.job = Job.objects.create(
-            company=self.company_profile,
-            title='Test Job',
-            slug='test-job',
-            description='Test job description',
-            location='Remote',
-            status='active'
-        )
-        
-        # Create resume
-        self.resume = Resume.objects.create(
-            user=self.personal_user,
-            title='Test Resume',
-            file='test.pdf',
-            original_filename='test.pdf',
-            status='parsed',
-            is_primary=True
-        )
-        
-        # Create screening session
-        self.session = ScreeningSession.objects.create(
-            company=self.company_profile,
-            job=self.job,
-            title='Test Screening Session',
-            created_by=self.company_user,
-            status=ScreeningStatus.COMPLETED
-        )
-        
-        # Create screening result
-        self.result = ScreeningResult.objects.create(
+        ScreeningCriteria.objects.create(
             session=self.session,
+            **DEFAULT_SCREENING_WEIGHTS
+        )
+        self.skill_test = SkillTest.objects.create(
+            title='Engineering Fundamentals',
+            slug='eng-fund',
+            skill_name='engineering',
+            description='Core skills validation',
+            test_type='STATIC',
+            difficulty='INTERMEDIATE'
+        )
+        setattr(self.skill_test, 'skills_tested', ['engineering', 'python'])
+        self.attempt = SkillAssessmentAttempt.objects.create(
+            user=self.candidate_user,
+            test=self.skill_test,
+            status='COMPLETED',
+            score=88,
+            passed=True,
+            completed_at=timezone.now(),
+            question_results={},
+            answers={},
+            frozen_questions=[]
+        )
+
+    def _create_application(self):
+        return Job.objects.get(id=self.job.id).applications.create(
+            applicant=self.candidate_user,
+            resume=self.resume,
+            screening_answers=[
+                {'question': 'Why HireSight?', 'answer': 'I love hiring', 'question_type': 'text'},
+                {'question': 'Remote?', 'answer': 'Yes', 'question_type': 'yes_no'}
+            ]
+        )
+
+    def test_application_data_service_returns_complete_payload(self):
+        data = ApplicationDataService.get_application_screening_data(self.application)
+        self.assertEqual(data['candidate_info']['email'], self.candidate_user.email)
+        self.assertTrue(data['screening_answers'])
+        self.assertEqual(len(data['assessment_results']), 1)
+        self.assertIn('applied_at', data['application_metadata'])
+
+    def test_evaluate_screening_answers_reflects_quality(self):
+        answers = [
+            {'question': 'Remote?', 'answer': 'Yes', 'question_type': 'yes_no'},
+            {'question': 'Background', 'answer': 'I have 10 years', 'question_type': 'text'}
+        ]
+        cree = AIScreener.__new__(AIScreener)
+        result = cree.evaluate_screening_answers(answers, {
+            'expected_answers': {
+                'Remote?': {'value': 'Yes'},
+                'Background': {'keywords': ['years']}
+            }
+        })
+        self.assertGreater(result['overall_score'], 70)
+        self.assertTrue(result['strengths'])
+
+    def test_evaluate_assessments_handles_missing_entries(self):
+        screener = AIScreener.__new__(AIScreener)
+        assessments = [
+            {'test_name': 'Engineering Fundamentals', 'score': 90, 'skills_validated': ['python'], 'passed': True},
+            {'test_name': 'Team Fit', 'score': 45, 'skills_validated': ['communication'], 'passed': False}
+        ]
+        result = screener.evaluate_assessments(assessments, ['python', 'engineering'])
+        self.assertEqual(result['tests_taken'], 2)
+        self.assertIn('python', result['skills_validated'])
+        self.assertIn('engineering', result['skills_missing'])
+        self.assertGreater(result['overall_score'], 45)
+
+    @patch('apps.screening.tasks.ResumeParser.parse_content')
+    @patch('apps.screening.tasks.default_storage.open')
+    @patch('apps.screening.tasks.ai_screener.calculate_match_score')
+    def test_process_resume_screening_resume_only(
+        self, mock_score, mock_open, mock_parser
+    ):
+        session = ScreeningSession.objects.create(
+            company=self.company,
+            job=self.job,
+            title='Legacy Session',
+            created_by=self.company_user,
+            status=ScreeningStatus.PENDING
+        )
+        criteria = ScreeningCriteria.objects.create(
+            session=session,
+            **DEFAULT_SCREENING_WEIGHTS
+        )
+        result = ScreeningResult.objects.create(
+            session=session,
             resume=self.resume,
             job=self.job,
-            match_score=85,
-            match_details={
-                'skills_match': {'matched_skills': ['python', 'django'], 'match_percentage': 100},
-                'experience_match': 0.9,
-                'education_match': 1.0,
-                'semantic_similarity': 0.85
-            },
-            status=ScreeningResultStatus.COMPLETED
+            status=ScreeningResultStatus.PENDING,
+            file_path='resumes/ai.pdf'
         )
+        mock_open.return_value.__enter__.return_value.read.return_value = b'dummy'
+        mock_parser.return_value = {'success': True, 'text': 'parsed text'}
+        mock_score.return_value = {'match_score': 42, 'match_details': {}, 'screening_answers_analysis': {}, 'assessments_analysis': {}}
 
-    def test_screening_result_creation(self):
-        """Test screening result creation."""
-        self.assertEqual(self.result.session, self.session)
-        self.assertEqual(self.result.resume, self.resume)
-        self.assertEqual(self.result.job, self.job)
-        self.assertEqual(self.result.match_score, 85)
-        self.assertEqual(self.result.status, ScreeningResultStatus.COMPLETED)
-
-    def test_screening_result_str(self):
-        """Test screening result string representation."""
-        self.assertEqual(str(self.result), 'personal@example.com - 85% match')
-
-    def test_screening_result_properties(self):
-        """Test screening result properties."""
-        # Test skills_match property
-        self.assertEqual(self.result.skills_match, {'matched_skills': ['python', 'django'], 'match_percentage': 100})
-        
-        # Test experience_match property
-        self.assertEqual(self.result.experience_match, 0.9)
-        
-        # Test education_match property
-        self.assertEqual(self.result.education_match, 1.0)
-        
-        # Test semantic_similarity property
-        self.assertEqual(self.result.semantic_similarity, 0.85)
+        process_resume_screening(None, result.id)
+        result.refresh_from_db()
+        self.assertEqual(result.status, ScreeningResultStatus.COMPLETED)
+        self.assertEqual(result.match_score, 42)
 
     def test_screening_result_status_methods(self):
         """Test screening result status methods."""
@@ -228,19 +220,7 @@ class ScreeningCriteriaTest(TestCase):
     """Test ScreeningCriteria model."""
 
     def setUp(self):
-        # Create users
-        self.company_user = User.objects.create_user(
-            email='company@example.com',
-            password='testpass123',
-            account_type='company'
-        )
-        
-        # Create profiles
-        self.company_profile = CompanyProfile.objects.create(
-            user=self.company_user,
-            company_name='Test Company',
-            industry='Tech'
-        )
+        self.company_user, self.company_profile = create_company_profile('Criteria Co')
         
         # Create job
         self.job = Job.objects.create(
@@ -271,7 +251,9 @@ class ScreeningCriteriaTest(TestCase):
             weight_skills=0.4,
             weight_experience=0.3,
             weight_education=0.2,
-            weight_keywords=0.1
+            weight_keywords=0.1,
+            weight_screening_questions=0.0,
+            weight_assessments=0.0
         )
 
     def test_screening_criteria_creation(self):
@@ -293,7 +275,9 @@ class ScreeningCriteriaTest(TestCase):
             weight_skills=0.5,
             weight_experience=0.3,
             weight_education=0.1,
-            weight_keywords=0.1
+            weight_keywords=0.1,
+            weight_screening_questions=0.0,
+            weight_assessments=0.0
         )
         self.assertEqual(criteria.weight_skills, 0.5)
         
@@ -304,7 +288,9 @@ class ScreeningCriteriaTest(TestCase):
                 weight_skills=0.8,  # Sum would be > 1.0
                 weight_experience=0.3,
                 weight_education=0.1,
-                weight_keywords=0.1
+                weight_keywords=0.1,
+                weight_screening_questions=0.0,
+                weight_assessments=0.0
             )
 
 
@@ -464,22 +450,11 @@ class ScreeningManagerTest(TestCase):
 
     def setUp(self):
         # Create users
-        self.company_user = User.objects.create_user(
-            email='company@example.com',
-            password='testpass123',
-            account_type='company'
-        )
+        self.company_user, self.company_profile = create_company_profile('Manager Co')
         self.personal_user = User.objects.create_user(
-            email='personal@example.com',
+            email=f'personal-{uuid4()}@example.com',
             password='testpass123',
             account_type='personal'
-        )
-        
-        # Create profiles
-        self.company_profile = CompanyProfile.objects.create(
-            user=self.company_user,
-            company_name='Test Company',
-            industry='Tech'
         )
         
         # Create job

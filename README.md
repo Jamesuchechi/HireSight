@@ -248,6 +248,47 @@ python manage.py runserver
 
 ---
 
+### Enhanced Screening System
+
+HireSight now layers every screening session on top of live job applications so candidate context (resume, answers, assessments) is always accessible. The end-to-end flow looks like this:
+
+1. Create a **Job**, collect **Applications** (with uploaded resumes, written screening answers, optional assessments).
+2. Launch a **Screening Session** for that job; the session pulls the linked applications and preloads candidate data.
+3. The AI screener ingests resume text + screening answers + assessment attempts and calculates a weighted `match_score`.
+
+Weight configuration works via the recruiter interface: each slider (skills, experience, education, screening questions, assessments, keywords) is normalized to percentages totaling 100 %, which convert into decimal weights (0.00–1.00) before scoring.
+
+Data sources considered:
+- **Resumes** (parsed PDF/DOCX text, primary resume flag)
+- **Screening answers** (per-application JSON stored alongside the job application)
+- **Skill assessments** (completed attempts with score, passed flag, validated skills)
+
+Step-by-step screening guide:
+1. Navigate to the job and apply filters (has resume, answered screening, assessments taken).
+2. Select the applicants you want to screen.
+3. Tune the weight sliders so the AI focuses on the right mix of skills, experience, and structured inputs.
+4. Submit to queue and let the background worker process each `ScreeningResult` linked to its Application.
+
+Backward compatibility: older resume-only uploads still work because the processor falls back to parsing the uploaded file when no `Application` exists, and `migrate_old_screenings` can backfill associations after the fact.
+
+Diagram:
+
+```
+     Job
+      |
+ +----+----+
+ |         |
+ Applications
+ |   |     |
+ |   +--> Screening Answers
+ |         |
+ +--> Resumes
+           |
+       Assessments
+           |
+       AI Match Score
+```
+
 ## 📚 Assessment Docs
 
 Centralized resources for the assessment workflows:
@@ -543,9 +584,10 @@ See [TODO.md](TODO.md) for detailed development phases.
 - Conversation view with attachment previews, confirmable actions, and AJAX polling for new messages
 - Global unread badge that refreshes in the navbar to keep counts in sync
 
-### **Phase 3: Engagement (Months 5-6)** 📅
+-### **Phase 3: Engagement (Months 5-6)** 📅
 - Skill assessments
 - Interview scheduling
+- Consider later adding a filtered view over interviews where `candidate_response == 'PROPOSED_RESCHEDULE'` to triage reschedule requests separately.
 - Company branding pages
 - Resume optimization tips
 - Job recommendations

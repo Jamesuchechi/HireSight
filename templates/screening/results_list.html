@@ -139,7 +139,7 @@
                         </svg>
                         <span>Apply Filters</span>
                     </button>
-                    <a href="{% url 'screening:results' session.pk %}" class="px-6 py-2 border border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-colors inline-flex items-center space-x-2">
+                    <a href="{% url 'screening:results' session_id=session.pk %}" class="px-6 py-2 border border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-colors inline-flex items-center space-x-2">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                         </svg>
@@ -319,7 +319,7 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium hidden lg:table-cell">
                                 <div class="flex items-center space-x-2">
-                                    <a href="{% url 'screening:result_detail' result.pk %}" class="text-primary hover:text-primary-dark px-2 py-1 rounded-lg hover:bg-primary/10 transition-colors text-xs font-semibold">View</a>
+                                        <a href="{% url 'screening:result_detail' result_id=result.pk %}" class="text-primary hover:text-primary-dark px-2 py-1 rounded-lg hover:bg-primary/10 transition-colors text-xs font-semibold">View</a>
                                     <button class="text-purple-600 hover:text-purple-800 px-2 py-1 rounded-lg hover:bg-purple/10 transition-colors text-xs font-semibold shortlist-btn" data-result-id="{{ result.pk }}" data-shortlisted="{{ result.is_shortlisted|lower }}">
                                         {% if result.is_shortlisted %}Shortlisted{% else %}Shortlist{% endif %}
                                     </button>
@@ -386,7 +386,7 @@
                                             Add to Shortlist
                                             {% endif %}
                                         </button>
-                                        <a href="{% url 'screening:result_detail' result.pk %}" class="px-3 py-2 text-xs font-semibold bg-gray-100 text-gray-900 rounded-xl hover:bg-gray-200 transition-colors inline-flex items-center">
+                                        <a href="{% url 'screening:result_detail' result_id=result.pk %}" class="px-3 py-2 text-xs font-semibold bg-gray-100 text-gray-900 rounded-xl hover:bg-gray-200 transition-colors inline-flex items-center">
                                             <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
