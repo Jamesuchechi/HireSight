@@ -84,70 +84,70 @@ def process_resume_screening(self, result_id, file_path=None):
                 # Re-raise so Celery can record the failure for retries.
                 raise
 
-            if not resume_text:
-                error_msg = "Unable to obtain resume text"
-                logger.error(error_msg)
-                result.mark_as_failed(error_msg)
-                raise Exception(error_msg)
+        if not resume_text:
+            error_msg = "Unable to obtain resume text"
+            logger.error(error_msg)
+            result.mark_as_failed(error_msg)
+            raise Exception(error_msg)
 
-            job_description = result.job.description if result.job else "General screening results"
-            criteria = result.session.criteria
-            criteria_dict = {
-                'required_skills': criteria.required_skills,
-                'nice_to_have_skills': criteria.nice_to_have_skills,
-                'min_experience_years': criteria.min_experience_years,
-                'max_experience_years': criteria.max_experience_years,
-                'required_education': criteria.required_education,
-                'custom_keywords': criteria.custom_keywords,
-                'weight_skills': criteria.weight_skills,
-                'weight_experience': criteria.weight_experience,
-                'weight_education': criteria.weight_education,
-                'weight_keywords': criteria.weight_keywords,
-                'weight_screening_questions': criteria.weight_screening_questions,
-                'weight_assessments': criteria.weight_assessments,
-                'screening_questions_config': criteria.screening_questions_config
-            }
+        job_description = result.job.description if result.job else "General screening results"
+        criteria = result.session.criteria
+        criteria_dict = {
+            'required_skills': criteria.required_skills,
+            'nice_to_have_skills': criteria.nice_to_have_skills,
+            'min_experience_years': criteria.min_experience_years,
+            'max_experience_years': criteria.max_experience_years,
+            'required_education': criteria.required_education,
+            'custom_keywords': criteria.custom_keywords,
+            'weight_skills': criteria.weight_skills,
+            'weight_experience': criteria.weight_experience,
+            'weight_education': criteria.weight_education,
+            'weight_keywords': criteria.weight_keywords,
+            'weight_screening_questions': criteria.weight_screening_questions,
+            'weight_assessments': criteria.weight_assessments,
+            'screening_questions_config': criteria.screening_questions_config
+        }
 
-            if application_data:
-                candidate_name = application_data['candidate_info']['name']
-                logger.info(f"Screening application {result.application.id} for job {result.job.title if result.job else 'General'} (Candidate: {candidate_name})")
-                try:
-                    match_result = ai_screener.calculate_match_score(
-                        resume_text=resume_text,
-                        job_description=job_description,
-                        criteria=criteria_dict,
-                        application_data=application_data
-                    )
+        if application_data:
+            candidate_name = application_data['candidate_info']['name']
+            logger.info(f"Screening application {result.application.id} for job {result.job.title if result.job else 'General'} (Candidate: {candidate_name})")
+            try:
+                match_result = ai_screener.calculate_match_score(
+                    resume_text=resume_text,
+                    job_description=job_description,
+                    criteria=criteria_dict,
+                    application_data=application_data
+                )
 
-                    result.match_score = match_result['match_score']
-                    result.match_details = match_result['match_details']
-                    result.screening_answers = application_data.get('screening_answers', [])
-                    result.assessment_data = application_data.get('assessment_results', [])
-                    result.save(update_fields=[
-                        'match_score', 'match_details', 'screening_answers', 'assessment_data'
-                    ])
-                    logger.info(f"Candidate: {candidate_name}, Match Score: {result.match_score}%")
-                except Exception as e:
-                    logger.error(f"Error calculating match score: {e}", exc_info=True)
-                    result.mark_as_failed(f"Failed to calculate match: {str(e)}")
-                    raise
-            else:
-                logger.info(f"Screening result {result_id} for job {result.job.title if result.job else 'General'} (no application link)")
-                try:
-                    match_result = ai_screener.calculate_match_score(
-                        resume_text=resume_text,
-                        job_description=job_description,
-                        criteria=criteria_dict
-                    )
+                result.match_score = match_result['match_score']
+                result.match_details = match_result['match_details']
+                result.screening_answers = application_data.get('screening_answers', [])
+                result.assessment_data = application_data.get('assessment_results', [])
+                result.save(update_fields=[
+                    'match_score', 'match_details', 'screening_answers', 'assessment_data'
+                ])
+                logger.info(f"Candidate: {candidate_name}, Match Score: {result.match_score}%")
+            except Exception as e:
+                logger.error(f"Error calculating match score: {e}", exc_info=True)
+                result.mark_as_failed(f"Failed to calculate match: {str(e)}")
+                raise
+        else:
+            logger.info(f"Screening result {result_id} for job {result.job.title if result.job else 'General'} (no application link)")
+            try:
+                match_result = ai_screener.calculate_match_score(
+                    resume_text=resume_text,
+                    job_description=job_description,
+                    criteria=criteria_dict
+                )
 
-                    result.match_score = match_result['match_score']
-                    result.match_details = match_result['match_details']
-                    result.save(update_fields=['match_score', 'match_details'])
-                    logger.info(f"Match score calculated: {result.match_score}%")
-                except Exception as e:
-                    logger.error(f"Error calculating match score: {e}", exc_info=True)
-                    result.mark_as_failed(f"Failed to calculate match: {str(e)}")
-                    raise
+                result.match_score = match_result['match_score']
+                result.match_details = match_result['match_details']
+                result.save(update_fields=['match_score', 'match_details'])
+                logger.info(f"Match score calculated: {result.match_score}%")
+            except Exception as e:
+                logger.error(f"Error calculating match score: {e}", exc_info=True)
+                result.mark_as_failed(f"Failed to calculate match: {str(e)}")
+                raise
 
         # Mark as completed
         result.mark_as_completed()

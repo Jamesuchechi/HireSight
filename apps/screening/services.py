@@ -1,3 +1,4 @@
+import datetime
 import logging
 import os
 
@@ -15,6 +16,17 @@ logger = logging.getLogger(__name__)
 
 class ApplicationDataService:
     """Service responsible for normalizing application+assessment payloads for screening."""
+
+    @staticmethod
+    def _serialize_value(value):
+        """Convert datetimes to ISO strings so JSONField can persist them."""
+        if isinstance(value, (datetime.datetime, datetime.date)):
+            return value.isoformat()
+        if isinstance(value, dict):
+            return {k: ApplicationDataService._serialize_value(v) for k, v in value.items()}
+        if isinstance(value, list):
+            return [ApplicationDataService._serialize_value(v) for v in value]
+        return value
 
     @classmethod
     def get_job_applications(cls, job_id):
@@ -149,11 +161,11 @@ class ApplicationDataService:
                     'test_name': attempt.test.title if attempt.test else 'Unknown Test',
                     'score': attempt.score,
                     'skills_validated': getattr(attempt.test, 'required_skills', []) if attempt.test else [],
-                    'completed_at': attempt.completed_at,
+                    'completed_at': ApplicationDataService._serialize_value(attempt.completed_at),
                 })
 
             metadata = {
-                'applied_at': application.applied_at,
+                'applied_at': ApplicationDataService._serialize_value(application.applied_at),
                 'status': application.status,
                 'source': application.source,
             }
