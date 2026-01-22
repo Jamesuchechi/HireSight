@@ -204,7 +204,17 @@
                         Requirements
                     </h2>
                     <div class="prose prose-lg max-w-none text-gray-700">
-                        {{ job.requirements|safe }}
+                        {% with requirements=job.get_requirements_list %}
+                            {% if requirements %}
+                                <ul class="list-disc list-inside space-y-2">
+                                    {% for requirement in requirements %}
+                                        <li>{{ requirement }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% else %}
+                                <p class="text-gray-600">No requirements provided.</p>
+                            {% endif %}
+                        {% endwith %}
                     </div>
                 </div>
             {% endif %}
@@ -220,8 +230,8 @@
                         </div>
                         Responsibilities
                     </h2>
-                    <div class="prose prose-lg max-w-none text-gray-700">
-                        {{ job.responsibilities|safe }}
+                    <div class="prose prose-lg max-w-none text-gray-700 whitespace-pre-line">
+                        {{ job.responsibilities|linebreaksbr }}
                     </div>
                 </div>
             {% endif %}
@@ -237,8 +247,8 @@
                         </div>
                         Benefits & Perks
                     </h2>
-                    <div class="prose prose-lg max-w-none text-gray-700">
-                        {{ job.benefits|safe }}
+                    <div class="prose prose-lg max-w-none text-gray-700 whitespace-pre-line">
+                        {{ job.benefits|linebreaksbr }}
                     </div>
                 </div>
             {% endif %}

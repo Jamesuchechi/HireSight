@@ -488,10 +488,32 @@ class Job(models.Model):
         return "Not specified"
 
     def get_requirements_list(self):
-        """Get requirements as list."""
-        if isinstance(self.requirements, dict):
-            return self.requirements.get('skills', [])
-        return []
+        """Return requirements as a flat list of strings for display."""
+        requirements = []
+
+        data = self.requirements
+        if isinstance(data, dict):
+            for value in data.values():
+                if isinstance(value, list):
+                    for entry in value:
+                        text = str(entry).strip()
+                        if text:
+                            requirements.append(text)
+                elif isinstance(value, str):
+                    text = value.strip()
+                    if text:
+                        requirements.append(text)
+        elif isinstance(data, list):
+            for entry in data:
+                text = str(entry).strip()
+                if text:
+                    requirements.append(text)
+        elif isinstance(data, str):
+            text = data.strip()
+            if text:
+                requirements.append(text)
+
+        return requirements
 
     def is_saved_by(self, user):
         """Check if job is saved by user."""

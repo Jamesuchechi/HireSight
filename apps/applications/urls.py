@@ -7,6 +7,7 @@ from .views import (
     ApplicationManageView, ApplicantDetailView, ApplicationUpdateStatusView,
     ApplicationBulkActionView, ApplicationNoteCreateView, ApplicationExportView,
     ApplicationResumeDownloadView, ApplicationResumePreviewView, ApplicationRejectView,
+    ApplicationRatingView, ApplicationTagView,
     CompanyPipelineDataView,
     
     # Shared Views
@@ -45,6 +46,8 @@ urlpatterns = [
     # Status updates
     path('manage/<uuid:pk>/status/', ApplicationUpdateStatusView.as_view(), name='update_status'),
     path('manage/<uuid:pk>/reject/', ApplicationRejectView.as_view(), name='reject_application'),
+    path('manage/<uuid:pk>/rate/', ApplicationRatingView.as_view(), name='rate'),
+    path('manage/<uuid:pk>/tags/', ApplicationTagView.as_view(), name='tags'),
     
     # Bulk actions
     path('manage/bulk-action/', ApplicationBulkActionView.as_view(), name='bulk_action'),
@@ -53,13 +56,13 @@ urlpatterns = [
     path('manage/<uuid:pk>/notes/', ApplicationNoteCreateView.as_view(), name='add_note'),
     
     # Export
-path('manage/export/', ApplicationExportView.as_view(), name='export'),
+    path('manage/export/', ApplicationExportView.as_view(), name='export'),
 
-# AJAX pipeline data refresh
-path('manage/pipeline-data/', CompanyPipelineDataView.as_view(), name='pipeline_data'),
+    # AJAX pipeline data refresh
+    path('manage/pipeline-data/', CompanyPipelineDataView.as_view(), name='pipeline_data'),
 
-# Company stats
-path('manage/stats/', ApplicationStatsView.as_view(), name='company_stats'),
+    # Company stats
+    path('manage/stats/', ApplicationStatsView.as_view(), name='company_stats'),
     
     # Resume download and preview for companies
     path('manage/resume/<uuid:pk>/download/', ApplicationResumeDownloadView.as_view(), name='resume_download'),

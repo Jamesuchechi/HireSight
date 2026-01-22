@@ -616,7 +616,10 @@ class ApplicationUpdateStatusView(LoginRequiredMixin, JobOwnerMixin, UpdateView)
 
     def get_success_url(self):
         """Redirect back to applicant detail."""
-        return reverse('applications:applicant_detail', kwargs={'pk': self.object.pk})
+        return reverse(
+            'applications:applicant_detail',
+            kwargs={'slug': self.object.job.slug, 'pk': self.object.pk}
+        )
 
 
 class ApplicationRejectView(LoginRequiredMixin, JobOwnerMixin, FormView):
@@ -756,6 +759,69 @@ class ApplicationBulkActionView(LoginRequiredMixin, FormView):
         return context
 
 
+class ApplicationRatingView(LoginRequiredMixin, JobOwnerMixin, View):
+    """Quick rating endpoint for applications."""
+
+    def get_application(self):
+        """Retrieve application ensuring the company owns it."""
+        pk = self.kwargs.get('pk')
+        return get_object_or_404(
+            Application.objects.select_related('job', 'job__company'),
+            pk=pk,
+            job__company__user=self.request.user
+        )
+
+    def post(self, request, *args, **kwargs):
+        application = self.get_application()
+        try:
+            rating = int(request.POST.get('rating', ''))
+        except (TypeError, ValueError):
+            messages.error(request, "Please provide a valid rating between 1 and 5.")
+            return redirect('applications:applicant_detail', slug=application.job.slug, pk=application.pk)
+
+        if rating < 1 or rating > 5:
+            messages.error(request, "Rating must be between 1 and 5 stars.")
+            return redirect('applications:applicant_detail', slug=application.job.slug, pk=application.pk)
+
+        application.rating = rating
+        application.save(update_fields=['rating'])
+        messages.success(request, "Candidate rating updated.")
+        return redirect('applications:applicant_detail', slug=application.job.slug, pk=application.pk)
+
+
+class ApplicationTagView(LoginRequiredMixin, View):
+    """Quick endpoint for adding tags to an application."""
+
+    def get_application(self):
+        pk = self.kwargs.get('pk')
+        return get_object_or_404(
+            Application.objects.select_related('job', 'job__company').prefetch_related('job__company__user'),
+            pk=pk
+        )
+
+    def post(self, request, *args, **kwargs):
+        application = self.get_application()
+        if application.job.company.user != request.user:
+            logger.warning(f"Unauthorized tag attempt on application {application.id} by user {request.user.id}")
+            raise PermissionDenied("You can only tag applications for your company.")
+
+        tag_value = (request.POST.get('tag') or '').strip()
+        if not tag_value:
+            messages.error(request, "Please provide a tag name.")
+            return redirect('applications:applicant_detail', slug=application.job.slug, pk=application.pk)
+
+        tags = list(application.tags or [])
+        if tag_value in tags:
+            messages.info(request, f"Tag '{tag_value}' is already added.")
+        else:
+            tags.append(tag_value)
+            application.tags = tags
+            application.save(update_fields=['tags'])
+            messages.success(request, f"Added tag '{tag_value}'.")
+
+        return redirect('applications:applicant_detail', slug=application.job.slug, pk=application.pk)
+
+
 class ApplicationNoteCreateView(LoginRequiredMixin, CreateView):
     """View for companies to add notes to applications."""
 
@@ -778,6 +844,11 @@ class ApplicationNoteCreateView(LoginRequiredMixin, CreateView):
         kwargs['author'] = self.request.user
         return kwargs
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['application'] = self.get_application()
+        return context
+
     @transaction.atomic  # ✅ Add transaction handling
     def form_valid(self, form):
         """Handle valid note creation."""
@@ -795,7 +866,11 @@ class ApplicationNoteCreateView(LoginRequiredMixin, CreateView):
 
     def get_success_url(self):
         """Redirect back to applicant detail."""
-        return reverse('applications:applicant_detail', kwargs={'pk': self.kwargs.get('pk')})
+        application = self.get_application()
+        return reverse(
+            'applications:applicant_detail',
+            kwargs={'slug': application.job.slug, 'pk': application.pk}
+        )
 
 
 class ApplicationExportView(LoginRequiredMixin, View):

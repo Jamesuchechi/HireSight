@@ -725,16 +725,19 @@ class ResumeSuggestionsView(LoginRequiredMixin, UserResumeMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        optimization = self.object.optimization
-        if optimization:
-            suggestions = list(optimization.detailed_suggestions.all())
-            for suggestion in suggestions:
-                suggestion.description_html = convert_markdown_to_html(suggestion.description)
-                suggestion.suggestion_html = convert_markdown_to_html(suggestion.suggestion)
-                suggestion.example_before_html = convert_markdown_to_html(suggestion.example_before)
-                suggestion.example_after_html = convert_markdown_to_html(suggestion.example_after)
-            context['suggestions'] = suggestions
-        else:
+        try:
+            optimization = self.object.optimization
+            if optimization:
+                suggestions = list(optimization.detailed_suggestions.all())
+                for suggestion in suggestions:
+                    suggestion.description_html = convert_markdown_to_html(suggestion.description)
+                    suggestion.suggestion_html = convert_markdown_to_html(suggestion.suggestion)
+                    suggestion.example_before_html = convert_markdown_to_html(suggestion.example_before)
+                    suggestion.example_after_html = convert_markdown_to_html(suggestion.example_after)
+                context['suggestions'] = suggestions
+            else:
+                context['suggestions'] = []
+        except ResumeOptimization.DoesNotExist:
             context['suggestions'] = []
         return context
 

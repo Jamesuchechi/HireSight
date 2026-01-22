@@ -183,10 +183,14 @@
                 <!-- Screening Answers -->
                 {% if application.job.screening_questions %}
                 {% include 'applications/components/screening_responses.html' %}
+                {{ application.job.screening_questions|json_script:"personal-screening-questions-data" }}
+                {{ application.screening_answers|json_script:"personal-screening-answers-data" }}
                 <script>
                     document.addEventListener('DOMContentLoaded', function() {
-                        const questionsData = {{ application.job.screening_questions|safe }};
-                        const answersData = {{ application.screening_answers|safe }};
+                        const questionsEl = document.getElementById('personal-screening-questions-data');
+                        const answersEl = document.getElementById('personal-screening-answers-data');
+                        const questionsData = questionsEl ? JSON.parse(questionsEl.textContent || '[]') : [];
+                        const answersData = answersEl ? JSON.parse(answersEl.textContent || '{}') : {};
                         window.screeningViewer = new ScreeningQuestionsViewer(questionsData, answersData);
                     });
                 </script>
@@ -198,7 +202,7 @@
                 <!-- Status Card -->
                 <div class="bg-white rounded-xl shadow-md p-6 border border-gray-100">
                     <div class="flex items-center gap-3 mb-4">
-                        <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-secondary text-white flex items-center justify-center">
+                        <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-secondary text-blue-500 flex items-center justify-center">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
@@ -211,12 +215,12 @@
 
                     <div class="text-center mb-6">
                         <span class="inline-block px-6 py-3 rounded-xl text-lg font-bold shadow-md
-                            {% if application.status == 'pending' %}bg-gradient-to-r from-yellow-400 to-orange-400 text-white
-                            {% elif application.status == 'screening' %}bg-gradient-to-r from-blue-500 to-indigo-500 text-white
-                            {% elif application.status == 'interview' %}bg-gradient-to-r from-purple-500 to-pink-500 text-white
-                            {% elif application.status == 'offer' %}bg-gradient-to-r from-green-500 to-emerald-500 text-white
-                            {% elif application.status == 'hired' %}bg-gradient-to-r from-green-600 to-teal-600 text-white
-                            {% elif application.status == 'rejected' %}bg-gradient-to-r from-red-500 to-pink-500 text-white
+                            {% if application.status == 'pending' %}bg-gradient-to-r from-yellow-400 to-orange-400 text-orange-600
+                            {% elif application.status == 'screening' %}bg-gradient-to-r from-blue-500 to-indigo-500 text-gray-600
+                            {% elif application.status == 'interview' %}bg-gradient-to-r from-purple-500 to-pink-500 text-blue-500
+                            {% elif application.status == 'offer' %}bg-gradient-to-r from-green-500 to-emerald-500 text-green-300
+                            {% elif application.status == 'hired' %}bg-gradient-to-r from-green-600 to-teal-600 text-green-900
+                            {% elif application.status == 'rejected' %}bg-gradient-to-r from-red-500 to-pink-500 text-red-100
                             {% else %}bg-gradient-to-r from-gray-500 to-slate-500 text-white{% endif %}">
                             {{ application.get_status_display }}
                         </span>
