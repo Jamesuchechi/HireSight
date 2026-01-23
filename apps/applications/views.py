@@ -786,6 +786,9 @@ class ApplicationRatingView(LoginRequiredMixin, JobOwnerMixin, View):
         application.rating = rating
         application.save(update_fields=['rating'])
         messages.success(request, "Candidate rating updated.")
+        next_url = request.POST.get('next')
+        if next_url:
+            return redirect(next_url)
         return redirect('applications:applicant_detail', slug=application.job.slug, pk=application.pk)
 
 
@@ -1198,3 +1201,10 @@ class ApplicationResumePreviewView(BaseResumePreviewView):
         # Use uuid field for lookup instead of pk
         uuid = self.kwargs.get('pk')
         return get_object_or_404(queryset, uuid=uuid)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        back_url = self.request.GET.get('next')
+        if back_url:
+            context['back_url'] = back_url
+        return context

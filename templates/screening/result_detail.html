@@ -44,8 +44,8 @@
                         <span>Shortlisted</span>
                     </span>
                     {% else %}
-                    <button class="px-4 py-2 bg-white/15 border border-white/25 rounded-xl text-white font-semibold hover:bg-white/25 transition-all">
-                        Add to Shortlist
+                    <button type="button" data-shortlist-url="{% url 'screening:shortlist_toggle' result.pk %}" data-shortlisted="false" class="px-4 py-2 bg-white/15 border border-white/25 rounded-xl text-white font-semibold hover:bg-white/25 transition-all js-shortlist-toggle">
+                        <span class="shortlist-label">Add to Shortlist</span>
                     </button>
                     {% endif %}
                 </div>
@@ -74,29 +74,45 @@
                 </div>
                 <div class="md:col-span-2">
                     <p class="text-xs uppercase tracking-wide text-gray-500">Application link</p>
-                    <a href="{% url 'applications:detail' result.application.id %}" class="text-primary hover:underline text-sm">View full application</a>
+                    {% if result.application.job and request.user.account_type == 'company' %}
+                    <a href="{% url 'applications:applicant_detail' result.application.job.slug result.application.id %}" class="text-primary hover:underline text-sm">
+                        View full application
+                    </a>
+                    {% else %}
+                    <a href="{% url 'applications:detail' result.application.id %}" class="text-primary hover:underline text-sm">
+                        View full application
+                    </a>
+                    {% endif %}
                 </div>
             </div>
         </div>
         {% endif %}
-
         <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 space-y-4">
             <h3 class="text-xl font-semibold text-gray-900">Screening Answers</h3>
-            {% if result.screening_answers %}
-            <div class="space-y-4">
-                {% for answer in result.screening_answers %}
-                <div class="border-l-4 border-blue-500 pl-4">
-                    <p class="font-semibold text-gray-900">{{ answer.question }}</p>
-                    <p class="text-gray-700">{{ answer.answer }}</p>
-                    {% if answer.score %}
-                    <span class="text-sm text-green-600">Score: {{ answer.score }}/100</span>
-                    {% endif %}
-                </div>
-                {% endfor %}
+        {% if screening_answers %}
+        <div class="space-y-4">
+            {% for answer in screening_answers %}
+            <div class="border-l-4 border-blue-500 pl-4 py-2">
+                <p class="font-semibold text-gray-900">
+                    {{ answer.display_question|default:"Question" }}
+                </p>
+                <p class="text-gray-700 mt-1">
+                    {{ answer.display_answer|default:"No answer provided" }}
+                </p>
+                {% if answer.question_type %}
+                <span class="text-xs text-gray-500 mt-1 inline-block">
+                    Type: {{ answer.question_type }}
+                </span>
+                {% endif %}
+                {% if answer.score %}
+                <span class="text-sm text-green-600 ml-3">Score: {{ answer.score }}/100</span>
+                {% endif %}
             </div>
-            {% else %}
-            <p class="text-gray-500">No screening answers available</p>
-            {% endif %}
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-gray-500">No screening answers available</p>
+        {% endif %}
         </div>
 
         <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 space-y-4">
@@ -166,7 +182,7 @@
                 </div>
                 {% endfor %}
                 <div class="text-xs text-gray-500">
-                    Weights: Skills {{ match_weights.skills }}%, Experience {{ match_weights.experience }}%, Education {{ match_weights.education }}%, Screening Qs {{ match_weights.screening }}%, Assessments {{ match_weights.assessments }}%
+                    Weights: Skills {{ match_weights.skills|floatformat:0 }}%, Experience {{ match_weights.experience|floatformat:0 }}%, Education {{ match_weights.education|floatformat:0 }}%, Screening Qs {{ match_weights.screening|floatformat:0 }}%, Assessments {{ match_weights.assessments|floatformat:0 }}%
                 </div>
             </div>
         </div>
@@ -271,15 +287,15 @@
                     <!-- Match Breakdown -->
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 border-t border-gray-200">
                         <div class="text-center p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-100">
-                            <div class="text-2xl font-bold text-blue-600 mb-1">{{ result.experience_match|floatformat:0 }}%</div>
+                        <div class="text-2xl font-bold text-blue-600 mb-1">{{ match_overview.experience|floatformat:0 }}%</div>
                             <div class="text-sm text-gray-600 font-medium">Experience Match</div>
                         </div>
                         <div class="text-center p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-100">
-                            <div class="text-2xl font-bold text-green-600 mb-1">{{ result.education_match|floatformat:0 }}%</div>
+                            <div class="text-2xl font-bold text-green-600 mb-1">{{ match_overview.education|floatformat:0 }}%</div>
                             <div class="text-sm text-gray-600 font-medium">Education Match</div>
                         </div>
                         <div class="text-center p-4 bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl border border-purple-100">
-                            <div class="text-2xl font-bold text-purple-600 mb-1">{{ result.semantic_similarity|floatformat:0 }}%</div>
+                            <div class="text-2xl font-bold text-purple-600 mb-1">{{ match_overview.semantic|floatformat:0 }}%</div>
                             <div class="text-sm text-gray-600 font-medium">Semantic Similarity</div>
                         </div>
                     </div>
@@ -356,7 +372,20 @@
                     <div class="space-y-3">
                         {% for question in interview_questions %}
                         <div class="p-4 bg-gradient-to-r from-gray-50 to-white rounded-xl border border-gray-200 hover:border-primary/30 transition-colors">
-                            <p class="font-medium text-gray-900">{{ forloop.counter }}. {{ question }}</p>
+                            <p class="font-medium text-gray-900">
+                                {{ forloop.counter }}. {{ question.question|default:"Interview question" }}
+                            </p>
+                            <div class="mt-2 flex flex-wrap gap-2 text-xs text-gray-500">
+                                {% if question.category %}
+                                <span class="px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">{{ question.category|title }}</span>
+                                {% endif %}
+                                {% if question.difficulty %}
+                                <span class="px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">Difficulty: {{ question.difficulty|title }}</span>
+                                {% endif %}
+                                {% if question.skill %}
+                                <span class="px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">Skill: {{ question.skill }}</span>
+                                {% endif %}
+                            </div>
                         </div>
                         {% endfor %}
                     </div>
@@ -375,32 +404,39 @@
                         Quick Actions
                     </h3>
                     <div class="space-y-3">
+                        {% if result.application %}
                         {% if result.match_score >= 70 %}
-                        <button class="w-full px-4 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-xl font-semibold shadow-md hover:shadow-lg transition-all inline-flex items-center justify-center space-x-2">
+                        <a href="{% url 'interviews:schedule' result.application.pk %}" class="w-full inline-flex px-4 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-xl font-semibold shadow-md hover:shadow-lg transition-all items-center justify-center space-x-2">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                             </svg>
                             <span>Schedule Interview</span>
-                        </button>
+                        </a>
                         {% endif %}
-                        <button class="w-full px-4 py-3 {% if result.is_shortlisted %}bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 border border-blue-200{% else %}bg-gray-100 text-gray-700 hover:bg-blue-100 hover:text-blue-800 hover:border-blue-200{% endif %} rounded-xl font-semibold transition-all inline-flex items-center justify-center space-x-2">
+                        <button type="button" data-shortlist-url="{% url 'screening:shortlist_toggle' result.pk %}" data-shortlisted="{% if result.is_shortlisted %}true{% else %}false{% endif %}" class="w-full px-4 py-3 {% if result.is_shortlisted %}bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 border border-blue-200{% else %}bg-gray-100 text-gray-700 hover:bg-blue-100 hover:text-blue-800 hover:border-blue-200{% endif %} rounded-xl font-semibold transition-all inline-flex items-center justify-center space-x-2 js-shortlist-toggle js-shortlist-style">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path>
                             </svg>
-                            <span>{% if result.is_shortlisted %}Remove from Shortlist{% else %}Add to Shortlist{% endif %}</span>
+                            <span class="shortlist-label">{% if result.is_shortlisted %}Remove from Shortlist{% else %}Add to Shortlist{% endif %}</span>
                         </button>
-                        <button class="w-full px-4 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors inline-flex items-center justify-center space-x-2">
+                        <div id="shortlist-status" class="text-xs text-gray-500 text-center"></div>
+                        <a href="{% url 'messaging:compose' %}?recipient={{ result.application.user.pk }}" class="w-full inline-flex px-4 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors items-center justify-center space-x-2">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
                             </svg>
                             <span>Send Message</span>
-                        </button>
-                        <button class="w-full px-4 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors inline-flex items-center justify-center space-x-2">
+                        </a>
+                        {% if result.resume %}
+                        <a href="{% url 'applications:resume_preview' result.resume.uuid %}?next={% url 'screening:result_detail' result_id=result.pk %}" target="_blank" class="w-full inline-flex px-4 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors items-center justify-center space-x-2">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                             </svg>
                             <span>View Full Resume</span>
-                        </button>
+                        </a>
+                        {% endif %}
+                        {% else %}
+                        <p class="text-sm text-gray-500">Actions are available once the application is linked.</p>
+                        {% endif %}
                     </div>
                 </div>
 
@@ -412,10 +448,13 @@
                         </svg>
                         Rating
                     </h3>
-                    <div class="space-y-3">
+                    {% if result.application %}
+                    <form method="post" action="{% url 'applications:rate' result.application.pk %}" class="space-y-3">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{% url 'screening:result_detail' result_id=result.pk %}">
                         <div class="flex justify-center space-x-2">
                             {% for i in "12345" %}
-                            <button type="button" class="w-10 h-10 rounded-full flex items-center justify-center transition-all
+                            <button type="submit" name="rating" value="{{ forloop.counter }}" class="w-10 h-10 rounded-full flex items-center justify-center transition-all
                                 {% if result.rating and result.rating >= forloop.counter %}bg-gradient-to-br from-yellow-400 to-amber-500 text-white shadow-md{% else %}bg-gray-200 text-gray-600 hover:bg-yellow-400 hover:text-white{% endif %}">
                                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                                     <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
@@ -428,7 +467,21 @@
                         {% else %}
                         <p class="text-center text-sm text-gray-500">Not rated yet - click to rate</p>
                         {% endif %}
+                    </form>
+                    {% else %}
+                    <div class="space-y-3">
+                        <div class="flex justify-center space-x-2">
+                            {% for i in "12345" %}
+                            <div class="w-10 h-10 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                                </svg>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <p class="text-center text-sm text-gray-500">Rating available once application is linked.</p>
                     </div>
+                    {% endif %}
                 </div>
 
                 <!-- Notes -->
@@ -444,13 +497,22 @@
                         <p class="text-gray-700">{{ result.notes }}</p>
                     </div>
                     {% endif %}
-                    <form method="post" class="space-y-3">
+                    {% if result.application %}
+                    <form id="screening-note-form" data-url="{% url 'applications:ajax_add_note' result.application.pk %}" action="{% url 'applications:add_note' result.application.pk %}?next={% url 'screening:result_detail' result_id=result.pk %}" method="post" class="space-y-3">
                         {% csrf_token %}
                         <textarea name="note" rows="3" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-colors" placeholder="Add a note about this candidate..."></textarea>
+                        <div class="flex items-center space-x-2">
+                            <input type="checkbox" name="is_important" id="note-important" class="form-checkbox rounded text-blue-600 focus:ring-blue-500">
+                            <label for="note-important" class="text-sm text-gray-600">Mark as important</label>
+                        </div>
                         <button type="submit" class="w-full px-4 py-2 bg-gradient-to-r from-primary to-secondary text-white rounded-xl font-semibold shadow-md hover:shadow-lg transition-all">
                             Add Note
                         </button>
+                        <p id="screening-note-feedback" class="text-xs text-green-600"></p>
                     </form>
+                    {% else %}
+                    <p class="text-sm text-gray-500">Notes can be added once the application is linked.</p>
+                    {% endif %}
                 </div>
 
                 <!-- Session Info -->
@@ -499,3 +561,114 @@
     </div>
 </div>
 {% endblock %}
+
+{% if result.application %}
+<script>
+(function() {
+    const getCookie = name => {
+        const cookies = document.cookie.split(';').map(c => c.trim());
+        for (const cookie of cookies) {
+            if (cookie.startsWith(name + '=')) {
+                return decodeURIComponent(cookie.slice(name.length + 1));
+            }
+        }
+        return '';
+    };
+
+    const csrfToken = getCookie('csrftoken');
+
+    const shortlistButtons = document.querySelectorAll('[data-shortlist-url]');
+    const shortlistStatus = document.getElementById('shortlist-status');
+    const shortlistedClasses = ['bg-gradient-to-r', 'from-blue-100', 'to-indigo-100', 'text-blue-800', 'border', 'border-blue-200'];
+    const unshortlistedClasses = ['bg-gray-100', 'text-gray-700', 'hover:bg-blue-100', 'hover:text-blue-800', 'hover:border-blue-200'];
+
+    const updateShortlistButtons = (isShortlisted) => {
+        shortlistButtons.forEach((btn) => {
+            btn.dataset.shortlisted = isShortlisted ? 'true' : 'false';
+            const label = btn.querySelector('.shortlist-label');
+            if (label) {
+                label.textContent = isShortlisted ? 'Remove from Shortlist' : 'Add to Shortlist';
+            }
+            if (btn.classList.contains('js-shortlist-style')) {
+                if (isShortlisted) {
+                    btn.classList.remove(...unshortlistedClasses);
+                    btn.classList.add(...shortlistedClasses);
+                } else {
+                    btn.classList.remove(...shortlistedClasses);
+                    btn.classList.add(...unshortlistedClasses);
+                }
+            }
+        });
+    };
+
+    shortlistButtons.forEach((btn) => {
+        btn.addEventListener('click', async (event) => {
+            event.preventDefault();
+            const url = btn.dataset.shortlistUrl;
+            if (!url) {
+                return;
+            }
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'Accept': 'application/json'
+                    },
+                    credentials: 'same-origin'
+                });
+                const data = await response.json();
+                if (data.success) {
+                    updateShortlistButtons(data.is_shortlisted);
+                    if (shortlistStatus) {
+                        shortlistStatus.textContent = data.is_shortlisted ? 'Candidate added to shortlist.' : 'Candidate removed from shortlist.';
+                    }
+                } else if (shortlistStatus) {
+                    shortlistStatus.textContent = data.message || 'Unable to update shortlist status.';
+                }
+            } catch (err) {
+                console.error(err);
+                if (shortlistStatus) {
+                    shortlistStatus.textContent = 'Unable to update shortlist right now.';
+                }
+            }
+        });
+    });
+
+    const noteForm = document.getElementById('screening-note-form');
+    const noteFeedback = document.getElementById('screening-note-feedback');
+    if (noteForm) {
+        noteForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const url = noteForm.dataset.url;
+            const formData = new FormData(noteForm);
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'Accept': 'application/json'
+                    },
+                    credentials: 'same-origin',
+                    body: formData
+                });
+                const data = await response.json();
+                if (data.success) {
+                    if (noteFeedback) {
+                        noteFeedback.textContent = 'Note added successfully.';
+                    }
+                    noteForm.reset();
+                } else if (noteFeedback) {
+                    noteFeedback.textContent = data.message || 'Unable to save note.';
+                }
+            } catch (err) {
+                console.error(err);
+                if (noteFeedback) {
+                    noteFeedback.textContent = 'Unable to save note right now.';
+                }
+            }
+        });
+    }
+})();
+</script>
+{% endif %}

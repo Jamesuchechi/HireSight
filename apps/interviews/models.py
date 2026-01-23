@@ -160,6 +160,10 @@ class Interview(models.Model):
         blank=True,
         help_text='Notes added after interview completion'
     )
+    no_show_contacted_candidate = models.BooleanField(
+        default=False,
+        help_text='Whether the recruiter tried contacting the candidate before marking no-show'
+    )
     
     # Rating and feedback (post-interview)
     interview_rating = models.PositiveIntegerField(
@@ -360,7 +364,7 @@ class Interview(models.Model):
     def get_calendar_event_url(self):
         """Generate Google Calendar event URL"""
         from urllib.parse import urlencode
-        
+
         params = {
             'action': 'TEMPLATE',
             'text': f"Interview: {self.application.job.title}",
@@ -370,6 +374,38 @@ class Interview(models.Model):
         }
         
         return f"https://calendar.google.com/calendar/render?{urlencode(params)}"
+
+    def to_archive_payload(self):
+        """Serialize the interview payload for long term archives"""
+        return {
+            'interview_type': self.interview_type,
+            'status': self.status,
+            'scheduled_date': self.scheduled_date.isoformat() if self.scheduled_date else None,
+            'duration_minutes': self.duration_minutes,
+            'timezone_name': self.timezone_name,
+            'location': self.location,
+            'video_link': self.video_link,
+            'dial_in_number': self.dial_in_number,
+            'interviewer_name': self.interviewer_name,
+            'interviewer_email': self.interviewer_email,
+            'additional_interviewers': self.additional_interviewers,
+            'company_notes': self.company_notes,
+            'candidate_instructions': self.candidate_instructions,
+            'completion_notes': self.completion_notes,
+            'interview_rating': self.interview_rating,
+            'interviewer_feedback': self.interviewer_feedback,
+            'reminder_24h_sent': self.reminder_24h_sent,
+            'reminder_1h_sent': self.reminder_1h_sent,
+            'cancellation_reason': self.cancellation_reason,
+            'cancelled_at': self.cancelled_at.isoformat() if self.cancelled_at else None,
+            'original_scheduled_date': self.original_scheduled_date.isoformat() if self.original_scheduled_date else None,
+            'reschedule_count': self.reschedule_count,
+            'candidate_response': self.candidate_response,
+            'proposed_times': self.proposed_times,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            'no_show_contacted_candidate': self.no_show_contacted_candidate,
+        }
 
 
 class InterviewFeedbackTemplate(models.Model):
@@ -396,3 +432,75 @@ class InterviewFeedbackTemplate(models.Model):
 
     def __str__(self):
         return f"{self.company} / {self.name}"
+
+
+class InterviewActivityLog(models.Model):
+    """Audit log of interview-level actions that need historical tracking."""
+
+    class ActionChoices(models.TextChoices):
+        RESCHEDULED = 'RESCHEDULED', 'Rescheduled'
+        CANCELLED = 'CANCELLED', 'Cancelled'
+        NO_SHOW = 'NO_SHOW', 'No Show'
+        COMPLETED = 'COMPLETED', 'Completed'
+
+    interview = models.ForeignKey(
+        Interview,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='activity_logs'
+    )
+    action = models.CharField(
+        max_length=20,
+        choices=ActionChoices.choices,
+        help_text='Type of interview action'
+    )
+    notes = models.TextField(
+        blank=True,
+        help_text='Optional notes describing the event'
+    )
+    metadata = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text='Structured metadata for the logged event'
+    )
+    recorded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='interview_activity_logs'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+
+class ArchivedInterview(models.Model):
+    """Lightweight archive record for interviews older than a retention window."""
+
+    interview_id = models.UUIDField(primary_key=True, editable=False)
+    application = models.ForeignKey(
+        Application,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='archived_interviews'
+    )
+    company = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='archived_interviews'
+    )
+    job_title = models.CharField(max_length=255)
+    applicant_email = models.EmailField()
+    status = models.CharField(max_length=20, choices=Interview.InterviewStatus.choices)
+    scheduled_date = models.DateTimeField(null=True, blank=True)
+    archived_at = models.DateTimeField(auto_now_add=True)
+    payload = models.JSONField()
+
+    class Meta:
+        ordering = ['-archived_at']

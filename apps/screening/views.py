@@ -145,6 +145,72 @@ def _resolve_nested_value(source, path, default=0):
     return current if current is not None else default
 
 
+def _safe_percent(value, already_percent=False):
+    """Clamp numeric values to a 0-100 percentage."""
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        return 0.0
+    percent = numeric if already_percent else numeric * 100
+    return max(0.0, min(percent, 100.0))
+
+
+def _criteria_weight(criteria, field, default):
+    """Safely read a criteria weight (0-1)."""
+    if not criteria:
+        return max(0.0, min(default, 1.0))
+    value = getattr(criteria, field, default)
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        numeric = default
+    return max(0.0, min(numeric, 1.0))
+
+
+def _normalize_screening_answers(answer_list):
+    """Ensure screening answers expose a consistent question/answer display."""
+    normalized = []
+    for item in answer_list or []:
+        if not isinstance(item, dict):
+            continue
+        clean = item.copy()
+        clean['display_question'] = (
+            clean.get('question')
+            or clean.get('question_text')
+            or clean.get('label')
+            or "Question"
+        )
+        clean['display_answer'] = (
+            clean.get('answer')
+            or clean.get('response')
+            or clean.get('value')
+        )
+        normalized.append(clean)
+    return normalized
+
+
+def _analysis_percent(details, key):
+    """Extract a percentage from a stored analysis block."""
+    if not isinstance(details, dict):
+        return 0.0
+    block = details.get(key)
+    if isinstance(block, dict):
+        # Check for nested 'score' field in screening_answers_analysis and assessments_analysis
+        if key in ['screening_answers_analysis', 'assessments_analysis']:
+            value = block.get('score')
+        else:
+            value = block.get('overall_score')
+            if value is None:
+                value = block.get('score')
+        if value is None:
+            value = block.get('value')
+    else:
+        value = block
+    if value is None:
+        return 0.0
+    return _safe_percent(value, already_percent=True)
+
+
 def queue_screening_for_session(session, requeue_pending=False, applications=None):
     """Create screening results for job applications and queue processing tasks."""
     response = {
@@ -1034,46 +1100,58 @@ class ScreeningResultDetailView(LoginRequiredMixin, CompanyOnlyMixin, DetailView
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         result = self.object
+        criteria = getattr(result.session, 'criteria', None)
         
         # Add note form
         context['note_form'] = ScreeningResultNoteForm()
+        context['screening_answers'] = _normalize_screening_answers(result.screening_answers)
         
         # Parse match details
         context['match_details'] = result.match_details
         details = result.match_details or {}
+        screening_percent = _analysis_percent(details, 'screening_answers_analysis')
+        assessments_percent = _analysis_percent(details, 'assessments_analysis')
+        experience_percent = _safe_percent(_resolve_nested_value(details, 'experience_match', 0))
+        education_percent = _safe_percent(_resolve_nested_value(details, 'education_match', 0))
+        semantic_percent = _safe_percent(_resolve_nested_value(details, 'semantic_similarity', 0))
+        context['match_overview'] = {
+            'experience': experience_percent,
+            'education': education_percent,
+            'semantic': semantic_percent
+        }
         context['match_metrics'] = [
             {
                 'label': 'Skills',
-                'value': _resolve_nested_value(details, 'skills_match.score', 0) * 100,
+                'value': _safe_percent(_resolve_nested_value(details, 'skills_match.score', 0), already_percent=True),
                 'color': 'bg-green-500'
             },
             {
                 'label': 'Experience',
-                'value': _resolve_nested_value(details, 'experience_match', 0) * 100,
+                'value': _safe_percent(_resolve_nested_value(details, 'experience_match', 0)),
                 'color': 'bg-blue-500'
             },
             {
                 'label': 'Education',
-                'value': _resolve_nested_value(details, 'education_match', 0) * 100,
+                'value': _safe_percent(_resolve_nested_value(details, 'education_match', 0)),
                 'color': 'bg-purple-500'
             },
             {
                 'label': 'Screening Answers',
-                'value': _resolve_nested_value(details, 'screening_answers_analysis.score', 0) * 100,
+                'value': screening_percent,
                 'color': 'bg-indigo-500'
             },
             {
                 'label': 'Assessments',
-                'value': _resolve_nested_value(details, 'assessments_analysis.score', 0) * 100,
+                'value': assessments_percent,
                 'color': 'bg-emerald-500'
             }
         ]
         context['match_weights'] = {
-            'skills': _resolve_nested_value(details, 'skills_match.score', 0.4) * 100,
-            'experience': _resolve_nested_value(details, 'experience_match', 0.2) * 100,
-            'education': _resolve_nested_value(details, 'education_match', 0.2) * 100,
-            'screening': _resolve_nested_value(details, 'screening_answers_analysis.score', 0.1) * 100,
-            'assessments': _resolve_nested_value(details, 'assessments_analysis.score', 0.1) * 100
+            'skills': _criteria_weight(criteria, 'weight_skills', 0.4) * 100,
+            'experience': _criteria_weight(criteria, 'weight_experience', 0.2) * 100,
+            'education': _criteria_weight(criteria, 'weight_education', 0.2) * 100,
+            'screening': _criteria_weight(criteria, 'weight_screening_questions', 0.1) * 100,
+            'assessments': _criteria_weight(criteria, 'weight_assessments', 0.1) * 100
         }
         
         # Get resume data if available
@@ -1085,12 +1163,11 @@ class ScreeningResultDetailView(LoginRequiredMixin, CompanyOnlyMixin, DetailView
             try:
                 from .mistral_client import mistral_client
                 if mistral_client.is_available():
-                    # Get required skills from criteria
-                    criteria = result.session.criteria
+                    required_skills = criteria.required_skills if criteria else []
                     
                     context['interview_questions'] = mistral_client.generate_interview_questions(
                         job_title=result.job.title if result.job else "General Position",
-                        required_skills=criteria.required_skills,
+                        required_skills=required_skills,
                         experience_level="senior",  # You can make this dynamic
                         num_questions=5
                     )
@@ -1554,7 +1631,7 @@ class ScreeningAnalyticsView(LoginRequiredMixin, CompanyOnlyMixin, ScreeningOwne
     model = ScreeningSession
     template_name = 'screening/analytics.html'
     context_object_name = 'screening_session'
-    pk_url_kwarg = 'pk'  
+    pk_url_kwarg = 'session_id'
 
     def get_queryset(self):
         qs = super().get_queryset()

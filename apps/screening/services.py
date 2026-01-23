@@ -128,26 +128,41 @@ class ApplicationDataService:
             resume = application.resume or Resume.objects.filter(user=applicant, is_primary=True).first()
             resume_text = cls.extract_resume_text(resume)
 
-            raw_answers = application.screening_answers or []
+            raw_answers = application.screening_answers or {}
             normalized_answers = []
 
+            job_questions = getattr(application.job, 'screening_questions', []) or []
+            question_map = {
+                str(question.get('id')): question
+                for question in job_questions
+                if question
+            }
+
             if isinstance(raw_answers, dict):
-                # Some legacy applications store answers under nested keys.
-                answers_payload = raw_answers.get('answers') or raw_answers.get('questions') or raw_answers
+                for question_id, answer_text in raw_answers.items():
+                    question_meta = question_map.get(str(question_id), {})
+                    normalized_answers.append({
+                        'question': (
+                            question_meta.get('text')
+                            or question_meta.get('label')
+                            or f"Question {question_id}"
+                        ),
+                        'answer': answer_text,
+                        'question_type': question_meta.get('type') or 'text'
+                    })
             else:
                 answers_payload = raw_answers
+                if isinstance(answers_payload, dict):
+                    answers_payload = list(answers_payload.values())
 
-            if isinstance(answers_payload, dict):
-                answers_payload = list(answers_payload.values())
-
-            for entry in answers_payload or []:
-                if not isinstance(entry, dict):
-                    continue
-                normalized_answers.append({
-                    'question': entry.get('question_text') or entry.get('question') or entry.get('label'),
-                    'answer': entry.get('answer') or entry.get('response') or entry.get('value'),
-                    'question_type': entry.get('type') or entry.get('question_type') or 'text'
-                })
+                for entry in answers_payload or []:
+                    if not isinstance(entry, dict):
+                        continue
+                    normalized_answers.append({
+                        'question': entry.get('question_text') or entry.get('question') or entry.get('label'),
+                        'answer': entry.get('answer') or entry.get('response') or entry.get('value'),
+                        'question_type': entry.get('type') or entry.get('question_type') or 'text'
+                    })
 
             assessment_results = []
             attempts = SkillAssessmentAttempt.objects.filter(

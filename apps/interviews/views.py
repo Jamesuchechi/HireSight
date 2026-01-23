@@ -526,6 +526,8 @@ class InterviewNoShowView(LoginRequiredMixin, CompanyRequiredMixin, FormView):
         """Mark as no-show"""
         self.interview.status = Interview.InterviewStatus.NO_SHOW
         self.interview.completion_notes = form.cleaned_data['no_show_notes']
+        self.interview.no_show_contacted_candidate = form.cleaned_data['contacted_candidate']
+        self.interview._activity_actor = self.request.user
         self.interview.save()
         
         messages.warning(self.request, "Candidate marked as no-show.")

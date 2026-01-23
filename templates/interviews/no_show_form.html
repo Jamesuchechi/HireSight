@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block title %}Mark Candidate No-Show{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-slate-50">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div class="bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden">
+            <div class="px-6 py-8 border-b border-slate-100 bg-gradient-to-r from-rose-500 to-pink-500 text-white">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div>
+                        {% url 'interviews:detail' interview.id as interview_detail_url %}
+                        {% include 'components/back_button.html' with fallback_url=interview_detail_url label='Back to Interview' %}
+                        <h1 class="text-3xl font-semibold">Mark Interview No-Show</h1>
+                        <p class="mt-2 text-sm opacity-90">
+                            {{ interview.application.applicant.get_full_name }} · {{ interview.application.job.title }}
+                        </p>
+                    </div>
+                    <div class="text-right text-xs uppercase tracking-[0.4em] text-white/80">
+                        {{ interview.get_status_display }} · {{ interview.scheduled_date|date:"M d, Y" }}
+                    </div>
+                </div>
+            </div>
+
+            <form method="post" class="px-6 py-8 space-y-8">
+                {% csrf_token %}
+                {{ form.non_field_errors }}
+
+                <section class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-lg font-semibold text-slate-900">Record the outcome</h2>
+                            <p class="text-sm text-slate-500">Provide context for the no-show so stakeholders can follow up.</p>
+                        </div>
+                        <span class="text-xs text-rose-500 font-semibold">Audit log maintained</span>
+                    </div>
+                    <div>
+                        {{ form.no_show_notes }}
+                        {{ form.no_show_notes.errors }}
+                    </div>
+                </section>
+
+                <section class="grid gap-4 md:grid-cols-2">
+                    <div class="bg-slate-50 rounded-2xl border border-slate-200 p-4 space-y-2 text-sm text-slate-600">
+                        <p class="font-semibold text-slate-900">Candidate details</p>
+                        <p>{{ interview.application.applicant.email }}</p>
+                        <p>{{ interview.application.job.company.company_name }}</p>
+                    </div>
+                    <div class="bg-slate-50 rounded-2xl border border-slate-200 p-4 space-y-2 text-sm text-slate-600">
+                        <p class="font-semibold text-slate-900">Scheduled slot</p>
+                        <p>{{ interview.scheduled_date|date:"M d, Y" }}</p>
+                        <p>{{ interview.scheduled_date|time:"h:i A" }} · {{ interview.timezone_name }}</p>
+                    </div>
+                </section>
+
+                <section class="space-y-3">
+                    <h3 class="text-sm font-semibold text-slate-500 uppercase tracking-wider">Candidate contact</h3>
+                    <p class="text-sm text-slate-600">Confirm you reached out before marking as a no-show.</p>
+                    <div class="flex items-center gap-2">
+                        {{ form.contacted_candidate }}
+                        <label class="text-sm text-slate-700">I attempted to contact the candidate</label>
+                    </div>
+                    {{ form.contacted_candidate.errors }}
+                </section>
+
+                <section class="grid gap-4 lg:grid-cols-2">
+                    <div class="bg-white rounded-2xl border border-dashed border-slate-200 p-4 text-xs text-slate-500 space-y-2">
+                        <p class="font-semibold text-slate-900 text-sm">Impact</p>
+                        <p>Notifications are sent via the interview detail timeline.</p>
+                        <p>Reminders stop automatically for no-show statuses.</p>
+                    </div>
+                    <div class="bg-white rounded-2xl border border-dashed border-slate-200 p-4 text-xs text-slate-500 space-y-2">
+                        <p class="font-semibold text-slate-900 text-sm">Next steps</p>
+                        <p>Follow up with the candidate to understand what happened.</p>
+                        <p>Reschedule only once you've confirmed availability.</p>
+                    </div>
+                </section>
+
+                <div class="flex flex-col sm:flex-row gap-4 items-center">
+                    <button type="submit" class="w-full sm:w-auto px-6 py-3 bg-rose-600 text-white rounded-2xl font-semibold shadow hover:bg-rose-700 transition-all">
+                        Confirm No-Show
+                    </button>
+                    <a href="{% url 'interviews:detail' interview.id %}" class="text-sm text-slate-500 hover:text-slate-900">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -8,7 +8,7 @@ from django.conf import settings
 from celery import shared_task
 import logging
 
-from .models import Interview
+from .models import Interview, ArchivedInterview
 
 logger = logging.getLogger(__name__)
 
@@ -408,23 +408,42 @@ def cleanup_old_interviews():
     Archive or cleanup very old completed/cancelled interviews
     Runs monthly via Celery Beat
     """
-    cutoff_date = timezone.now() - timedelta(days=365)  # 1 year ago
-    
+    retention_days = getattr(settings, 'INTERVIEW_RETENTION_DAYS', 365)
+    cutoff_date = timezone.now() - timedelta(days=retention_days)
+
     old_interviews = Interview.objects.filter(
         scheduled_date__lt=cutoff_date,
         status__in=[Interview.InterviewStatus.COMPLETED, Interview.InterviewStatus.CANCELLED]
     )
-    
-    count = old_interviews.count()
-    
-    # In production, you might want to archive to a separate table
-    # For now, we'll just log
-    logger.info(f"Found {count} interviews older than 1 year")
-    
-    # Optionally delete very old cancelled interviews
-    # old_cancelled = old_interviews.filter(status=Interview.InterviewStatus.CANCELLED)
-    # deleted = old_cancelled.delete()
-    # logger.info(f"Deleted {deleted[0]} old cancelled interviews")
+
+    archived_count = 0
+    archived_ids = []
+
+    for interview in old_interviews:
+        company_user = getattr(interview.application.job.company, 'user', None)
+        ArchivedInterview.objects.update_or_create(
+            interview_id=interview.id,
+            defaults={
+                'application': interview.application,
+                'company': company_user,
+                'job_title': interview.application.job.title,
+                'applicant_email': interview.application.applicant.email,
+                'status': interview.status,
+                'scheduled_date': interview.scheduled_date,
+                'payload': interview.to_archive_payload(),
+            }
+        )
+        archived_count += 1
+        archived_ids.append(interview.id)
+
+    deleted_rows = 0
+    if archived_ids:
+        deleted_rows, _ = Interview.objects.filter(id__in=archived_ids).delete()
+
+    logger.info(
+        f"Archived {archived_count} old interviews ({retention_days}-day retention); "
+        f"deleted {deleted_rows} records."
+    )
 
 
 @shared_task

@@ -370,6 +370,7 @@ class AIScreener:
             Match score and detailed analysis
         """
         criteria = criteria or {}
+        required_skills = criteria.get('required_skills', [])
         
         # Try Mistral AI first
         if self.use_mistral:
@@ -381,18 +382,52 @@ class AIScreener:
                 )
                 
                 # Convert to our format
+                details = {
+                    'semantic_similarity': match_data.get('overall_score', 0) / 100,
+                    'skills_match': match_data.get('skills_match', {}),
+                    'experience_match': match_data.get('experience_match', {}).get('score', 0) / 100,
+                    'education_match': match_data.get('education_match', {}).get('score', 0) / 100,
+                    'strengths': match_data.get('strengths', []),
+                    'weaknesses': match_data.get('weaknesses', []),
+                    'recommendation': match_data.get('recommendation', ''),
+                    'detailed_analysis': match_data.get('detailed_analysis', '')
+                }
+
+                if application_data:
+                    screening_eval = self.evaluate_screening_answers(
+                        application_data.get('screening_answers', []),
+                        criteria.get('screening_questions_config', {}) or {}
+                    )
+                    screening_analysis = dict(screening_eval)
+                    screening_analysis['score'] = screening_eval.get('overall_score', screening_analysis.get('score', 0))
+
+                    assessment_eval = self.evaluate_assessments(
+                        application_data.get('assessment_results', []),
+                        required_skills
+                    )
+                    assessments_analysis = dict(assessment_eval)
+                    assessments_analysis['score'] = assessment_eval.get('overall_score', assessments_analysis.get('score', 0))
+                else:
+                    screening_analysis = {
+                        'score': 0.0,
+                        'answers_reviewed': 0,
+                        'strengths': [],
+                        'concerns': []
+                    }
+                    assessments_analysis = {
+                        'score': 0.0,
+                        'tests_taken': 0,
+                        'skills_validated': [],
+                        'skills_missing': [],
+                        'recommendations': []
+                    }
+
+                details['screening_answers_analysis'] = screening_analysis
+                details['assessments_analysis'] = assessments_analysis
+
                 return {
                     'match_score': match_data.get('overall_score', 0),
-                    'match_details': {
-                        'semantic_similarity': match_data.get('overall_score', 0) / 100,
-                        'skills_match': match_data.get('skills_match', {}),
-                        'experience_match': match_data.get('experience_match', {}).get('score', 0) / 100,
-                        'education_match': match_data.get('education_match', {}).get('score', 0) / 100,
-                        'strengths': match_data.get('strengths', []),
-                        'weaknesses': match_data.get('weaknesses', []),
-                        'recommendation': match_data.get('recommendation', ''),
-                        'detailed_analysis': match_data.get('detailed_analysis', '')
-                    }
+                    'match_details': details
                 }
             except MistralAIError as e:
                 logger.warning(f"Mistral AI match calculation failed: {e}, using fallback")
@@ -496,13 +531,14 @@ class AIScreener:
                 criteria.get('screening_questions_config', {}) or {}
             )
             screening_answers_score = screening_eval.get('overall_score', 50) / 100
-            screening_analysis = screening_eval
+            screening_analysis = dict(screening_eval)
+            screening_analysis['score'] = screening_eval.get('overall_score', screening_analysis.get('score', 0))
 
             assessment_results = application_data.get('assessment_results', [])
             assessment_eval = self.evaluate_assessments(assessment_results, required_skills)
             assessments_score = assessment_eval.get('overall_score', 0) / 100
             assessments_analysis.update({
-                'score': assessments_score,
+                'score': assessment_eval.get('overall_score', 0),
                 'tests_taken': assessment_eval.get('tests_taken', 0),
                 'skills_validated': assessment_eval.get('skills_validated', []),
                 'skills_missing': assessment_eval.get('skills_missing', []),
@@ -538,7 +574,9 @@ class AIScreener:
                 semantic_score * weights['semantic'] +
                 skills_score * weights['skills'] +
                 exp_score * weights['experience'] +
-                edu_score * weights['education']
+                edu_score * weights['education'] +
+                screening_answers_score * criteria.get('weight_screening_questions', 0.1) +
+                assessments_score * criteria.get('weight_assessments', 0.1)
             ) * 100
 
         details = {

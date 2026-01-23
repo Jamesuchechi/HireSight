@@ -2,7 +2,7 @@ from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from django.utils import timezone
 
-from .models import Interview
+from .models import Interview, InterviewActivityLog
 from apps.applications.models import ApplicationStatus
 
 
@@ -70,9 +70,19 @@ def update_application_status_on_interview_save(sender, instance, created, **kwa
     
     # When candidate is marked as no-show
     elif instance.status == Interview.InterviewStatus.NO_SHOW:
-        # Add a note or flag to the application
-        # This could affect future interview scheduling
-        pass
+        metadata = {
+            'candidate_response': instance.candidate_response,
+            'contacted_candidate': getattr(instance, 'no_show_contacted_candidate', False),
+            'reschedule_count': instance.reschedule_count,
+        }
+        actor = getattr(instance, '_activity_actor', None)
+        InterviewActivityLog.objects.create(
+            interview=instance,
+            action=InterviewActivityLog.ActionChoices.NO_SHOW,
+            notes=instance.completion_notes,
+            metadata=metadata,
+            recorded_by=actor
+        )
 
 
 @receiver(post_save, sender=Interview)
