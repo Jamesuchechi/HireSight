@@ -3,6 +3,10 @@ from django.dispatch import receiver
 from django.utils import timezone
 
 from .models import Interview, InterviewActivityLog
+from .models import InterviewPracticeSession
+from django.core.cache import cache
+import json
+import hashlib
 from apps.applications.models import ApplicationStatus
 
 
@@ -145,4 +149,26 @@ def create_notification_on_interview_action(sender, instance, created, **kwargs)
     
     except ImportError:
         # Notifications app not installed, skip
+        pass
+
+
+@receiver(post_save, sender=InterviewPracticeSession)
+def clear_practice_session_cache(sender, instance, **kwargs):
+    """Clear related AI cache entries when a practice session is updated."""
+    # Clear report cache
+    try:
+        cache.delete(f"ai:report:session:{instance.id}")
+    except Exception:
+        pass
+
+    # Clear question generation cache for this session settings if present
+    try:
+        key_source = json.dumps({
+            'candidate': getattr(instance.candidate, 'id', None),
+            'application': getattr(instance.application, 'id', None),
+            'settings': instance.settings or {}
+        }, sort_keys=True, default=str)
+        cache_key = 'ai:questions:' + hashlib.sha256(key_source.encode('utf-8')).hexdigest()
+        cache.delete(cache_key)
+    except Exception:
         pass

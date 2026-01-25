@@ -105,6 +105,14 @@ class ScreeningProgressConsumer(AsyncWebsocketConsumer):
             'error_code': event.get('error_code')
         }))
     
+    async def result_update(self, event):
+        """Handle result update notification"""
+        await self.send(text_data=json.dumps({
+            'type': 'result_update',
+            'result': event['result'],
+            'timestamp': event.get('timestamp')
+        }))
+    
     @database_sync_to_async
     def user_has_screening_access(self, screening_id):
         """Verify user has access to this screening"""

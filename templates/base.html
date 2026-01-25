@@ -428,6 +428,19 @@
                             {{ request.user.get_full_name|slice:":2"|upper }}
                         </div>
                     {% endif %}
+                    <a href="{% url 'notifications:list' %}"
+                       class="relative inline-flex items-center justify-center w-10 h-10 rounded-lg bg-white border border-gray-200 text-gray-600 hover:text-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary shadow-sm">
+                        <span class="sr-only">Open notification center</span>
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+                        </svg>
+                        {% if unread_notifications_count %}
+                            <span class="absolute -top-1 -right-1 inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white bg-danger rounded-full">
+                                {{ unread_notifications_count }}
+                            </span>
+                        {% endif %}
+                    </a>
                     
                     <!-- Hamburger Menu Button -->
                     <button id="mobile-menu-toggle" 
@@ -844,27 +857,6 @@
 
             <!-- Main Content (Scrollable) -->
             <main class="flex-1 overflow-y-auto bg-gray-50 min-h-screen md:min-h-0">
-                <div class="md:hidden">
-                    <div class="fixed top-16 left-0 right-0 z-40 border-b border-gray-200 bg-gray-50 shadow-sm">
-                        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-end">
-                            <a href="{% url 'notifications:list' %}"
-                               class="relative inline-flex items-center justify-center w-10 h-10 rounded-full bg-white border border-gray-200 text-gray-600 hover:text-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary shadow-sm">
-                                <span class="sr-only">Open notification center</span>
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                          d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214
-                                          1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
-                                </svg>
-                                {% if unread_notifications_count %}
-                                    <span class="absolute -top-1 -right-1 inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white bg-danger rounded-full">
-                                        {{ unread_notifications_count }}
-                                    </span>
-                                {% endif %}
-                            </a>
-                        </div>
-                    </div>
-                    <div class="h-16"></div>
-                </div>
                 {% block content %}
                     {% block interview_content %}{% endblock %}
                 {% endblock %}
@@ -1253,7 +1245,50 @@
                 }
             });
         }
+    </script>
+    <script>
+    (function () {
+        // Mark notifications read when the user opens the dropdown (simple AJAX POST)
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+        }
+
+        const markAllUrl = "{% url 'notifications:mark_all_as_read' %}";
+        const csrftoken = getCookie('csrftoken');
+        const toggle = document.querySelector('[data-notification-toggle]');
+        if (!toggle) return;
+
+        toggle.addEventListener('click', () => {
+            // Small delay so Alpine can toggle the dropdown first
+            setTimeout(() => {
+                // If there is any unread badge visible, call mark-all-read
+                const badge = toggle.querySelector('span');
+                if (!badge) return;
+                const text = badge.textContent && badge.textContent.trim();
+                if (!text) return;
+                const n = parseInt(text, 10);
+                if (!n || n <= 0) return;
+
+                fetch(markAllUrl, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrftoken || '',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    credentials: 'same-origin',
+                }).then(() => {
+                    // hide any unread badges in the page
+                    document.querySelectorAll('[data-unread-badge]').forEach(el => el.style.display = 'none');
+                    document.querySelectorAll('.-top-1').forEach(el => el.style.display = 'none');
+                }).catch(() => {});
+            }, 120);
+        });
+    })();
+    </script>
         
+    <script>
         // Initialize Sidebar Toggle
         function initSidebarToggle() {
             const sidebar = document.getElementById('sidebar');
@@ -1391,7 +1426,7 @@
         }
         
         // Initialize when DOM is ready
-</script>
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <script>
         (function () {

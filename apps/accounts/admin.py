@@ -1,7 +1,18 @@
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.html import format_html
-from .models import User, PersonalProfile, CompanyProfile, EmailVerificationToken, PasswordResetToken, APIKey, ProfileView, UserSession, AccountDeletionLog
+from .models import (
+    User,
+    PersonalProfile,
+    CompanyProfile,
+    UserProfile,
+    EmailVerificationToken,
+    PasswordResetToken,
+    APIKey,
+    ProfileView,
+    UserSession,
+    AccountDeletionLog
+)
 
 
 @admin.register(User)
@@ -260,3 +271,66 @@ class AccountDeletionLogAdmin(admin.ModelAdmin):
     def has_change_permission(self, request, obj=None):
         """Disable editing deletion logs."""
         return False
+
+
+@admin.register(UserProfile)
+class UserProfileAdmin(admin.ModelAdmin):
+    """Admin view for user profiles with practice toggles."""
+
+    list_display = ['user_email', 'full_name', 'practice_enabled_badge', 'created_at']
+    list_filter = ['practice_enabled', 'created_at']
+    search_fields = ['user__email', 'full_name']
+    readonly_fields = ['created_at', 'updated_at']
+    actions = [
+        'enable_practice',
+        'disable_practice',
+        'enable_practice_for_premium_users'
+    ]
+
+    fieldsets = (
+        ('User', {'fields': ('user',)}),
+        ('Contact Info', {'fields': ('full_name', 'professional_title', 'phone', 'location')}),
+        ('Practice Controls', {'fields': ('practice_enabled',)}),
+        ('Timestamps', {'fields': ('created_at', 'updated_at')}),
+    )
+
+    def user_email(self, obj):
+        return obj.user.email
+    user_email.short_description = 'Email'
+    user_email.admin_order_field = 'user__email'
+
+    def practice_enabled_badge(self, obj):
+        if obj.practice_enabled:
+            color = '#10b981'
+            text = 'Enabled'
+        else:
+            color = '#ef4444'
+            text = 'Disabled'
+        return format_html(
+            '<span style="color: {}; font-weight:bold;">{}</span>',
+            color,
+            text
+        )
+    practice_enabled_badge.short_description = 'Practice Access'
+
+    def enable_practice(self, request, queryset):
+        updated = queryset.update(practice_enabled=True)
+        self.message_user(request, f'Practice enabled for {updated} profile(s).')
+    enable_practice.short_description = 'Enable practice for selected profiles'
+
+    def disable_practice(self, request, queryset):
+        updated = queryset.update(practice_enabled=False)
+        self.message_user(request, f'Practice disabled for {updated} profile(s).')
+    disable_practice.short_description = 'Disable practice for selected profiles'
+
+    def enable_practice_for_premium_users(self, request, queryset):
+        premium_ids = [
+            profile.id for profile in queryset
+            if getattr(profile, 'is_premium', False)
+        ]
+        if not premium_ids:
+            self.message_user(request, 'No premium user profiles found in selection.', level=messages.INFO)
+            return
+        updated = queryset.filter(id__in=premium_ids).update(practice_enabled=True)
+        self.message_user(request, f'Enabled practice for {updated} premium profile(s).')
+    enable_practice_for_premium_users.short_description = 'Enable practice for premium users'

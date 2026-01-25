@@ -1,26 +1,41 @@
+import json
+
 from django.shortcuts import get_object_or_404, redirect
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib import messages
 from django.urls import reverse_lazy, reverse
 from django.utils import timezone
 from django.views.generic import (
-    CreateView, UpdateView, DeleteView, DetailView, ListView, FormView, TemplateView
+    CreateView, DetailView, ListView, TemplateView, View, FormView
 )
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 from django.db.models import Q, Prefetch, Count, Avg
 from django.db.models.functions import TruncWeek
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.core.exceptions import PermissionDenied
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
+from django.conf import settings
+import os
+import uuid
 
-from .models import Interview
+from .models import (
+    Interview, InterviewPracticeSession, PracticeQuestion,
+    PracticeResponse, PracticePerformanceReport
+)
 from .forms import (
     InterviewScheduleForm, InterviewRescheduleForm, InterviewCancelForm,
     InterviewCompleteForm, InterviewNoShowForm, BulkInterviewActionForm,
-    InterviewResponseForm
+    InterviewResponseForm, PracticeSessionForm, PracticeResponseForm
 )
 from .tasks import (
     send_interview_invitation,
     send_interview_cancellation,
     send_candidate_reschedule_request_email,
+    generate_practice_questions,
+    analyze_practice_response,
+    generate_practice_report,
 )
 from apps.applications.models import Application, ApplicationStatus
 
@@ -33,6 +48,17 @@ class CompanyRequiredMixin(UserPassesTestMixin):
     
     def handle_no_permission(self):
         messages.error(self.request, "You need a company account to access this page.")
+        return redirect('dashboard:dashboard_home')
+
+
+class CandidateRequiredMixin(UserPassesTestMixin):
+    """Ensure user is a personal account."""
+
+    def test_func(self):
+        return self.request.user.is_authenticated and self.request.user.account_type == 'personal'
+
+    def handle_no_permission(self):
+        messages.error(self.request, "Only personal accounts can access interview practice.")
         return redirect('dashboard:dashboard_home')
 
 
@@ -697,3 +723,427 @@ class InterviewRespondView(LoginRequiredMixin, FormView):
 
     def get_success_url(self):
         return reverse('interviews:detail', kwargs={'interview_id': self.interview.id})
+
+
+class PracticeSessionMixin(CandidateRequiredMixin):
+    """Shared behavior for practice session views."""
+
+    session_kwarg = 'session_id'
+
+    def dispatch(self, request, *args, **kwargs):
+        self.session = get_object_or_404(
+            InterviewPracticeSession.objects.prefetch_related(
+                'questions__responses'
+            ).select_related('candidate', 'application__job'),
+            pk=self.kwargs[self.session_kwarg]
+        )
+        if self.session.candidate != request.user:
+            raise PermissionDenied("You can only view your own practice sessions.")
+        self.session.next_question = self.session.questions.order_by('order').first()
+        return super().dispatch(request, *args, **kwargs)
+
+
+class PracticeDashboardView(LoginRequiredMixin, CandidateRequiredMixin, TemplateView):
+    template_name = 'interviews/practice/practice_dashboard.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        sessions_qs = InterviewPracticeSession.objects.for_candidate(self.request.user).select_related('application__job').prefetch_related('questions')
+        sessions = list(sessions_qs)
+        for session in sessions:
+            session.next_question = session.questions.order_by('order').first()
+            session.has_report = hasattr(session, 'performance_report')
+        context['sessions'] = sessions
+        context['active_sessions'] = sum(
+            1 for s in sessions if s.status in {
+                InterviewPracticeSession.Status.CREATED,
+                InterviewPracticeSession.Status.IN_PROGRESS,
+                InterviewPracticeSession.Status.REVIEW_PENDING
+            }
+        )
+        return context
+
+
+class PracticeSessionCreateView(LoginRequiredMixin, CandidateRequiredMixin, CreateView):
+    model = InterviewPracticeSession
+    form_class = PracticeSessionForm
+    template_name = 'interviews/practice/create_practice_session.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        profile = getattr(request.user, 'profile', None)
+        if not profile or not profile.practice_enabled:
+            messages.error(request, "Practice sessions are currently disabled for your account.")
+            return redirect('dashboard:dashboard_home')
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['candidate'] = self.request.user
+        return kwargs
+
+    def form_valid(self, form):
+        form.instance.candidate = self.request.user
+        response = super().form_valid(form)
+        generate_practice_questions.delay(self.object.id)
+        messages.success(self.request, "Practice session created. Questions are being generated now.")
+        return response
+
+    def get_success_url(self):
+        return reverse('interviews:practice_dashboard')
+
+
+class PracticeQuestionView(LoginRequiredMixin, CandidateRequiredMixin, FormView):
+    template_name = 'interviews/practice/practice_question.html'
+    form_class = PracticeResponseForm
+
+    def dispatch(self, request, *args, **kwargs):
+        self.question = get_object_or_404(
+            PracticeQuestion.objects.select_related('session__candidate'),
+            pk=self.kwargs['question_id']
+        )
+        if self.question.session.candidate != request.user:
+            raise PermissionDenied("You can only answer your own practice questions.")
+        self.session = self.question.session
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['question'] = self.question
+        context['session'] = self.session
+        context['responses'] = self.question.responses.order_by('-submitted_at')
+        return context
+
+    def form_valid(self, form):
+        response = PracticeResponse.objects.create(
+            question=self.question,
+            session=self.session,
+            text_response=form.cleaned_data['text_response'],
+            video_url=form.cleaned_data['video_url']
+        )
+        analyze_practice_response.delay(response.id)
+        self.update_session_progress()
+        messages.success(self.request, "Response submitted. AI scoring is in progress.")
+        next_question = self.session.questions.filter(order__gt=self.question.order).order_by('order').first()
+        if next_question:
+            return redirect('interviews:practice_question', question_id=next_question.id)
+        generate_practice_report.delay(self.session.id)
+        return redirect('interviews:practice_feedback', session_id=self.session.id)
+
+    def update_session_progress(self):
+        total = self.session.questions.count()
+        answered = PracticeResponse.objects.filter(session=self.session).values('question').distinct().count()
+        progress = min(100, (answered / total) * 100) if total else 0
+        self.session.progress = progress
+        self.session.status = (
+            InterviewPracticeSession.Status.REVIEW_PENDING
+            if answered >= total and total > 0
+            else InterviewPracticeSession.Status.IN_PROGRESS
+        )
+        self.session.save(update_fields=['progress', 'status'])
+
+
+class PracticeFeedbackView(PracticeSessionMixin, TemplateView):
+    template_name = 'interviews/practice/practice_feedback.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['session'] = self.session
+        context['questions'] = self.session.questions.prefetch_related('responses')
+        context['report'] = getattr(self.session, 'performance_report', None)
+        responses = PracticeResponse.objects.filter(session=self.session, ai_score__isnull=False)
+        context['best_responses'] = responses.order_by('-ai_score')[:2]
+        context['worst_responses'] = responses.order_by('ai_score')[:2]
+        return context
+
+
+class PracticeReportView(PracticeSessionMixin, TemplateView):
+    template_name = 'interviews/practice/practice_report.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['session'] = self.session
+        context['report'] = getattr(self.session, 'performance_report', None)
+        return context
+
+
+@method_decorator(cache_page(60 * 15), name='dispatch')
+class CachedPracticeReportView(PracticeReportView):
+    """15-minute cached wrapper around practice report view."""
+    pass
+
+
+class PracticeReportRefreshView(PracticeSessionMixin, View):
+    def post(self, request, *args, **kwargs):
+        generate_practice_report.delay(self.session.id)
+        messages.info(request, "Report refresh requested. Check back shortly.")
+        return redirect('interviews:practice_report', session_id=self.session.id)
+
+
+class PracticeResponseAnalysisView(LoginRequiredMixin, CandidateRequiredMixin, View):
+    """Accept gaze/head metrics and detailed video analysis from the client and store them."""
+
+    def post(self, request, response_id):
+        try:
+            payload = json.loads(request.body.decode('utf-8'))
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+        response = get_object_or_404(
+            PracticeResponse.objects.select_related('session__candidate', 'question__session__candidate'),
+            pk=response_id
+        )
+        session = response.session or response.question.session
+        if session.candidate != request.user:
+            raise PermissionDenied("Cannot update another candidate's response.")
+
+        # Update basic metrics
+        response.gaze_direction = payload.get('gaze_direction', response.gaze_direction)
+        response.head_tilt = payload.get('head_tilt', response.head_tilt)
+        
+        attention = payload.get('attention_score')
+        if attention is not None:
+            response.attention_score = attention
+        
+        analysis = payload.get('analysis')
+        if analysis:
+            response.analysis = analysis
+        
+        # Store detailed video analysis metrics if provided
+        video_metrics = payload.get('video_analysis_metrics')
+        if video_metrics:
+            if not self._validate_metrics_structure(video_metrics):
+                return JsonResponse({
+                    'error': 'Invalid video_analysis_metrics structure'
+                }, status=400)
+            response.video_analysis_metrics = video_metrics
+        
+        response.save(update_fields=[
+            'gaze_direction',
+            'head_tilt',
+            'attention_score',
+            'analysis',
+            'video_analysis_metrics'
+        ])
+        
+        return JsonResponse({
+            'status': 'updated',
+            'message': 'Response and video analysis metrics updated successfully',
+            'response_id': str(response_id)
+        })
+    
+    @staticmethod
+    def _validate_metrics_structure(metrics):
+        """
+        Validate that the video_analysis_metrics have the expected structure.
+        
+        Expected structure:
+        {
+            "summary": {
+                "totalDuration": float,
+                "averageGazeAtCamera": float,
+                "averageBlinkRate": float,
+                "averageEyeOpenPercentage": float,
+                "speakingPercentage": float,
+                "averageHeadPose": {"pitch": float, "yaw": float, "roll": float},
+                "metricsCount": int
+            },
+            "detailed_metrics": [
+                {
+                    "timestamp": int,
+                    "secondsElapsed": float,
+                    "eyeOpenPercentage": float,
+                    "mouthOpenPercentage": float,
+                    "blinkRatePerMinute": float,
+                    "gazeAtCameraPercent": float,
+                    "headPose": {"pitch": float, "yaw": float, "roll": float},
+                    "speakingDetected": bool
+                }
+            ]
+        }
+        """
+        if not isinstance(metrics, dict):
+            return False
+        
+        # Validate summary section
+        summary = metrics.get('summary')
+        if not summary or not isinstance(summary, dict):
+            return False
+        
+        required_summary_fields = [
+            'totalDuration',
+            'averageGazeAtCamera',
+            'averageBlinkRate',
+            'averageEyeOpenPercentage',
+            'speakingPercentage',
+            'averageHeadPose',
+            'metricsCount'
+        ]
+        
+        for field in required_summary_fields:
+            if field not in summary:
+                return False
+        
+        # Validate head pose in summary
+        head_pose = summary.get('averageHeadPose')
+        if not isinstance(head_pose, dict):
+            return False
+        
+        for pose_field in ['pitch', 'yaw', 'roll']:
+            if pose_field not in head_pose:
+                return False
+        
+        # Validate detailed metrics if present
+        detailed = metrics.get('detailed_metrics', [])
+        if not isinstance(detailed, list):
+            return False
+        
+        for metric in detailed:
+            if not isinstance(metric, dict):
+                return False
+            
+            required_fields = [
+                'timestamp',
+                'secondsElapsed',
+                'eyeOpenPercentage',
+                'mouthOpenPercentage',
+                'blinkRatePerMinute',
+                'gazeAtCameraPercent',
+                'headPose',
+                'speakingDetected'
+            ]
+            
+            for field in required_fields:
+                if field not in metric:
+                    return False
+            
+            # Validate head pose in each metric
+            pose = metric.get('headPose')
+            if not isinstance(pose, dict):
+                return False
+            
+            for pose_field in ['pitch', 'yaw', 'roll']:
+                if pose_field not in pose:
+                    return False
+        
+        return True
+
+
+class PracticeVideoUploadView(LoginRequiredMixin, CandidateRequiredMixin, View):
+    """Accept chunked uploads for practice response videos, assemble and return final URL."""
+
+    def post(self, request, *args, **kwargs):
+        upload_id = request.POST.get('upload_id') or str(uuid.uuid4())
+        session_id = request.POST.get('session_id')
+        question_id = request.POST.get('question_id')
+        chunk_index = int(request.POST.get('chunk_index', 0))
+        total_chunks = int(request.POST.get('total_chunks', 1))
+        filename = request.POST.get('filename', 'upload.webm')
+
+        if 'chunk' not in request.FILES:
+            return JsonResponse({'error': 'No chunk provided'}, status=400)
+
+        # Save chunk to temporary upload dir
+        tmp_dir = os.path.join(getattr(settings, 'MEDIA_ROOT', 'media'), 'practice_uploads', upload_id)
+        os.makedirs(tmp_dir, exist_ok=True)
+        chunk_path = os.path.join(tmp_dir, f'chunk_{chunk_index:05d}')
+
+        with open(chunk_path, 'wb') as fh:
+            for chunk in request.FILES['chunk'].chunks():
+                fh.write(chunk)
+
+        # If last chunk, assemble
+        assembled_url = None
+        if chunk_index + 1 >= total_chunks:
+            # Assemble
+            assembled_bytes = bytearray()
+            for i in range(total_chunks):
+                part = os.path.join(tmp_dir, f'chunk_{i:05d}')
+                with open(part, 'rb') as pf:
+                    assembled_bytes.extend(pf.read())
+
+            final_name = f'practice_videos/{uuid.uuid4().hex}_{filename}'
+            saved_path = default_storage.save(final_name, ContentFile(bytes(assembled_bytes)))
+            assembled_url = default_storage.url(saved_path)
+
+            # Cleanup tmp
+            try:
+                for f in os.listdir(tmp_dir):
+                    os.remove(os.path.join(tmp_dir, f))
+                os.rmdir(tmp_dir)
+            except Exception:
+                pass
+
+            # Optionally schedule thumbnail generation (task exists in tasks.py?)
+            try:
+                from .tasks import generate_video_thumbnail
+                generate_video_thumbnail.delay(saved_path)
+            except Exception:
+                try:
+                    import sentry_sdk
+                    sentry_sdk.capture_exception(Exception('Failed to schedule thumbnail task'))
+                except Exception:
+                    pass
+
+            # Create a PracticeResponse record linking to the question/session
+            try:
+                session = None
+                question = None
+                if question_id:
+                    question = PracticeQuestion.objects.select_related('session__candidate').get(pk=question_id)
+                    session = question.session
+                elif session_id:
+                    session = InterviewPracticeSession.objects.select_related('candidate').get(pk=session_id)
+
+                # Ensure ownership
+                if session and session.candidate != request.user:
+                    return JsonResponse({'error': 'Permission denied for this session'}, status=403)
+
+                if session:
+                    response = PracticeResponse.objects.create(
+                        question=question,
+                        session=session,
+                        text_response='',
+                        video_url=assembled_url
+                    )
+
+                    # Kick off scoring/analysis for this response
+                    try:
+                        analyze_practice_response.delay(response.id)
+                    except Exception:
+                        pass
+
+                    # Update session progress
+                    try:
+                        total = session.questions.count()
+                        answered = PracticeResponse.objects.filter(session=session).values('question').distinct().count()
+                        progress = min(100, (answered / total) * 100) if total else 0
+                        session.progress = progress
+                        session.status = (
+                            InterviewPracticeSession.Status.REVIEW_PENDING
+                            if answered >= total and total > 0
+                            else InterviewPracticeSession.Status.IN_PROGRESS
+                        )
+                        session.save(update_fields=['progress', 'status'])
+
+                        # If all responses analyzed, schedule report generation (task will check)
+                        generate_practice_report.delay(session.id)
+                    except Exception:
+                        pass
+
+                    return JsonResponse({'upload_id': upload_id, 'video_url': assembled_url, 'response_id': response.id})
+            except PracticeQuestion.DoesNotExist as e:
+                try:
+                    import sentry_sdk
+                    sentry_sdk.capture_exception(e)
+                except Exception:
+                    pass
+                return JsonResponse({'error': 'Question not found'}, status=404)
+            except InterviewPracticeSession.DoesNotExist as e:
+                try:
+                    import sentry_sdk
+                    sentry_sdk.capture_exception(e)
+                except Exception:
+                    pass
+                return JsonResponse({'error': 'Session not found'}, status=404)
+
+        return JsonResponse({'upload_id': upload_id, 'video_url': assembled_url})

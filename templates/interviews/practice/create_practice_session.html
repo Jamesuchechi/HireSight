@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+
+{% block title %}Practice Session - Redirecting{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-slate-50">
+    <div class="text-center space-y-4">
+        <h1 class="text-2xl font-bold text-slate-900">Redirecting...</h1>
+        <p class="text-slate-600">This page has been deprecated. Redirecting to the new practice setup...</p>
+        <p class="text-sm text-slate-500">If not redirected automatically, <a href="{% url 'interviews:practice_create' %}" class="text-blue-600 hover:underline">click here</a>.</p>
+    </div>
+</div>
+
+<script>
+    // Redirect to new setup flow
+    window.location.href = "{% url 'interviews:practice_create' %}";
+</script>
+{% endblock %}

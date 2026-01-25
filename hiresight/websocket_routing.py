@@ -6,9 +6,17 @@ Maps WebSocket endpoints to consumer classes.
 from django.urls import re_path
 from apps.messaging import consumers as messaging_consumers
 from apps.screening import websocket_consumers
+from apps.interviews import websocket_consumers as interviews_consumers
 
 # WebSocket URL patterns
 websocket_urlpatterns = [
+    # Interview practice session progress
+    re_path(
+        r'ws/interview/session/(?P<session_id>\w+)/$',
+        interviews_consumers.SessionProgressConsumer.as_asgi(),
+        name='ws_session_progress'
+    ),
+    
     # Screening progress updates
     re_path(
         r'ws/screening/(?P<screening_id>\w+)/$',

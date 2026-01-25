@@ -1,0 +1,22 @@
+<div class="filter">
+  <h3>{{ title }}</h3>
+  <form method="get">
+    {% for key, value in spec.request.GET.items %}
+      {% if key != 'created_at_after' and key != 'created_at_before' %}
+        <input type="hidden" name="{{ key }}" value="{{ value }}">
+      {% endif %}
+    {% endfor %}
+
+    <div style="display:flex; gap:0.5rem; align-items:center;">
+      <label style="min-width:60px;" for="created_at_after">From</label>
+      <input type="date" name="created_at_after" id="created_at_after"
+             value="{{ spec.request.GET.created_at_after }}">
+      <label style="min-width:25px;" for="created_at_before">To</label>
+      <input type="date" name="created_at_before" id="created_at_before"
+             value="{{ spec.request.GET.created_at_before }}">
+    </div>
+    <div style="margin-top:0.5rem;">
+      <button type="submit" class="button">Apply</button>
+    </div>
+  </form>
+</div>

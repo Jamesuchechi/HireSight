@@ -48,6 +48,9 @@ urlpatterns = [
     path('insights/<uuid:pk>/approve/', views.ApproveInsightView.as_view(), name='approve_insight'),
     path('insights/<uuid:pk>/feedback/', views.FeedbackInsightView.as_view(), name='feedback_insight'),
 
+    # API Endpoints
+    path('api/sessions/<uuid:session_id>/results/', views.SessionResultsAPIView.as_view(), name='api_session_results'),
+
     # AJAX Endpoints
     path('ajax/sessions/<uuid:session_id>/progress/', views.ScreeningProgressView.as_view(), name='ajax_progress'),
     path('result/<uuid:pk>/shortlist-toggle/', views.ScreeningResultShortlistToggleView.as_view(), name='shortlist_toggle'),

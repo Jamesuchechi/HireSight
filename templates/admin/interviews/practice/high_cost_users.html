@@ -1,0 +1,35 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+  <div class="module">
+    <h1>{{ title }}</h1>
+    <p>Threshold: ${{ threshold }}</p>
+  </div>
+
+  <div class="module">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>User</th>
+          <th>Total Tokens</th>
+          <th>Total Cost</th>
+          <th>Session Count</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for user in high_cost_users %}
+          <tr>
+            <td>{{ user.user__email }}</td>
+            <td>{{ user.total_tokens }}</td>
+            <td>${{ user.total_cost|floatformat:2 }}</td>
+            <td>{{ user.session_count }}</td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="4">No premium or high-cost users found this week.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}

@@ -1,0 +1,238 @@
+<!-- Consent History and Management -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Consent History - HireSight{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white shadow">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <h1 class="text-3xl font-bold text-gray-900">
+                <i class="fas fa-file-contract text-blue-600 mr-3"></i>Consent History
+            </h1>
+            <p class="text-gray-600 mt-1">Manage your privacy preferences and view consent records</p>
+        </div>
+    </div>
+
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Current Consent Status -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <i class="fas fa-toggle-on text-green-600"></i>Current Consent Status
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {% for record in consent_records %}
+                <div class="border rounded-lg p-4 {% if record.is_active %}border-green-300 bg-green-50{% else %}border-red-300 bg-red-50{% endif %}">
+                    <div class="flex items-start justify-between mb-2">
+                        <div>
+                            <p class="font-semibold text-gray-900">{{ record.get_consent_type_display }}</p>
+                            <p class="text-sm text-gray-600 mt-1">
+                                {% if record.is_active %}
+                                    <i class="fas fa-check-circle text-green-600 mr-1"></i>
+                                    <strong>Granted</strong> on {{ record.granted_at|date:"M d, Y" }}
+                                {% else %}
+                                    <i class="fas fa-times-circle text-red-600 mr-1"></i>
+                                    <strong>Declined</strong>
+                                {% endif %}
+                            </p>
+                        </div>
+                        {% if record.is_active %}
+                        <button class="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition" onclick="revokeConsent('{{ record.consent_type }}')">
+                            Revoke
+                        </button>
+                        {% else %}
+                        <button class="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition" onclick="grantConsent('{{ record.consent_type }}')">
+                            Grant
+                        </button>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="text-xs text-gray-500 mt-3">
+                        <p>IP Address: {{ record.ip_address }}</p>
+                        <p>Device: {{ record.user_agent|truncatechars:40 }}</p>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-span-2 text-center py-8 text-gray-500">
+                    <i class="fas fa-inbox text-4xl mb-3"></i>
+                    <p>No consent records found</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Data Rights Section -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <i class="fas fa-shield-alt text-blue-600"></i>Your Data Rights
+            </h2>
+            
+            <div class="space-y-4">
+                <div class="border-l-4 border-blue-600 pl-4">
+                    <h3 class="font-semibold text-gray-900 mb-1">Right to Access</h3>
+                    <p class="text-sm text-gray-600 mb-2">Request a copy of all data we hold about you</p>
+                    <button class="text-blue-600 hover:underline text-sm font-medium" onclick="requestDataExport()">
+                        <i class="fas fa-download mr-1"></i>Export My Data
+                    </button>
+                </div>
+
+                <div class="border-l-4 border-purple-600 pl-4">
+                    <h3 class="font-semibold text-gray-900 mb-1">Right to Rectification</h3>
+                    <p class="text-sm text-gray-600 mb-2">Update or correct any inaccurate information</p>
+                    <button class="text-purple-600 hover:underline text-sm font-medium" onclick="editProfile()">
+                        <i class="fas fa-edit mr-1"></i>Edit My Information
+                    </button>
+                </div>
+
+                <div class="border-l-4 border-red-600 pl-4">
+                    <h3 class="font-semibold text-gray-900 mb-1">Right to Erasure</h3>
+                    <p class="text-sm text-gray-600 mb-2">Request permanent deletion of your personal data</p>
+                    <button class="text-red-600 hover:underline text-sm font-medium" onclick="requestDataDeletion()">
+                        <i class="fas fa-trash mr-1"></i>Request Deletion
+                    </button>
+                </div>
+
+                <div class="border-l-4 border-yellow-600 pl-4">
+                    <h3 class="font-semibold text-gray-900 mb-1">Right to Withdraw</h3>
+                    <p class="text-sm text-gray-600 mb-2">Withdraw consent at any time without affecting other consents</p>
+                    <p class="text-xs text-gray-500 mt-2">Use the Revoke buttons above to withdraw specific consents</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Video Retention Policy -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <i class="fas fa-calendar-alt text-orange-600"></i>Video Retention Policy
+            </h2>
+            
+            <div class="space-y-3 text-gray-700 ml-8">
+                <div class="flex gap-3">
+                    <i class="fas fa-video text-blue-600 flex-shrink-0 mt-1"></i>
+                    <div>
+                        <p><strong>Video Files:</strong> Automatically deleted after 30 days</p>
+                        <p class="text-sm text-gray-600 mt-1">Raw video recordings are not stored permanently</p>
+                    </div>
+                </div>
+                <div class="flex gap-3">
+                    <i class="fas fa-chart-bar text-green-600 flex-shrink-0 mt-1"></i>
+                    <div>
+                        <p><strong>Performance Metrics:</strong> Retained for 2 years</p>
+                        <p class="text-sm text-gray-600 mt-1">Scores, feedback, and progress data for long-term tracking</p>
+                    </div>
+                </div>
+                <div class="flex gap-3">
+                    <i class="fas fa-cogs text-purple-600 flex-shrink-0 mt-1"></i>
+                    <div>
+                        <p><strong>Anonymized Analytics:</strong> Retained indefinitely</p>
+                        <p class="text-sm text-gray-600 mt-1">Aggregated data (no personal info) used to improve our service</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Privacy Policy Link -->
+        <div class="bg-blue-50 border-l-4 border-blue-600 p-6 rounded">
+            <p class="text-gray-700">
+                <i class="fas fa-book text-blue-600 mr-2"></i>
+                For more information, please review our 
+                <a href="/privacy/" target="_blank" class="text-blue-600 hover:underline font-medium">Privacy Policy</a>
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- Request Deletion Modal -->
+<div id="deletionModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg max-w-sm w-full mx-4">
+        <div class="bg-red-50 px-6 py-4 border-b">
+            <h3 class="text-lg font-bold text-gray-900">Request Data Deletion</h3>
+        </div>
+        <div class="px-6 py-4">
+            <p class="text-gray-700 mb-4">This action will:</p>
+            <ul class="space-y-2 text-sm text-gray-600 ml-4 mb-4">
+                <li>✓ Delete all your personal data</li>
+                <li>✓ Remove all practice sessions</li>
+                <li>✓ Delete all video files immediately</li>
+                <li>✓ Deactivate your account</li>
+            </ul>
+            <p class="text-sm text-red-600 font-medium">This cannot be undone.</p>
+        </div>
+        <div class="px-6 py-4 flex gap-3 border-t">
+            <button onclick="closeDeletionModal()" class="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition">
+                Cancel
+            </button>
+            <button onclick="confirmDeletion()" class="flex-1 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition">
+                Delete All Data
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+function revokeConsent(consentType) {
+    if (!confirm('Are you sure you want to revoke this consent?')) return;
+    
+    fetch(`/interviews/consent/revoke/${consentType}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    }).then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                alert('Consent revoked successfully');
+                location.reload();
+            }
+        });
+}
+
+function grantConsent(consentType) {
+    // Show consent modal for this type
+    alert('Consent grant flow - not yet implemented');
+}
+
+function requestDataExport() {
+    alert('Data export will be sent to your email within 24 hours');
+    fetch('/api/user/export-data/', { method: 'POST' })
+        .then(r => r.json())
+        .then(data => console.log('Data export requested', data));
+}
+
+function editProfile() {
+    window.location.href = '/accounts/edit/';
+}
+
+function requestDataDeletion() {
+    document.getElementById('deletionModal').classList.remove('hidden');
+}
+
+function closeDeletionModal() {
+    document.getElementById('deletionModal').classList.add('hidden');
+}
+
+function confirmDeletion() {
+    const confirm_text = prompt('Type "DELETE" to confirm permanent deletion:');
+    if (confirm_text !== 'DELETE') {
+        alert('Confirmation text did not match. Deletion cancelled.');
+        return;
+    }
+    
+    fetch('/api/user/delete-account/', {
+        method: 'DELETE',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    }).then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                alert('Your account and all data have been deleted');
+                window.location.href = '/';
+            }
+        });
+}
+</script>
+{% endblock %}

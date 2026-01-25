@@ -152,6 +152,31 @@ def process_resume_screening(self, result_id, file_path=None):
         # Mark as completed
         result.mark_as_completed()
         
+        # Send result update via WebSocket
+        try:
+            from .websocket_service import WebSocketService
+            import asyncio
+            
+            result_data = {
+                'id': str(result.id),
+                'candidate_name': result.candidate_name,
+                'match_score': result.match_score,
+                'status': result.status,
+                'skills_match': result.skills_match,
+                'experience_match': result.experience_match,
+                'education_match': result.education_match,
+            }
+            
+            # Send WebSocket update (run in thread pool)
+            loop = asyncio.new_event_loop()
+            loop.run_until_complete(
+                WebSocketService.send_result_update(result.session.id, result_data)
+            )
+            loop.close()
+            logger.info(f"Sent WebSocket update for result {result_id}")
+        except Exception as e:
+            logger.warning(f"Failed to send WebSocket update: {e}")
+        
         # Update session statistics
         try:
             with transaction.atomic():

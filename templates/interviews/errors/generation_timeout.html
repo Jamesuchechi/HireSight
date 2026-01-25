@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block title %}Question Generation Timeout{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-slate-50 py-12">
+  <div class="max-w-2xl w-full bg-white p-8 rounded-2xl shadow">
+    <h1 class="text-2xl font-bold text-slate-900">Question generation timed out</h1>
+    <p class="text-sm text-slate-600 mt-3">Our AI provider took too long to respond. We've recorded the issue and will retry for you.</p>
+    <div class="mt-6 flex gap-3">
+      <a href="{% url 'interviews:practice_dashboard' %}" class="px-4 py-2 bg-primary text-white rounded">Back to Dashboard</a>
+      <a href="javascript:window.location.reload()" class="px-4 py-2 border rounded">Retry Now</a>
+    </div>
+    <p class="text-xs text-slate-400 mt-4">If this keeps happening, please contact support.</p>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Practice Feedback{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-slate-50 py-10">
+    <div class="max-w-5xl mx-auto space-y-6">
+        <div class="bg-white rounded-3xl border border-slate-100 shadow p-6">
+            <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                <div>
+                    <p class="text-xs uppercase tracking-[0.3em] text-slate-500">Session Feedback</p>
+                    <h1 class="text-3xl font-semibold text-slate-900">{{ session.focus_area|default:"Practice Session" }}</h1>
+                    <p class="text-sm text-slate-500">
+                        Status: {{ session.get_status_display }} · Progress: {{ session.progress|floatformat:0 }}%
+                    </p>
+                    <div class="mt-2 flex flex-wrap gap-2 text-xs uppercase tracking-wide">
+                        {% if session.question_generation_state == session.GenerationState.IN_PROGRESS %}
+                        <span class="px-3 py-1 rounded-full bg-amber-100 text-amber-700 border border-amber-200">Generating questions…</span>
+                        {% elif session.question_generation_state == session.GenerationState.COMPLETED %}
+                        <span class="px-3 py-1 rounded-full bg-emerald-100 text-emerald-700">Questions ready</span>
+                        {% else %}
+                        <span class="px-3 py-1 rounded-full bg-slate-100 text-slate-600">Questions pending</span>
+                        {% endif %}
+                        {% if session.report_generation_state == session.GenerationState.IN_PROGRESS %}
+                        <span class="px-3 py-1 rounded-full bg-amber-100 text-amber-700 border border-amber-200">Report building</span>
+                        {% elif session.report_generation_state == session.GenerationState.COMPLETED %}
+                        <span class="px-3 py-1 rounded-full bg-emerald-100 text-emerald-700">Report ready</span>
+                        {% elif session.report_generation_state == session.GenerationState.FAILED %}
+                        <span class="px-3 py-1 rounded-full bg-rose-100 text-rose-700 border border-rose-200">Report failed</span>
+                        {% else %}
+                        <span class="px-3 py-1 rounded-full bg-slate-100 text-slate-600">Report queued</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="space-y-2 text-sm text-slate-500">
+                    <p>Type: {{ session.interview_type }}</p>
+                    <p>Started {{ session.created_at|date:"M d, Y" }}</p>
+                </div>
+            </div>
+            <div class="mt-4 flex flex-wrap gap-3">
+                {% if session.next_question %}
+                <a href="{% url 'interviews:practice_question' question_id=session.next_question.id %}" class="px-4 py-2 rounded-full border border-primary text-primary hover:bg-primary/10 transition">
+                    Continue Practice
+                </a>
+                {% endif %}
+                <a href="{% url 'interviews:practice_feedback' session_id=session.id %}?refresh=1" class="px-4 py-2 rounded-full border border-slate-300 text-slate-600 hover:bg-slate-100 transition">
+                    Refresh Feedback
+                </a>
+                {% if report %}
+                <form method="post" action="{% url 'interviews:practice_report_refresh' session_id=session.id %}" class="inline-block">
+                    {% csrf_token %}
+                    <button type="submit" class="px-4 py-2 rounded-full border border-secondary text-secondary hover:bg-secondary/10 transition">
+                        Re-run Report
+                    </button>
+                </form>
+                <a href="{% url 'interviews:practice_report' session_id=session.id %}" class="px-4 py-2 rounded-full border border-secondary text-secondary hover:bg-secondary/10 transition">
+                    View Report
+                </a>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="grid gap-4 md:grid-cols-2">
+            {% if best_responses or worst_responses %}
+            <div class="bg-white rounded-2xl border border-slate-100 p-5 shadow space-y-3 md:col-span-2">
+                <div class="grid gap-4 md:grid-cols-2">
+                    <div>
+                        <p class="text-xs uppercase tracking-[0.3em] text-slate-500">Top responses</p>
+                        {% if best_responses %}
+                        {% for response in best_responses %}
+                        <div class="mt-2 text-sm text-slate-700 space-y-1">
+                            <p>{{ response.question.prompt|truncatechars:80 }}</p>
+                            <p class="text-xs text-emerald-600">Score: {{ response.ai_score|floatformat:1 }}</p>
+                        </div>
+                        {% endfor %}
+                        {% else %}
+                        <p class="text-sm text-slate-500">Awaiting AI analysis.</p>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <p class="text-xs uppercase tracking-[0.3em] text-slate-500">Needs improvement</p>
+                        {% if worst_responses %}
+                        {% for response in worst_responses %}
+                        <div class="mt-2 text-sm text-slate-700 space-y-1">
+                            <p>{{ response.question.prompt|truncatechars:80 }}</p>
+                            <p class="text-xs text-rose-600">Score: {{ response.ai_score|floatformat:1 }}</p>
+                        </div>
+                        {% endfor %}
+                        {% else %}
+                        <p class="text-sm text-slate-500">No low scores yet.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            {% for question in questions %}
+            <div class="bg-white rounded-2xl border border-slate-100 shadow p-5 space-y-3">
+                <div class="flex items-center justify-between text-xs text-slate-500">
+                    <span>Question #{{ forloop.counter }}</span>
+                    <span>{{ question.difficulty|default:"Adaptive" }}</span>
+                </div>
+                <p class="text-sm text-slate-700">{{ question.prompt }}</p>
+                <div class="space-y-2">
+                    {% for response in question.responses.all %}
+                    <div class="rounded-2xl border border-slate-200 bg-slate-50 p-3 space-y-2">
+                        <p class="text-sm text-slate-700">{{ response.text_response|default:"Video response" }}</p>
+                        {% if response.video_url %}
+                        <p class="text-xs text-primary">Video: <a href="{{ response.video_url }}" class="underline">{{ response.video_url }}</a></p>
+                        {% endif %}
+                        {% if response.ai_score %}
+                        <p class="text-xs text-slate-500">Score: {{ response.ai_score }} · Focus: {{ response.analysis.focus|default:"Pending" }}</p>
+                        {% if response.gaze_direction %}
+                        <p class="text-xs text-slate-400">Gaze: {{ response.gaze_direction }}</p>
+                        {% endif %}
+                        {% if response.head_tilt %}
+                        <p class="text-xs text-slate-400">Head tilt: {{ response.head_tilt }}</p>
+                        {% endif %}
+                        {% if response.attention_score %}
+                        <p class="text-xs text-slate-400">Attention: {{ response.attention_score|floatformat:0 }}%</p>
+                        {% endif %}
+                        <p class="text-sm text-slate-600">{{ response.ai_feedback }}</p>
+                        {% endif %}
+                        <p class="text-xs text-slate-400">Submitted {{ response.submitted_at|naturaltime }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

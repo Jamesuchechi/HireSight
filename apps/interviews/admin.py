@@ -1,10 +1,82 @@
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+from decimal import Decimal
 
 from django.contrib import admin
+from django.contrib.admin import SimpleListFilter
 from django.utils.html import format_html
-from django.urls import reverse
+from django.urls import reverse, path
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from .models import Interview, InterviewFeedbackTemplate
+from django.db.models import Sum
+from django.http import HttpResponse
+from django.template.response import TemplateResponse
+from django.core.files.storage import default_storage
+import csv
+
+from .models import (
+    Interview,
+    InterviewFeedbackTemplate,
+    ConsentRecord,
+    AIUsageLog,
+    InterviewPracticeSession,
+    PracticeQuestion,
+    PracticeResponse,
+    PracticePerformanceReport,
+)
+from .tasks import generate_practice_questions, generate_practice_report
+from . import admin_views
+
+
+class CreatedAtRangeFilter(SimpleListFilter):
+    """Custom filter rendering start/end dates for created_at."""
+
+    title = 'created at range'
+    parameter_name = 'created_at_range'
+    template = 'admin/date_range_filter.html'
+
+    def __init__(self, request, params, model, model_admin):
+        super().__init__(request, params, model, model_admin)
+        self.request = request
+
+    def lookups(self, request, model_admin):
+        return ()
+
+    def queryset(self, request, queryset):
+        start = request.GET.get('created_at_after')
+        end = request.GET.get('created_at_before')
+        if start:
+            queryset = queryset.filter(created_at__date__gte=start)
+        if end:
+            queryset = queryset.filter(created_at__date__lte=end)
+        return queryset
+
+
+class PracticeResponseInline(admin.TabularInline):
+    """Inline for viewing practice responses inside a session."""
+
+    model = PracticeResponse
+    fk_name = 'session'
+    fields = (
+        'question',
+        'text_response',
+        'video_url',
+        'ai_score',
+        'asked_at_display',
+        'analysis_status',
+        'submitted_at',
+    )
+    readonly_fields = (
+        'ai_score',
+        'analysis_status',
+        'asked_at_display',
+        'submitted_at',
+    )
+    extra = 0
+    show_change_link = True
+
+    def asked_at_display(self, obj):
+        return obj.question.ai_generated_at if obj.question else None
+    asked_at_display.short_description = 'Question generated'
 
 
 @admin.register(Interview)
@@ -352,3 +424,471 @@ class InterviewFeedbackTemplateAdmin(admin.ModelAdmin):
     list_filter = ('interview_type', 'company')
     search_fields = ('name', 'company__email')
     readonly_fields = ('created_at',)
+
+
+@admin.register(ConsentRecord)
+class ConsentRecordAdmin(admin.ModelAdmin):
+    """Admin interface for managing user consent records."""
+    
+    list_display = (
+        'user',
+        'consent_type_badge',
+        'granted_badge',
+        'granted_at_display',
+        'ip_address',
+        'expires_at_display'
+    )
+    list_filter = (
+        'consent_type',
+        'granted',
+        'granted_at',
+        'expires_at'
+    )
+    search_fields = (
+        'user__email',
+        'user__personalprofile__full_name',
+        'ip_address',
+        'request_id'
+    )
+    readonly_fields = (
+        'granted_at',
+        'user',
+        'ip_address',
+        'user_agent'
+    )
+    
+    fieldsets = (
+        ('User & Consent', {
+            'fields': ('user', 'consent_type', 'granted')
+        }),
+        ('Timestamps', {
+            'fields': ('granted_at', 'expires_at')
+        }),
+        ('Security', {
+            'fields': ('ip_address', 'user_agent'),
+            'classes': ('collapse',)
+        }),
+        ('Notes', {
+            'fields': ('notes',),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def consent_type_badge(self, obj):
+        """Display consent type with badge."""
+        colors = {
+            'video_recording': '#3b82f6',
+            'ai_analysis': '#8b5cf6',
+            'data_storage': '#ec4899',
+            'performance_tracking': '#06b6d4'
+        }
+        color = colors.get(obj.consent_type, '#6b7280')
+        return format_html(
+            '<span style="background-color: {}; color: white; padding: 3px 10px; border-radius: 3px;">{}</span>',
+            color,
+            obj.get_consent_type_display()
+        )
+    consent_type_badge.short_description = 'Consent Type'
+    
+    def granted_badge(self, obj):
+        """Display granted status with badge."""
+        if obj.granted:
+            return format_html(
+                '<span style="background-color: #10b981; color: white; padding: 3px 10px; border-radius: 3px;">✓ Granted</span>'
+            )
+        else:
+            return format_html(
+                '<span style="background-color: #ef4444; color: white; padding: 3px 10px; border-radius: 3px;">✗ Declined</span>'
+            )
+    granted_badge.short_description = 'Status'
+    
+    def granted_at_display(self, obj):
+        """Display granted date in user's timezone."""
+        return obj.granted_at.strftime('%Y-%m-%d %H:%M')
+    granted_at_display.short_description = 'Granted At'
+    
+    def expires_at_display(self, obj):
+        """Display expiration date if present."""
+        if obj.expires_at:
+            return obj.expires_at.strftime('%Y-%m-%d')
+        return 'No expiration'
+    expires_at_display.short_description = 'Expires'
+
+
+@admin.register(AIUsageLog)
+class AIUsageLogAdmin(admin.ModelAdmin):
+    """Admin interface for API usage logging and cost tracking."""
+
+    list_display = (
+        'user_email_link',
+        'session_link',
+        'model_used_badge',
+        'total_tokens',
+        'cost_display',
+        'created_at_display'
+    )
+    list_filter = (
+        'model_used',
+        'request_type',
+        CreatedAtRangeFilter,
+    )
+    search_fields = (
+        'user__email',
+        'session__id'
+    )
+    readonly_fields = (
+        'created_at',
+        'user',
+        'session',
+        'request_id',
+        'total_tokens',
+        'estimated_cost_usd',
+    )
+    change_list_template = 'admin/interviews/ai_usage_log_change_list.html'
+    date_hierarchy = 'created_at'
+    actions = ['export_to_csv']
+
+    fieldsets = (
+        ('Request Details', {
+            'fields': ('request_id', 'user', 'session', 'request_type', 'model_used', 'status')
+        }),
+        ('Tokens & Cost', {
+            'fields': ('input_tokens', 'output_tokens', 'total_tokens', 'estimated_cost_usd'),
+            'classes': ('wide',)
+        }),
+        ('Performance', {
+            'fields': ('response_time_ms', 'created_at'),
+        }),
+        ('Error Details', {
+            'fields': ('error_message',),
+            'classes': ('collapse',)
+        }),
+    )
+
+    def user_email_link(self, obj):
+        if not obj.user:
+            return 'System'
+        url = reverse('admin:accounts_user_change', args=[obj.user.id])
+        return format_html('<a href="{}">{}</a>', url, obj.user.email)
+    user_email_link.short_description = 'User'
+    user_email_link.admin_order_field = 'user__email'
+
+    def session_link(self, obj):
+        if not obj.session:
+            return '-'
+        url = reverse('admin:interviews_interviewpracticesession_change', args=[obj.session.id])
+        return format_html('<a href="{}">{}</a>', url, obj.session.id)
+    session_link.short_description = 'Session'
+    session_link.admin_order_field = 'session__id'
+
+    def changelist_view(self, request, extra_context=None):
+        response = super().changelist_view(request, extra_context=extra_context)
+        try:
+            cl = response.context_data['cl']
+        except (AttributeError, KeyError):
+            return response
+
+        totals = cl.queryset.aggregate(
+            total_tokens=Sum('total_tokens'),
+            total_cost=Sum('estimated_cost_usd')
+        )
+        response.context_data['aggregate_totals'] = {
+            'total_tokens': totals.get('total_tokens') or 0,
+            'total_cost': totals.get('total_cost') or Decimal('0.00'),
+        }
+        return response
+
+    def export_to_csv(self, request, queryset):
+        filename = f'ai_usage_logs_{timezone.now().strftime("%Y%m%d")}.csv'
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        writer = csv.writer(response)
+        writer.writerow([
+            'Request ID',
+            'User',
+            'Session',
+            'Model',
+            'Request Type',
+            'Total Tokens',
+            'Estimated Cost',
+            'Status',
+            'Created At'
+        ])
+
+        for log in queryset.select_related('user', 'session'):
+            writer.writerow([
+                log.request_id,
+                log.user.email if log.user else 'System',
+                str(log.session.id) if log.session else '-',
+                log.get_model_used_display(),
+                log.get_request_type_display(),
+                log.total_tokens,
+                f'{log.estimated_cost_usd:.6f}',
+                log.status,
+                log.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            ])
+
+        return response
+    export_to_csv.short_description = 'Export selected logs to CSV'
+
+    def model_used_badge(self, obj):
+        """Display model with badge."""
+        colors = {
+            'gemini': '#4285f4',
+            'mistral': '#ff6b35',
+            'openai': '#10a37f'
+        }
+        color = colors.get(obj.model_used, '#6b7280')
+        return format_html(
+            '<span style="background-color: {}; color: white; padding: 3px 10px; border-radius: 3px;">{}</span>',
+            color,
+            obj.get_model_used_display()
+        )
+    model_used_badge.short_description = 'Model'
+
+    def cost_display(self, obj):
+        """Display cost in USD."""
+        return format_html(
+            '<span style="color: #10b981; font-weight: bold;">${:.6f}</span>',
+            float(obj.estimated_cost_usd)
+        )
+    cost_display.short_description = 'Cost (USD)'
+
+    def status_badge(self, obj):
+        """Display status with color."""
+        colors = {
+            'SUCCESS': '#10b981',
+            'PARTIAL': '#f59e0b',
+            'FAILED': '#ef4444',
+            'FALLBACK': '#8b5cf6'
+        }
+        color = colors.get(obj.status, '#6b7280')
+        return format_html(
+            '<span style="background-color: {}; color: white; padding: 3px 10px; border-radius: 3px;">{}</span>',
+            color,
+            obj.status
+        )
+    status_badge.short_description = 'Status'
+
+    def created_at_display(self, obj):
+        """Format created_at display."""
+        return obj.created_at.strftime('%Y-%m-%d %H:%M:%S')
+    created_at_display.short_description = 'Created At'
+
+
+@admin.register(InterviewPracticeSession)
+class PracticeSessionAdmin(admin.ModelAdmin):
+    """Admin interface for interview practice sessions."""
+
+    list_display = (
+        'candidate_email',
+        'interview_type',
+        'status',
+        'created_at',
+        'overall_score_display'
+    )
+    list_filter = (
+        'status',
+        'interview_type',
+        'created_at'
+    )
+    search_fields = (
+        'candidate__email',
+        'application__job__title'
+    )
+    date_hierarchy = 'created_at'
+    readonly_fields = (
+        'created_at',
+        'started_at',
+        'completed_at',
+        'overall_score'
+    )
+    inlines = [PracticeResponseInline]
+    change_form_template = 'admin/interviews/practice_session_change_form.html'
+    actions = (
+        'regenerate_questions',
+        'regenerate_report',
+        'delete_with_videos',
+    )
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.select_related('candidate', 'application', 'application__job')
+
+    def overall_score_display(self, obj):
+        return obj.overall_score or 0
+    overall_score_display.short_description = 'Overall Score'
+
+    def candidate_email(self, obj):
+        email = obj.candidate.email if obj.candidate else 'Unknown'
+        if obj.candidate:
+            url = reverse('admin:accounts_user_change', args=[obj.candidate.id])
+            return format_html('<a href="{}">{}</a>', url, email)
+        return email
+    candidate_email.short_description = 'Candidate'
+
+    def change_view(self, request, object_id, form_url='', extra_context=None):
+        extra_context = extra_context or {}
+        name_base = f'{self.model._meta.app_label}_{self.model._meta.model_name}'
+        extra_context.update({
+            'ai_logs_url': reverse(f'admin:{name_base}_ai_logs', args=[object_id]),
+            'costs_url': reverse(f'admin:{name_base}_costs', args=[object_id]),
+        })
+        return super().change_view(request, object_id, form_url, extra_context=extra_context)
+
+    def get_urls(self):
+        urls = super().get_urls()
+        name_base = f'{self.model._meta.app_label}_{self.model._meta.model_name}'
+        custom_urls = [
+            path(
+                '<path:object_id>/ai-logs/',
+                self.admin_site.admin_view(self.view_ai_logs),
+                name=f'{name_base}_ai_logs'
+            ),
+            path(
+                '<path:object_id>/costs/',
+                self.admin_site.admin_view(self.view_costs),
+                name=f'{name_base}_costs'
+            ),
+        ]
+        return custom_urls + urls
+
+    def view_ai_logs(self, request, object_id):
+        session = get_object_or_404(self.model, pk=object_id)
+        logs = session.ai_usage_logs.select_related('user').order_by('-created_at')
+        totals = logs.aggregate(
+            total_tokens=Sum('total_tokens'),
+            total_cost=Sum('estimated_cost_usd')
+        )
+        context = self.admin_site.each_context(request)
+        context.update({
+            'opts': self.model._meta,
+            'session': session,
+            'logs': logs,
+            'totals': {
+                'total_tokens': totals.get('total_tokens') or 0,
+                'total_cost': totals.get('total_cost') or Decimal('0.00'),
+            },
+            'title': f'AI Logs for {session}',
+            'media': self.media,
+        })
+        return TemplateResponse(request, 'admin/interviews/practice/session_ai_logs.html', context)
+
+    def view_costs(self, request, object_id):
+        session = get_object_or_404(self.model, pk=object_id)
+        logs = session.ai_usage_logs.all()
+        model_breakdown = logs.values('model_used').annotate(
+            tokens=Sum('total_tokens'),
+            cost=Sum('estimated_cost_usd')
+        ).order_by('-cost')
+        totals = logs.aggregate(
+            total_tokens=Sum('total_tokens'),
+            total_cost=Sum('estimated_cost_usd')
+        )
+        context = self.admin_site.each_context(request)
+        context.update({
+            'opts': self.model._meta,
+            'session': session,
+            'model_breakdown': list(model_breakdown),
+            'totals': {
+                'total_tokens': totals.get('total_tokens') or 0,
+                'total_cost': totals.get('total_cost') or Decimal('0.00'),
+            },
+            'title': f'Token Cost Breakdown for {session}',
+            'media': self.media,
+        })
+        return TemplateResponse(request, 'admin/interviews/practice/session_costs.html', context)
+
+    def regenerate_questions(self, request, queryset):
+        sessions = queryset.filter(status=InterviewPracticeSession.Status.FAILED)
+        count = 0
+        for session in sessions:
+            PracticeQuestion.objects.filter(session=session).delete()
+            PracticePerformanceReport.objects.filter(session=session).delete()
+            session.overall_score = None
+            session.status = InterviewPracticeSession.Status.CREATED
+            session.question_generation_state = InterviewPracticeSession.GenerationState.PENDING
+            session.report_generation_state = InterviewPracticeSession.GenerationState.PENDING
+            settings_data = session.settings or {}
+            settings_data.pop('error_message', None)
+            settings_data.pop('validation_error', None)
+            session.settings = settings_data
+            session.save(update_fields=[
+                'overall_score',
+                'status',
+                'question_generation_state',
+                'report_generation_state',
+                'settings'
+            ])
+            generate_practice_questions.delay(session.id)
+            count += 1
+        self.message_user(request, f'Queued question regeneration for {count} session(s).')
+    regenerate_questions.short_description = 'Regenerate questions for failed sessions'
+
+    def regenerate_report(self, request, queryset):
+        count = 0
+        for session in queryset:
+            session.report_generation_state = InterviewPracticeSession.GenerationState.IN_PROGRESS
+            session.save(update_fields=['report_generation_state'])
+            generate_practice_report.delay(session.id)
+            count += 1
+        self.message_user(request, f'Queued report regeneration for {count} session(s).')
+    regenerate_report.short_description = 'Regenerate reports for selected sessions'
+
+    def delete_with_videos(self, request, queryset):
+        deleted_sessions = 0
+        deleted_files = 0
+        errors = []
+        for session in queryset:
+            responses = PracticeResponse.objects.filter(session=session)
+            for response in responses:
+                metrics = response.video_analysis_metrics or {}
+                video_file = metrics.get('video_file')
+                if video_file:
+                    try:
+                        if default_storage.exists(video_file):
+                            default_storage.delete(video_file)
+                            deleted_files += 1
+                    except Exception as exc:
+                        errors.append(str(exc))
+            session.delete()
+            deleted_sessions += 1
+
+        msg = f'Deleted {deleted_sessions} session(s)'
+        if deleted_files:
+            msg += f' and {deleted_files} video asset(s)'
+        if errors:
+            msg += f' (errors deleting assets: {len(errors)})'
+        self.message_user(request, msg)
+    delete_with_videos.short_description = 'Delete sessions and associated videos'
+
+
+def _get_custom_admin_urls():
+    custom_urls = [
+        path(
+            'interviews/practice/failed-sessions/',
+            admin.site.admin_view(
+                admin_views.FailedSessionsView.as_view(admin_site=admin.site)
+            ),
+            name='admin_practice_failed_sessions'
+        ),
+        path(
+            'interviews/practice/high-cost-users/',
+            admin.site.admin_view(
+                admin_views.HighCostUsersView.as_view(admin_site=admin.site)
+            ),
+            name='admin_practice_high_cost_users'
+        ),
+        path(
+            'interviews/practice/analytics/',
+            admin.site.admin_view(
+                admin_views.PracticeAnalyticsView.as_view(admin_site=admin.site)
+            ),
+            name='admin_practice_analytics'
+        ),
+    ]
+    return custom_urls + original_admin_urls()
+
+
+original_admin_urls = admin.site.get_urls
+admin.site.get_urls = _get_custom_admin_urls

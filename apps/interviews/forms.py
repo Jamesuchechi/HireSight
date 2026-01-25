@@ -4,8 +4,9 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.utils import timezone
+from apps.applications.models import Application
 
-from .models import Interview, InterviewFeedbackTemplate
+from .models import Interview, InterviewFeedbackTemplate, InterviewPracticeSession
 
 
 class InterviewScheduleForm(forms.ModelForm):
@@ -400,4 +401,64 @@ class InterviewResponseForm(forms.Form):
             if not reason:
                 self.add_error('reason', 'Please tell us why you need to reschedule.')
 
+        return cleaned
+
+
+class PracticeSessionForm(forms.ModelForm):
+    """Form for candidates to create a practice session."""
+
+    class Meta:
+        model = InterviewPracticeSession
+        fields = ['application', 'interview_type', 'difficulty', 'focus_area', 'enable_video', 'settings']
+        widgets = {
+            'interview_type': forms.Select(attrs={'class': 'mt-1 block w-full'}),
+            'difficulty': forms.Select(choices=[
+                ('Beginner', 'Beginner'),
+                ('Intermediate', 'Intermediate'),
+                ('Advanced', 'Advanced'),
+            ], attrs={'class': 'mt-1 block w-full'}),
+            'focus_area': forms.TextInput(attrs={'class': 'mt-1 block w-full'}),
+            'settings': forms.Textarea(attrs={'rows': 3, 'class': 'mt-1 block w-full'}),
+        }
+
+    def __init__(self, *args, candidate=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if candidate:
+            self.fields['application'].queryset = Application.objects.filter(applicant=candidate)
+        else:
+            self.fields['application'].queryset = Application.objects.none()
+
+    def clean(self):
+        cleaned = super().clean()
+        settings_raw = self.data.get('settings', '')
+        if cleaned.get('enable_video') and not settings_raw.strip():
+            self.add_error('settings', 'Please describe how video will be used in the session.')
+        return cleaned
+
+    def clean_settings(self):
+        data = self.cleaned_data.get('settings')
+        if not data:
+            return {}
+        return data
+
+
+class PracticeResponseForm(forms.Form):
+    """Form for submitting a practice question response."""
+
+    text_response = forms.CharField(
+        widget=forms.Textarea(attrs={
+            'rows': 6,
+            'class': 'mt-1 block w-full rounded-md border-gray-300'
+        }),
+        required=False
+    )
+    video_url = forms.URLField(
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'mt-1 block w-full rounded-md border-gray-300'})
+    )
+
+    def clean(self):
+        cleaned = super().clean()
+        if not cleaned.get('text_response') and not cleaned.get('video_url'):
+            raise ValidationError('Provide a text answer or a video URL.')
         return cleaned

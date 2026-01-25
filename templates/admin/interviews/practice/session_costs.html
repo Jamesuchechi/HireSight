@@ -1,0 +1,36 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+  <div class="module">
+    <h1>{{ title }}</h1>
+    <p>
+      Total tokens consumed: <strong>{{ totals.total_tokens }}</strong> ·
+      Estimated cost: <strong>${{ totals.total_cost }}</strong>
+    </p>
+  </div>
+
+  <div class="module">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Model</th>
+          <th>Tokens</th>
+          <th>Cost</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in model_breakdown %}
+          <tr>
+            <td>{{ row.model_used|capfirst }}</td>
+            <td>{{ row.tokens }}</td>
+            <td>${{ row.cost }}</td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="3">No usage recorded yet.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}

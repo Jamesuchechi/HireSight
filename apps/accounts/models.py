@@ -1033,6 +1033,10 @@ class UserProfile(models.Model):
         blank=True,
         help_text='GitHub profile URL (for technical roles)'
     )
+    practice_enabled = models.BooleanField(
+        default=True,
+        help_text='Allow the user to create interview practice sessions'
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -1505,25 +1505,32 @@ class ScreeningProgressView(LoginRequiredMixin, CompanyOnlyMixin, View):
 class ScreeningResultShortlistToggleView(LoginRequiredMixin, CompanyOnlyMixin, View):
     """AJAX endpoint for toggling shortlist status."""
 
-    @transaction.atomic
     def post(self, request, *args, **kwargs):
         """Toggle shortlist status."""
         try:
             pk = kwargs.get('pk')
+            logger.info(f"Shortlist toggle request: pk={pk}, user={request.user.id}")
+            
             result = get_object_or_404(
                 ScreeningResult,
                 pk=pk,
                 session__company__user=request.user
             )
             
+            logger.info(f"Found result {result.id}, current shortlist status: {result.is_shortlisted}")
             result.toggle_shortlist()
-            
             logger.info(f"Result {result.id} shortlist toggled to {result.is_shortlisted}")
             
             return JsonResponse({
                 'success': True,
                 'is_shortlisted': result.is_shortlisted
             })
+        except ScreeningResult.DoesNotExist:
+            logger.error(f"Result not found: pk={pk}")
+            return JsonResponse({
+                'success': False,
+                'message': 'Result not found'
+            }, status=404)
         except Exception as e:
             logger.error(f"Error toggling shortlist: {str(e)}", exc_info=True)
             return JsonResponse({
@@ -2656,6 +2663,85 @@ class FeedbackInsightView(LoginRequiredMixin, CompanyOnlyMixin, View):
 
         except Exception as e:
             logger.error(f"Feedback error: {str(e)}", exc_info=True)
+            return JsonResponse({
+                'success': False,
+                'message': f'Error: {str(e)}'
+            }, status=500)
+
+
+class SessionResultsAPIView(LoginRequiredMixin, CompanyOnlyMixin, View):
+    """API endpoint to fetch current screening results with live match scores."""
+
+    def get(self, request, *args, **kwargs):
+        """Get all results for a session with current match scores."""
+        try:
+            session_id = kwargs.get('session_id')
+            limit = request.GET.get('limit', 10)
+            
+            try:
+                limit = int(limit)
+            except (ValueError, TypeError):
+                limit = 10
+            
+            # Get session
+            session = get_object_or_404(
+                ScreeningSession,
+                pk=session_id,
+                company__user=request.user
+            )
+            
+            # Get results with current data from database
+            results = session.results.select_related(
+                'resume',
+                'resume__user',
+                'resume__user__personal_profile',
+                'job',
+                'application'
+            ).order_by('-match_score')[:limit]
+            
+            # Serialize results
+            results_data = []
+            for result in results:
+                candidate_name = result.candidate_name
+                candidate_email = ''
+                if result.resume:
+                    candidate_email = result.resume.user.email
+                elif result.application:
+                    candidate_email = result.application.user.email
+                
+                results_data.append({
+                    'id': str(result.id),
+                    'candidate_name': candidate_name,
+                    'candidate_email': candidate_email,
+                    'match_score': result.match_score,
+                    'status': result.status,
+                    'is_shortlisted': result.is_shortlisted,
+                    'skills_match': result.skills_match,
+                    'experience_match': result.experience_match,
+                    'education_match': result.education_match,
+                    'processed_at': result.processed_at.isoformat() if result.processed_at else None,
+                    'error_message': result.error_message,
+                })
+            
+            return JsonResponse({
+                'success': True,
+                'results': results_data,
+                'total': session.results.count(),
+                'session_id': str(session.id),
+                'session_status': session.status,
+                'average_match_score': session.average_match_score,
+                'processed_resumes': session.processed_resumes,
+                'total_resumes': session.total_resumes,
+            })
+        
+        except ScreeningSession.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'message': 'Session not found'
+            }, status=404)
+        
+        except Exception as e:
+            logger.error(f"Error fetching session results: {str(e)}", exc_info=True)
             return JsonResponse({
                 'success': False,
                 'message': f'Error: {str(e)}'

@@ -110,6 +110,7 @@ TEMPLATES = [
                 'apps.accounts.context_processors.unread_notifications_count',
                 'apps.accounts.context_processors.language_context',
                 'apps.messaging.context_processors.unread_messages_count',
+                'apps.notifications.context_processors.notification_dropdown_context',
                 'apps.interviews.context_processors.interview_navigation_context',
             ],
             'builtins': ['apps.screening.templatetags.filters'],
@@ -386,6 +387,13 @@ MISTRAL_AI_BASE_URL = config('MISTRAL_AI_BASE_URL', default='https://api.mistral
 MISTRAL_AI_MODEL = config('MISTRAL_AI_MODEL', default='mistral-small-latest')
 MISTRAL_AI_TIMEOUT = config('MISTRAL_AI_TIMEOUT', default=30, cast=int)
 
+GEMINI_API_KEY_PRIMARY = config('GEMINI_API_KEY_PRIMARY', default='')
+GEMINI_API_KEY_SECONDARY = config('GEMINI_API_KEY_SECONDARY', default='')
+GEMINI_KEYS = [key for key in [GEMINI_API_KEY_PRIMARY, GEMINI_API_KEY_SECONDARY] if key]
+GEMINI_API_URL = config('GEMINI_API_URL', default='https://gemini.labs.ai/api/v1/generate')
+GEMINI_MODELS = config('GEMINI_MODEL', default='gemini-2.5-pro,gemini-2.5-flash,gemini-2.5-flash-lite', cast=lambda v: [s.strip() for s in v.split(',')])
+GEMINI_AI_TIMEOUT = config('GEMINI_AI_TIMEOUT', default=30, cast=int)
+
 
 # Session Settings
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
@@ -491,3 +499,37 @@ WS_ALLOWED_ORIGINS = config(
     default='localhost:8000,127.0.0.1:8000',
     cast=lambda v: [s.strip() for s in v.split(',')]
 )
+# ==================== PRIVACY & SECURITY SETTINGS ====================
+
+# Video retention policy
+PRACTICE_VIDEO_RETENTION_DAYS = int(os.environ.get('PRACTICE_VIDEO_RETENTION_DAYS', 30))
+
+# Rate limiting for practice sessions
+PRACTICE_SESSIONS_PER_DAY_LIMIT = int(os.environ.get('PRACTICE_SESSIONS_PER_DAY_LIMIT', 5))
+
+# AI model pricing (per 1K tokens)
+AI_MODEL_PRICING = {
+    'gemini': 0.001,      # $0.001 per 1K tokens
+    'mistral': 0.0002,    # $0.0002 per 1K tokens
+    'openai': 0.0015,     # $0.0015 per 1K tokens
+}
+
+# Consent expiration (in days, None = never expires)
+CONSENT_EXPIRATION_DAYS = int(os.environ.get('CONSENT_EXPIRATION_DAYS', 365))
+
+# Video URL signing
+VIDEO_SIGNED_URL_EXPIRATION_SECONDS = int(os.environ.get('VIDEO_SIGNED_URL_EXPIRATION_SECONDS', 900))  # 15 minutes
+
+# Paths that require consent before access
+CONSENT_REQUIRED_PATHS = [
+    '/interviews/practice/',
+]
+
+# Paths exempted from consent requirement
+CONSENT_EXEMPT_PATHS = [
+    '/interviews/consent/',
+    '/accounts/',
+    '/api/auth/',
+    '/static/',
+    '/media/',
+]

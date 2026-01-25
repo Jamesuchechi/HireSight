@@ -6,6 +6,51 @@ from django.utils import timezone
 from django.core.validators import URLValidator, MinValueValidator, MaxValueValidator
 from django.core.exceptions import ValidationError
 from apps.applications.models import Application
+class VideoMetrics(models.Model):
+    """Persisted video analysis metrics for practice responses.
+
+    Stores raw metrics JSON as received from client analyzers and provides
+    convenience accessors for derived metrics used by scoring logic.
+    """
+
+    id = models.BigAutoField(primary_key=True)
+    raw = models.JSONField(default=dict)
+    eye_contact_percentage = models.FloatField(null=True, blank=True)
+    head_stability_score = models.FloatField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['created_at']),
+        ]
+
+    def __str__(self):
+        return f"VideoMetrics {self.id}"
+
+    def compute_derived(self):
+        """Fill derived fields from raw JSON if available."""
+        ec = self.raw.get('eye_contact', {}) or {}
+        fw = ec.get('frames_with_contact')
+        tf = ec.get('total_frames')
+        try:
+            if fw is not None and tf:
+                self.eye_contact_percentage = round((float(fw) / float(tf)) * 100, 1)
+            else:
+                self.eye_contact_percentage = ec.get('percentage') or 0.0
+        except Exception:
+            self.eye_contact_percentage = 0.0
+
+        hs = self.raw.get('head_stability', {}) or {}
+        movement = hs.get('movement_pixels', hs.get('movement', 0)) or 0
+        max_m = hs.get('max_movement_pixels', hs.get('max_movement', 100)) or 100
+        try:
+            ratio = float(movement) / float(max_m) if float(max_m) else 1.0
+            score = 1.0 - ratio
+            self.head_stability_score = max(0.0, min(1.0, round(score, 3)))
+        except Exception:
+            self.head_stability_score = 0.0
+
+        return self
 
 
 class InterviewQuerySet(models.QuerySet):
@@ -504,3 +549,571 @@ class ArchivedInterview(models.Model):
 
     class Meta:
         ordering = ['-archived_at']
+
+
+class InterviewPracticeSessionManager(models.Manager):
+    def for_candidate(self, user):
+        return self.filter(candidate=user)
+
+
+class InterviewPracticeSession(models.Model):
+    """Candidate-facing practice session backed by AI questions."""
+
+    class Status(models.TextChoices):
+        PENDING = 'PENDING', 'Pending'
+        CREATED = 'CREATED', 'Created'
+        IN_PROGRESS = 'IN_PROGRESS', 'In progress'
+        REVIEW_PENDING = 'REVIEW_PENDING', 'Review pending'
+        COMPLETED = 'COMPLETED', 'Completed'
+        FAILED = 'FAILED', 'Failed'
+
+    class GenerationState(models.TextChoices):
+        PENDING = 'PENDING', 'Pending'
+        IN_PROGRESS = 'IN_PROGRESS', 'In progress'
+        COMPLETED = 'COMPLETED', 'Completed'
+        FAILED = 'FAILED', 'Failed'
+
+    candidate = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='interview_practice_sessions',
+        limit_choices_to={'account_type': 'personal'}
+    )
+    application = models.ForeignKey(
+        Application,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='practice_sessions'
+    )
+    interview_type = models.CharField(
+        max_length=20,
+        choices=Interview.InterviewType.choices,
+        default=Interview.InterviewType.PHONE
+    )
+    difficulty = models.CharField(
+        max_length=50,
+        default='Intermediate',
+        help_text='AI difficulty tier (Beginner, Intermediate, Advanced)'
+    )
+    enable_video = models.BooleanField(
+        default=True,
+        help_text='Whether video analysis is part of this session'
+    )
+    focus_area = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text='Optional focus area (technical, behavioral, culture)'
+    )
+    focus_areas = models.JSONField(
+        default=list,
+        blank=True,
+        help_text='Multi-select focus areas: leadership, technical, communication, etc.'
+    )
+    time_limit_per_question = models.PositiveIntegerField(
+        default=2,
+        choices=[(1, '1 minute'), (2, '2 minutes'), (3, '3 minutes')],
+        help_text='Time limit per question in minutes'
+    )
+    video_analysis_enabled = models.BooleanField(
+        default=True,
+        help_text='Whether video analysis is enabled for this session'
+    )
+    warmup_completed = models.BooleanField(
+        default=False,
+        help_text='Whether the warmup flow has been completed'
+    )
+    camera_test_passed = models.BooleanField(
+        default=False,
+        help_text='Whether camera test was passed'
+    )
+    microphone_test_passed = models.BooleanField(
+        default=False,
+        help_text='Whether microphone test was passed'
+    )
+    test_question_completed = models.BooleanField(
+        default=False,
+        help_text='Whether test question was completed'
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PENDING
+    )
+    progress = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=0,
+        help_text='Percent complete'
+    )
+    overall_score = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True
+    )
+    settings = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text='Serialized settings for this practice run'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    started_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    question_generation_state = models.CharField(
+        max_length=20,
+        choices=GenerationState.choices,
+        default=GenerationState.PENDING
+    )
+    report_generation_state = models.CharField(
+        max_length=20,
+        choices=GenerationState.choices,
+        default=GenerationState.PENDING
+    )
+
+    @property
+    def number_of_questions(self):
+        return int(self.settings.get('number_of_questions', 5))
+
+    @number_of_questions.setter
+    def number_of_questions(self, value):
+        settings_copy = dict(self.settings or {})
+        settings_copy['number_of_questions'] = int(value)
+        self.settings = settings_copy
+
+    objects = InterviewPracticeSessionManager()
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['candidate', 'status']),
+            models.Index(fields=['created_at']),
+        ]
+
+    def __str__(self):
+        return f"Practice session for {self.candidate.email} ({self.interview_type})"
+
+
+class PracticeQuestion(models.Model):
+    """AI-generated practice question for a candidate session."""
+
+    session = models.ForeignKey(
+        InterviewPracticeSession,
+        on_delete=models.CASCADE,
+        related_name='questions'
+    )
+    prompt = models.TextField()
+    category = models.CharField(max_length=80, blank=True)
+    difficulty = models.CharField(max_length=50, blank=True)
+    evaluation_criteria = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text='Guidance for scoring (clarity, structure, tone, etc.)'
+    )
+    order = models.PositiveIntegerField(default=1)
+    ai_generated_at = models.DateTimeField(auto_now_add=True)
+    ai_request_id = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        ordering = ['order']
+
+    def __str__(self):
+        return f"Question #{self.order} ({self.category or 'General'})"
+
+
+class PracticeResponse(models.Model):
+    """Candidate response (text/video) to a practice question."""
+
+    question = models.ForeignKey(
+        PracticeQuestion,
+        on_delete=models.CASCADE,
+        related_name='responses'
+    )
+    session = models.ForeignKey(
+        InterviewPracticeSession,
+        on_delete=models.CASCADE,
+        related_name='session_responses',
+        null=True,
+        blank=True
+    )
+    text_response = models.TextField(blank=True)
+    video_url = models.URLField(blank=True)
+    video_metrics = models.JSONField(
+        default=None,
+        null=True,
+        blank=True,
+        help_text='Client-side video metrics JSON'
+    )
+    video_duration = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text='Duration of the uploaded video in seconds'
+    )
+    ai_score = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True
+    )
+    ai_feedback = models.TextField(blank=True)
+    analysis = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text='Video analysis, focus/confidence metrics'
+    )
+    analysis_status = models.CharField(
+        max_length=20,
+        choices=InterviewPracticeSession.GenerationState.choices,
+        default=InterviewPracticeSession.GenerationState.PENDING
+    )
+    analysis_request_id = models.CharField(max_length=255, blank=True)
+    gaze_direction = models.CharField(
+        max_length=50,
+        blank=True,
+        help_text='Detected gaze direction (aligned/away/offscreen)'
+    )
+    head_tilt = models.CharField(
+        max_length=50,
+        blank=True,
+        help_text='Detected head tilt (up/down/left/right)'
+    )
+    attention_score = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text='Attention/confidence score from video analysis (0-100)'
+    )
+    video_analysis_metrics = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text='Detailed video analysis metrics from client-side MediaPipe detection'
+    )
+    content_score = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text='Content relevance and quality score (0-100)'
+    )
+    delivery_score = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text='Delivery and structure score (0-100)'
+    )
+    presence_score = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text='Presence and engagement score (0-100)'
+    )
+    strengths = models.JSONField(
+        default=list,
+        blank=True,
+        help_text='Top strengths identified in the response'
+    )
+    improvements = models.JSONField(
+        default=list,
+        blank=True,
+        help_text='Top areas for improvement identified in the response'
+    )
+    ai_scoring_model = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text='Name of the AI model used for scoring'
+    )
+    submitted_at = models.DateTimeField(auto_now_add=True)
+
+    @property
+    def overall_score(self):
+        """Compatibility alias that exposes the AI-generated score."""
+        return self.ai_score
+
+    @overall_score.setter
+    def overall_score(self, value):
+        self.ai_score = value
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['session']),
+        ]
+
+    def __str__(self):
+        return f"Response #{self.id} to {self.question}"
+
+
+class PracticePerformanceReport(models.Model):
+    """Comprehensive summarization of performance across a practice session."""
+
+    session = models.OneToOneField(
+        InterviewPracticeSession,
+        on_delete=models.CASCADE,
+        related_name='performance_report'
+    )
+    overall_score = models.DecimalField(max_digits=5, decimal_places=2)
+    overall_rating = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=0,
+        help_text='Overall rating out of 100'
+    )
+    category_breakdown = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text='Category scores: {behavioral: 85, technical: 70, situational: 78}'
+    )
+    strengths = models.JSONField(default=list, blank=True)
+    top_strengths = models.JSONField(
+        default=list,
+        blank=True,
+        help_text='Top 3-5 strengths identified across all responses'
+    )
+    weaknesses = models.JSONField(default=list, blank=True)
+    improvement_areas = models.JSONField(
+        default=list,
+        blank=True,
+        help_text='Top 3-5 areas for improvement'
+    )
+    recommendations = models.TextField(blank=True)
+    action_items = models.JSONField(
+        default=list,
+        blank=True,
+        help_text='Specific, actionable items for next practice session'
+    )
+    next_practice_suggestions = models.JSONField(
+        default=list,
+        blank=True,
+        help_text='Suggested questions/scenarios to practice'
+    )
+    performance_trend = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text='Trend data showing improvement/decline'
+    )
+    ai_request_id = models.CharField(max_length=255, blank=True)
+    generated_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Report for {self.session}"
+
+
+class PracticeMilestoneLog(models.Model):
+    """Track practice session milestones that have already been celebrated."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='practice_milestones'
+    )
+    milestone = models.PositiveIntegerField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'milestone')
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.user.email} milestone {self.milestone}"
+
+
+class ConsentRecord(models.Model):
+    """
+    Records user consent for video recording and AI analysis in practice sessions.
+    
+    Tracks when users consent to video recording, data collection, and AI processing
+    for audit and privacy compliance purposes.
+    """
+    
+    class ConsentType(models.TextChoices):
+        VIDEO_RECORDING = 'VIDEO_RECORDING', 'Video Recording'
+        AI_ANALYSIS = 'AI_ANALYSIS', 'AI Analysis'
+        DATA_STORAGE = 'DATA_STORAGE', 'Data Storage'
+        PERFORMANCE_TRACKING = 'PERFORMANCE_TRACKING', 'Performance Tracking'
+    
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='consent_records'
+    )
+    consent_type = models.CharField(
+        max_length=50,
+        choices=ConsentType.choices,
+        help_text='Type of consent given'
+    )
+    granted = models.BooleanField(
+        default=True,
+        help_text='Whether consent was granted or declined'
+    )
+    granted_at = models.DateTimeField(auto_now_add=True)
+    ip_address = models.GenericIPAddressField(
+        help_text='IP address of the user when consent was given'
+    )
+    user_agent = models.TextField(
+        blank=True,
+        help_text='User agent string for device identification'
+    )
+    expires_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text='When this consent expires (null = never)'
+    )
+    notes = models.TextField(
+        blank=True,
+        help_text='Additional notes about the consent'
+    )
+    
+    class Meta:
+        ordering = ['-granted_at']
+        indexes = [
+            models.Index(fields=['user', 'consent_type']),
+            models.Index(fields=['granted_at']),
+        ]
+        unique_together = ('user', 'consent_type')
+    
+    def __str__(self):
+        status = 'Granted' if self.granted else 'Declined'
+        return f"{self.user.email} - {self.consent_type} ({status})"
+    
+    @property
+    def is_active(self):
+        """Check if consent is still active."""
+        if not self.granted:
+            return False
+        if self.expires_at and self.expires_at < timezone.now():
+            return False
+        return True
+
+
+class AIUsageLog(models.Model):
+    """
+    Logs all AI API calls for monitoring, auditing, and cost tracking.
+    
+    Records information about each AI request including which model was used,
+    tokens consumed, estimated costs, and associated user/session for billing
+    and performance analysis.
+    """
+    
+    class ModelType(models.TextChoices):
+        GEMINI = 'gemini', 'Google Gemini'
+        MISTRAL = 'mistral', 'Mistral AI'
+        OPENAI = 'openai', 'OpenAI GPT'
+    
+    class RequestType(models.TextChoices):
+        QUESTION_GENERATION = 'question_gen', 'Question Generation'
+        RESPONSE_SCORING = 'scoring', 'Response Scoring'
+        REPORT_GENERATION = 'reporting', 'Report Generation'
+        FEEDBACK = 'feedback', 'Feedback Generation'
+    
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='ai_usage_logs'
+    )
+    session = models.ForeignKey(
+        InterviewPracticeSession,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='ai_usage_logs'
+    )
+    request_type = models.CharField(
+        max_length=50,
+        choices=RequestType.choices,
+        help_text='Type of AI request'
+    )
+    model_used = models.CharField(
+        max_length=50,
+        choices=ModelType.choices,
+        help_text='Which AI model was used'
+    )
+    input_tokens = models.PositiveIntegerField(
+        default=0,
+        help_text='Number of tokens in the request'
+    )
+    output_tokens = models.PositiveIntegerField(
+        default=0,
+        help_text='Number of tokens in the response'
+    )
+    total_tokens = models.PositiveIntegerField(
+        default=0,
+        help_text='Total tokens for this request'
+    )
+    estimated_cost_usd = models.DecimalField(
+        max_digits=8,
+        decimal_places=6,
+        default=0,
+        help_text='Estimated cost in USD for this request'
+    )
+    response_time_ms = models.PositiveIntegerField(
+        default=0,
+        help_text='Response time in milliseconds'
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=[
+            ('SUCCESS', 'Success'),
+            ('PARTIAL', 'Partial Success'),
+            ('FAILED', 'Failed'),
+            ('FALLBACK', 'Fallback Used'),
+        ],
+        default='SUCCESS'
+    )
+    error_message = models.TextField(
+        blank=True,
+        help_text='Error message if request failed'
+    )
+    request_id = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text='Unique request ID from the API'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', 'created_at']),
+            models.Index(fields=['session']),
+            models.Index(fields=['model_used']),
+            models.Index(fields=['created_at']),
+        ]
+    
+    def __str__(self):
+        return f"{self.get_model_used_display()} - {self.get_request_type_display()} ({self.status})"
+    
+    @classmethod
+    def log_request(cls, user, session, request_type, model_used, input_tokens=0, 
+                   output_tokens=0, response_time_ms=0, status='SUCCESS', 
+                   error_message='', request_id=''):
+        """Create a log entry for an AI request."""
+        total_tokens = input_tokens + output_tokens
+        
+        # Calculate estimated costs (these are example rates)
+        cost_per_1k_tokens = {
+            'gemini': 0.001,      # $0.001 per 1k tokens
+            'mistral': 0.0002,    # $0.0002 per 1k tokens
+            'openai': 0.0015,     # $0.0015 per 1k tokens
+        }
+        
+        rate = cost_per_1k_tokens.get(model_used, 0.001)
+        estimated_cost = (total_tokens / 1000) * rate
+        
+        return cls.objects.create(
+            user=user,
+            session=session,
+            request_type=request_type,
+            model_used=model_used,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            total_tokens=total_tokens,
+            estimated_cost_usd=estimated_cost,
+            response_time_ms=response_time_ms,
+            status=status,
+            error_message=error_message,
+            request_id=request_id
+        )

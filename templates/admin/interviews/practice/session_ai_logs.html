@@ -1,0 +1,46 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+  <div class="module">
+    <h1>{{ title }}</h1>
+    <p>
+      Total tokens: <strong>{{ totals.total_tokens }}</strong> ·
+      Estimated cost: <strong>${{ totals.total_cost }}</strong>
+    </p>
+  </div>
+
+  <div class="module">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Request ID</th>
+          <th>User</th>
+          <th>Model</th>
+          <th>Type</th>
+          <th>Tokens</th>
+          <th>Cost</th>
+          <th>Status</th>
+          <th>Created At</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in logs %}
+          <tr>
+            <td>{{ log.request_id|default:"-" }}</td>
+            <td>{{ log.user.email if log.user else "System" }}</td>
+            <td>{{ log.get_model_used_display }}</td>
+            <td>{{ log.get_request_type_display }}</td>
+            <td>{{ log.total_tokens }}</td>
+            <td>${{ log.estimated_cost_usd }}</td>
+            <td>{{ log.status }}</td>
+            <td>{{ log.created_at }}</td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="8">No AI logs yet for this session.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}

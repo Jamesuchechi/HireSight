@@ -97,6 +97,31 @@ class WebSocketService:
             logger.error(f'Failed to send screening error to {group_name}: {e}')
     
     @staticmethod
+    async def send_result_update(screening_id, result_data):
+        """
+        Send updated screening result to clients
+        
+        Args:
+            screening_id: UUID of screening
+            result_data: Result data dict with match_score, status, etc
+        """
+        channel_layer = get_channel_layer()
+        group_name = f'screening_{screening_id}'
+        
+        try:
+            await channel_layer.group_send(
+                group_name,
+                {
+                    'type': 'result_update',
+                    'result': result_data,
+                    'timestamp': timezone.now().isoformat()
+                }
+            )
+            logger.info(f'Sent result update to {group_name}')
+        except Exception as e:
+            logger.error(f'Failed to send result update to {group_name}: {e}')
+    
+    @staticmethod
     async def send_ai_insight(application_id, insight, score=None):
         """
         Send AI insight to clients

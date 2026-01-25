@@ -1,5 +1,7 @@
 from django.urls import path
 from . import views
+from . import views_ux
+from . import privacy_views
 
 app_name = 'interviews'
 
@@ -72,5 +74,129 @@ urlpatterns = [
         'stats/',
         views.InterviewStatsView.as_view(),
         name='stats'
+    ),
+    path(
+        'practice/',
+        views_ux.PracticeHistoryDashboardView.as_view(),
+        name='practice_dashboard'
+    ),
+    path(
+        'practice/setup/',
+        views_ux.PracticeSetupView.as_view(),
+        name='practice_create'
+    ),
+    path(
+        'practice/start/',
+        views_ux.PracticeSetupView.as_view(),
+        name='start_practice'
+    ),
+    path(
+        'practice/question/<int:question_id>/',
+        views.PracticeQuestionView.as_view(),
+        name='practice_question'
+    ),
+    path(
+        'practice/session/<int:session_id>/feedback/',
+        views.PracticeFeedbackView.as_view(),
+        name='practice_feedback'
+    ),
+    path(
+        'practice/session/<int:session_id>/report/',
+        views.CachedPracticeReportView.as_view(),
+        name='practice_report'
+    ),
+    path(
+        'practice/session/<int:session_id>/report/refresh/',
+        views.PracticeReportRefreshView.as_view(),
+        name='practice_report_refresh'
+    ),
+    path(
+        'practice/response/<int:response_id>/analysis/',
+        views.PracticeResponseAnalysisView.as_view(),
+        name='practice_response_analysis'
+    ),
+    # Chunked video upload endpoint used by practice recording
+    path(
+        'practice/upload/video/',
+        views.PracticeVideoUploadView.as_view(),
+        name='practice_upload_video'
+    ),
+    
+    # UX Improvements URLs
+    path(
+        'practice/setup/',
+        views_ux.PracticeSetupView.as_view(),
+        name='setup'
+    ),
+    path(
+        'practice/setup/save/',
+        views_ux.SaveSessionSetupView.as_view(),
+        name='save_session_setup'
+    ),
+    path(
+        'practice/warmup/<int:session_id>/',
+        views_ux.WarmupFlowView.as_view(),
+        name='warmup'
+    ),
+    path(
+        'practice/warmup/<int:session_id>/complete/',
+        views_ux.CompleteWarmupView.as_view(),
+        name='complete_warmup'
+    ),
+    path(
+        'practice/history/',
+        views_ux.PracticeHistoryDashboardView.as_view(),
+        name='practice_history'
+    ),
+    path(
+        'practice/session/<uuid:session_id>/progress/',
+        views_ux.SessionProgressView.as_view(),
+        name='session_progress'
+    ),
+    path(
+        'practice/session/<uuid:session_id>/controls/',
+        views_ux.SessionControlsView.as_view(),
+        name='session_controls'
+    ),
+    
+    # Privacy and Consent Management
+    path(
+        'consent/check/',
+        privacy_views.ConsentCheckView.as_view(),
+        name='consent_check'
+    ),
+    path(
+        'consent/save/',
+        privacy_views.SaveConsentView.as_view(),
+        name='save_consent'
+    ),
+    path(
+        'consent/history/',
+        privacy_views.ConsentHistoryView.as_view(),
+        name='consent_history'
+    ),
+    path(
+        'consent/revoke/<str:consent_type>/',
+        privacy_views.RevokeConsentView.as_view(),
+        name='revoke_consent'
+    ),
+    path(
+        'consent/modal/',
+        privacy_views.ConsentModalView.as_view(),
+        name='consent_modal'
+    ),
+    
+    # Usage and Analytics
+    path(
+        'usage/dashboard/',
+        privacy_views.AIUsageDashboardView.as_view(),
+        name='ai_usage_dashboard'
+    ),
+    
+    # Video Security
+    path(
+        'video/<uuid:session_id>/<str:video_key>/url/',
+        privacy_views.VideoUrlSigningView.as_view(),
+        name='video_signed_url'
     ),
 ]

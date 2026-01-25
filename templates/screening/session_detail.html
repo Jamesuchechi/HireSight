@@ -1,9 +1,10 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}{{ session.title }} - Screening Session | HireSight{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50">
+<div class="min-h-screen bg-gray-50" data-screening-id="{{ session.id }}">
     <!-- Header -->
     <div class="bg-gradient-to-r from-primary via-secondary to-purple text-white shadow-lg">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -104,7 +105,7 @@
                             <div class="text-sm text-gray-500 mt-1">Shortlisted</div>
                         </div>
                         <div class="text-center p-4 bg-purple-50 rounded-xl">
-                            <div class="text-3xl font-bold text-purple-600">{{ session.average_match_score|default:0|floatformat:0 }}%</div>
+                            <div class="text-3xl font-bold text-purple-600" data-stat="average-score">{{ session.average_match_score|default:0|floatformat:0 }}%</div>
                             <div class="text-sm text-gray-500 mt-1">Avg Score</div>
                         </div>
                     </div>
@@ -124,20 +125,21 @@
                         <div>
                             <div class="flex justify-between text-sm mb-2">
                                 <span class="font-medium text-gray-700">Processing</span>
-                                <span class="font-bold text-gray-900">{{ session.progress_percentage|floatformat:0 }}%</span>
+                                <span class="font-bold text-gray-900" data-stat="progress-percent">{{ session.progress_percentage|floatformat:0 }}%</span>
                             </div>
                             <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
                                 <div class="h-3 rounded-full transition-all duration-500 
                                     {% if session.progress_percentage >= 100 %}bg-green-500
                                     {% elif session.progress_percentage >= 50 %}bg-blue-500
                                     {% else %}bg-yellow-500{% endif %}" 
+                                    data-stat="session-progress-bar"
                                     style="width: {{ session.progress_percentage }}%">
                                 </div>
                             </div>
                         </div>
                         <div class="grid grid-cols-3 gap-3 pt-2">
                             <div class="text-center p-3 bg-green-50 rounded-lg">
-                                <div class="text-xl font-bold text-green-600">{{ session.processed_resumes }}</div>
+                                <div class="text-xl font-bold text-green-600" data-stat="processed-resumes">{{ session.processed_resumes }}</div>
                                 <div class="text-xs text-gray-600">Processed</div>
                             </div>
                             <div class="text-center p-3 bg-yellow-50 rounded-lg">
@@ -148,6 +150,8 @@
                                 <div class="text-xl font-bold text-red-600">{{ session.failed_resumes }}</div>
                                 <div class="text-xs text-gray-600">Failed</div>
                             </div>
+                        </div>
+                    </div>
                         </div>
                     </div>
                 </div>
@@ -290,7 +294,7 @@
 
         <!-- Top Results Preview -->
         {% if results %}
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6" id="screening-results-preview">
             <div class="flex items-center justify-between mb-6">
                 <h3 class="text-lg font-semibold flex items-center">
                     <svg class="w-5 h-5 mr-2 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -308,7 +312,14 @@
 
             <div class="space-y-3">
                 {% for result in results %}
-                <div class="flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:bg-gray-50 hover:border-primary/30 transition-all group">
+                <div class="flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:bg-gray-50 hover:border-primary/30 transition-all group result-row match-score-container" data-result-id="{{ result.id }}"
+                     {% if result.match_score >= 80 %}
+                        style="border-left: 4px solid #16a34a;"
+                    {% elif result.match_score >= 60 %}
+                        style="border-left: 4px solid #eab308;"
+                    {% else %}
+                        style="border-left: 4px solid #dc2626;"
+                    {% endif %}>
                     <div class="flex items-center space-x-4 flex-1">
                         {% if result.resume and result.resume.user.personalprofile.avatar %}
                         <img src="{{ result.resume.user.personalprofile.avatar.url }}" alt="" class="w-12 h-12 rounded-xl object-cover border-2 border-gray-200 group-hover:border-primary/30">
@@ -340,7 +351,7 @@
                     </div>
                     <div class="flex items-center space-x-4">
                         <div class="text-right">
-                            <div class="text-2xl font-bold
+                            <div class="text-2xl font-bold match-score-value
                             {% if result.match_score >= 80 %}
                                 text-green-600
                             {% elif result.match_score >= 60 %}
@@ -351,6 +362,7 @@
                                 {{ result.match_score }}%
                             </div>
                             <div class="text-xs text-gray-500">Match Score</div>
+                            <div class="match-progress-bar hidden w-12 h-1 bg-gray-200 rounded-full mt-2" style="width: {{ result.match_score }}%"></div>
                         </div>
                         {% if result.is_shortlisted %}
                         <span class="px-3 py-1.5 bg-blue-100 text-blue-800 text-xs font-semibold rounded-full">Shortlisted</span>
@@ -369,4 +381,10 @@
         {% endif %}
     </div>
 </div>
+
+{% block extra_js %}
+<script src="{% static 'js/websocket-manager.js' %}"></script>
+<script src="{% static 'js/screening-live-results.js' %}"></script>
+{% endblock %}
+
 {% endblock %}

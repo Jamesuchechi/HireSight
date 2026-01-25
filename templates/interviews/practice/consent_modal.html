@@ -1,0 +1,265 @@
+<!-- Video Consent Modal -->
+<div id="consentModal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl max-w-2xl w-full mx-4 max-h-90vh overflow-y-auto">
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-blue-600 to-blue-800 px-8 py-6 text-white">
+            <h2 class="text-2xl font-bold flex items-center gap-3">
+                <i class="fas fa-video text-blue-200"></i>
+                Video Recording Consent
+            </h2>
+            <p class="text-blue-100 text-sm mt-2">Please review our privacy practices before starting your practice session</p>
+        </div>
+
+        <!-- Content -->
+        <div class="px-8 py-6 space-y-6">
+            <!-- Introduction -->
+            <div class="bg-blue-50 border-l-4 border-blue-600 p-4 rounded">
+                <p class="text-gray-700">
+                    <strong>Welcome to HireSight Practice Sessions!</strong> Before we proceed, we want to be transparent about how we use video during your practice interviews. Your privacy and data security are our top priorities.
+                </p>
+            </div>
+
+            <!-- What We Collect -->
+            <div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <i class="fas fa-camera text-blue-600"></i>What Video Data We Collect
+                </h3>
+                <div class="space-y-2 text-gray-700 ml-8">
+                    <div class="flex gap-3">
+                        <i class="fas fa-check text-green-500 flex-shrink-0 mt-0.5"></i>
+                        <div>
+                            <strong>Video Recording:</strong> Your face, body language, and gestures during your answer
+                        </div>
+                    </div>
+                    <div class="flex gap-3">
+                        <i class="fas fa-check text-green-500 flex-shrink-0 mt-0.5"></i>
+                        <div>
+                            <strong>Audio Recording:</strong> Your voice and verbal responses to interview questions
+                        </div>
+                    </div>
+                    <div class="flex gap-3">
+                        <i class="fas fa-check text-green-500 flex-shrink-0 mt-0.5"></i>
+                        <div>
+                            <strong>Metadata:</strong> Session date, duration, questions asked, and your responses
+                        </div>
+                    </div>
+                    <div class="flex gap-3">
+                        <i class="fas fa-check text-green-500 flex-shrink-0 mt-0.5"></i>
+                        <div>
+                            <strong>Behavioral Metrics:</strong> Eye contact, head pose, blink rate, speaking pace (AI analysis only)
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- How We Use Data -->
+            <div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <i class="fas fa-cogs text-green-600"></i>How We Use Your Data
+                </h3>
+                <div class="space-y-2 text-gray-700 ml-8">
+                    <div class="flex gap-3">
+                        <i class="fas fa-check text-green-500 flex-shrink-0 mt-0.5"></i>
+                        <div>
+                            <strong>AI Analysis:</strong> Analyze your performance to provide personalized feedback
+                        </div>
+                    </div>
+                    <div class="flex gap-3">
+                        <i class="fas fa-check text-green-500 flex-shrink-0 mt-0.5"></i>
+                        <div>
+                            <strong>Score Generation:</strong> Evaluate your answers against interview criteria
+                        </div>
+                    </div>
+                    <div class="flex gap-3">
+                        <i class="fas fa-check text-green-500 flex-shrink-0 mt-0.5"></i>
+                        <div>
+                            <strong>Progress Tracking:</strong> Monitor your improvement over multiple practice sessions
+                        </div>
+                    </div>
+                    <div class="flex gap-3">
+                        <i class="fas fa-check text-green-500 flex-shrink-0 mt-0.5"></i>
+                        <div>
+                            <strong>NOT Sold or Shared:</strong> We never sell your data to third parties
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Retention -->
+            <div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <i class="fas fa-trash text-red-600"></i>Data Retention
+                </h3>
+                <div class="space-y-2 text-gray-700 ml-8">
+                    <p>
+                        <strong>Video Files:</strong> Stored for 30 days, then automatically deleted
+                    </p>
+                    <p>
+                        <strong>Performance Data:</strong> Retained for 2 years to track long-term progress
+                    </p>
+                    <p>
+                        <strong>User Control:</strong> You can request deletion of your data at any time
+                    </p>
+                </div>
+            </div>
+
+            <!-- Security Measures -->
+            <div class="bg-green-50 border-l-4 border-green-600 p-4 rounded">
+                <h3 class="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                    <i class="fas fa-shield-alt text-green-600"></i>Security & Privacy Measures
+                </h3>
+                <ul class="space-y-1 text-sm text-gray-700 ml-8">
+                    <li class="flex gap-2">
+                        <i class="fas fa-lock text-green-600 flex-shrink-0"></i>
+                        <span>End-to-end encryption for video transmission</span>
+                    </li>
+                    <li class="flex gap-2">
+                        <i class="fas fa-lock text-green-600 flex-shrink-0"></i>
+                        <span>Encrypted storage on secure servers</span>
+                    </li>
+                    <li class="flex gap-2">
+                        <i class="fas fa-lock text-green-600 flex-shrink-0"></i>
+                        <span>No raw video URLs exposed to anyone</span>
+                    </li>
+                    <li class="flex gap-2">
+                        <i class="fas fa-lock text-green-600 flex-shrink-0"></i>
+                        <span>Signed URLs with 15-minute expiration for access</span>
+                    </li>
+                    <li class="flex gap-2">
+                        <i class="fas fa-lock text-green-600 flex-shrink-0"></i>
+                        <span>GDPR compliant data handling</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Your Rights -->
+            <div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-3">Your Rights</h3>
+                <div class="space-y-2 text-gray-700 ml-8">
+                    <p>✓ <strong>Access:</strong> Request a copy of all your data</p>
+                    <p>✓ <strong>Correction:</strong> Update inaccurate information</p>
+                    <p>✓ <strong>Deletion:</strong> Request permanent deletion of your data</p>
+                    <p>✓ <strong>Opt-Out:</strong> Disable video analysis (scores will not be available)</p>
+                    <p>✓ <strong>Withdraw:</strong> Withdraw consent at any time</p>
+                </div>
+            </div>
+
+            <!-- Consent Checkboxes -->
+            <div class="bg-gray-50 p-4 rounded-lg space-y-3">
+                <label class="flex items-start gap-3 cursor-pointer">
+                    <input type="checkbox" id="consentVideo" class="w-5 h-5 mt-1 text-blue-600 rounded">
+                    <span class="text-sm text-gray-700">
+                        <strong>I consent to video recording and analysis</strong> for the purpose of providing interview feedback and performance tracking
+                    </span>
+                </label>
+
+                <label class="flex items-start gap-3 cursor-pointer">
+                    <input type="checkbox" id="consentAI" class="w-5 h-5 mt-1 text-blue-600 rounded">
+                    <span class="text-sm text-gray-700">
+                        <strong>I consent to AI analysis</strong> of my responses and behavioral metrics to generate scores and feedback
+                    </span>
+                </label>
+
+                <label class="flex items-start gap-3 cursor-pointer">
+                    <input type="checkbox" id="consentData" class="w-5 h-5 mt-1 text-blue-600 rounded">
+                    <span class="text-sm text-gray-700">
+                        <strong>I understand the data retention policy</strong> and agree that my video will be automatically deleted after 30 days
+                    </span>
+                </label>
+
+                <label class="flex items-start gap-3 cursor-pointer">
+                    <input type="checkbox" id="consentPrivacy" class="w-5 h-5 mt-1 text-blue-600 rounded">
+                    <span class="text-sm text-gray-700">
+                        <strong>I have read and agree</strong> to the 
+                        <a href="/privacy/" class="text-blue-600 hover:underline" target="_blank">Privacy Policy</a> and 
+                        <a href="/terms/" class="text-blue-600 hover:underline" target="_blank">Terms of Service</a>
+                    </span>
+                </label>
+            </div>
+
+            <!-- Contact Info -->
+            <div class="bg-yellow-50 border-l-4 border-yellow-600 p-4 rounded">
+                <p class="text-sm text-gray-700">
+                    <strong>Questions or Concerns?</strong> Contact our Privacy Team at 
+                    <a href="mailto:privacy@hiresight.com" class="text-blue-600 hover:underline">privacy@hiresight.com</a>
+                </p>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="bg-gray-100 px-8 py-4 flex justify-end gap-3 border-t">
+            <button id="declineConsent" class="px-6 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition font-medium">
+                <i class="fas fa-times mr-2"></i>Decline & Exit
+            </button>
+            <button id="acceptConsent" disabled class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition font-medium">
+                <i class="fas fa-check mr-2"></i>I Consent & Continue
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const checkboxes = [
+        document.getElementById('consentVideo'),
+        document.getElementById('consentAI'),
+        document.getElementById('consentData'),
+        document.getElementById('consentPrivacy')
+    ];
+    const acceptBtn = document.getElementById('acceptConsent');
+    const declineBtn = document.getElementById('declineConsent');
+
+    // Check if all boxes are checked to enable accept button
+    function updateAcceptButton() {
+        const allChecked = checkboxes.every(cb => cb.checked);
+        acceptBtn.disabled = !allChecked;
+    }
+
+    checkboxes.forEach(cb => {
+        cb.addEventListener('change', updateAcceptButton);
+    });
+
+    // Handle accept consent
+    acceptBtn.addEventListener('click', function() {
+        saveConsent(true);
+    });
+
+    // Handle decline consent
+    declineBtn.addEventListener('click', function() {
+        if (confirm('By declining, you won\'t be able to use video analysis features. Are you sure?')) {
+            saveConsent(false);
+        }
+    });
+});
+
+function saveConsent(granted) {
+    const consentTypes = ['VIDEO_RECORDING', 'AI_ANALYSIS', 'DATA_STORAGE', 'PERFORMANCE_TRACKING'];
+    
+    fetch('{% url "interviews:save_consent" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+            consent_types: consentTypes,
+            granted: granted
+        })
+    }).then(response => {
+        if (response.ok) {
+            if (granted) {
+                document.getElementById('consentModal').classList.add('hidden');
+                // Trigger practice session to start
+                if (window.onConsentGranted) {
+                    window.onConsentGranted();
+                }
+            } else {
+                window.location.href = '{% url "interviews:practice_history" %}';
+            }
+        }
+    }).catch(error => {
+        alert('Error saving consent. Please try again.');
+        console.error('Consent save error:', error);
+    });
+}
+</script>

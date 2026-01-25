@@ -1,0 +1,35 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+  <div class="module">
+    <h1>{{ title }}</h1>
+    <p>Total failed sessions: {{ total_failed }}</p>
+  </div>
+
+  <div class="module">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Candidate</th>
+          <th>Interview Type</th>
+          <th>Created At</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for session in failed_sessions %}
+          <tr>
+            <td>{{ session.candidate.email }}</td>
+            <td>{{ session.get_interview_type_display }}</td>
+            <td>{{ session.created_at }}</td>
+            <td>{{ session.get_status_display }}</td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="4">No failed sessions found.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}

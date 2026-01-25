@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+
+{% block title %}Practice Report{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-slate-50 py-10">
+    <div class="max-w-4xl mx-auto">
+        <div class="bg-white rounded-3xl border border-slate-100 shadow-lg p-8 space-y-6">
+            <div>
+                <p class="text-xs uppercase tracking-[0.4em] text-slate-500">Performance Report</p>
+                <h1 class="text-3xl font-semibold text-slate-900">{{ session.focus_area|default:"Practice Session" }}</h1>
+                <p class="text-sm text-slate-500">Generated {{ report.generated_at|date:"M d, Y" }}</p>
+            </div>
+            {% if report %}
+            <div class="space-y-4">
+                <div class="rounded-2xl border border-slate-100 p-4 bg-slate-50">
+                    <p class="text-xs text-slate-500">Overall Score</p>
+                    <p class="text-4xl font-bold text-slate-900">{{ report.overall_score|floatformat:1 }}/100</p>
+                </div>
+                <div class="grid gap-4 md:grid-cols-2">
+                    <div>
+                        <h3 class="text-xs uppercase tracking-[0.3em] text-slate-500">Question generation</h3>
+                        <p class="text-sm text-slate-600">{{ session.get_question_generation_state_display }}</p>
+                    </div>
+                    <div>
+                        <h3 class="text-xs uppercase tracking-[0.3em] text-slate-500">Report status</h3>
+                        <p class="text-sm text-slate-600">
+                            {{ session.get_report_generation_state_display }}
+                        </p>
+                    </div>
+                </div>
+                <div>
+                    <h2 class="text-lg font-semibold text-slate-900">Strengths</h2>
+                    <ul class="list-disc list-inside text-sm text-slate-600 space-y-1">
+                        {% for strength in report.strengths %}
+                        <li>{{ strength }}</li>
+                        {% empty %}
+                        <li>AI will highlight strengths once available.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                <div>
+                    <h2 class="text-lg font-semibold text-slate-900">Areas to Improve</h2>
+                    <ul class="list-disc list-inside text-sm text-slate-600 space-y-1">
+                        {% for weakness in report.weaknesses %}
+                        <li>{{ weakness }}</li>
+                        {% empty %}
+                        <li>No recommendations yet. Practice more questions.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                <div>
+                    <h2 class="text-lg font-semibold text-slate-900">Recommendations</h2>
+                    <p class="text-sm text-slate-600">{{ report.recommendations|default:"Our AI coach will suggest next steps soon." }}</p>
+                </div>
+                <div class="bg-white rounded-2xl border border-slate-100 p-4">
+                    <canvas id="practiceChart" height="150"></canvas>
+                </div>
+                {% if session.next_question %}
+                <div class="rounded-2xl border border-slate-200 p-4 text-sm text-slate-600 bg-slate-50">
+                    Next question: <strong class="text-slate-900">{{ session.next_question.prompt|truncatechars:80 }}</strong>
+                </div>
+                {% endif %}
+            </div>
+            {% else %}
+            <div class="space-y-4">
+                <div class="h-8 bg-slate-200 rounded animate-pulse w-1/3"></div>
+                <div class="h-24 bg-slate-200 rounded animate-pulse"></div>
+                <div class="grid gap-4 md:grid-cols-2">
+                    <div class="h-12 bg-slate-200 rounded animate-pulse"></div>
+                    <div class="h-12 bg-slate-200 rounded animate-pulse"></div>
+                </div>
+                <div class="h-40 bg-slate-200 rounded animate-pulse"></div>
+            </div>
+            {% endif %}
+            <div class="flex gap-3">
+                <a href="{% url 'interviews:practice_feedback' session_id=session.id %}" class="px-5 py-2 rounded-2xl border border-slate-300 text-sm text-slate-600 hover:bg-slate-100 transition">
+                    Back to Feedback
+                </a>
+                <a href="{% url 'interviews:practice_dashboard' %}" class="px-5 py-2 rounded-2xl bg-primary text-white text-sm font-semibold hover:bg-primary-dark transition">
+                    Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if report %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script>
+    const strengths = {{ report.strengths|length }};
+    const weaknesses = {{ report.weaknesses|length }};
+    const ctx = document.getElementById('practiceChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Strengths', 'Weaknesses'],
+            datasets: [{
+                data: [strengths, weaknesses],
+                backgroundColor: ['#10b981', '#ef4444']
+            }]
+        },
+        options: {
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { color: '#475569' }
+                }
+            }
+        }
+    });
+</script>
+{% endif %}
+{% endblock %}

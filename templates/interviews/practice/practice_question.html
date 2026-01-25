@@ -1,0 +1,448 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Practice Question{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-slate-100 py-10">
+    <div class="max-w-4xl mx-auto space-y-6">
+        <!-- Question Card -->
+        <div class="bg-white rounded-3xl border border-slate-100 shadow">
+            <div class="p-8 space-y-4">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <p class="text-xs uppercase tracking-[0.4em] text-slate-500">Question</p>
+                        <h1 class="text-2xl font-semibold text-slate-900">{{ question.category|default:"General" }}</h1>
+                    </div>
+                    <div class="text-sm text-slate-500">
+                        Session: {{ session.focus_area|default:"General Practice" }}
+                    </div>
+                </div>
+
+                <p class="text-lg text-slate-800 leading-relaxed">{{ question.prompt }}</p>
+                <p class="text-xs text-slate-400">Evaluation criteria loaded from AI.</p>
+                <div class="text-xs text-slate-500">
+                    {% for criterion in question.evaluation_criteria %}
+                    <span class="inline-flex items-center px-3 py-1 rounded-full bg-slate-100 text-slate-600 mr-2">{{ criterion }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Video Recording Section -->
+        <div class="bg-white rounded-3xl border border-slate-100 shadow p-8 space-y-4">
+            <h2 class="text-lg font-semibold text-slate-900">Record Your Answer</h2>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <!-- Video Preview with Overlay -->
+                <div class="lg:col-span-2 space-y-2">
+                    <div class="relative bg-black rounded-2xl overflow-hidden aspect-video">
+                        <video 
+                            id="videoPreview" 
+                            class="w-full h-full object-cover" 
+                            playsinline
+                        ></video>
+                        <canvas 
+                            id="analysisCanvas" 
+                            class="absolute inset-0 w-full h-full"
+                        ></canvas>
+                        
+                        <!-- Overlay Indicators -->
+                        <div class="absolute inset-0 pointer-events-none">
+                            <!-- Gaze Indicator (top-left) -->
+                            <div class="absolute top-4 left-4 space-y-1">
+                                <p class="text-xs text-white font-semibold">Gaze</p>
+                                <div 
+                                    id="gazeIndicator" 
+                                    class="w-6 h-6 rounded-full border-2 border-gray-400 bg-gray-500 bg-opacity-50"
+                                ></div>
+                            </div>
+                            
+                            <!-- Posture Indicator (top-right) -->
+                            <div class="absolute top-4 right-4 space-y-1">
+                                <p class="text-xs text-white font-semibold">Posture</p>
+                                <div 
+                                    id="postureIndicator" 
+                                    class="w-6 h-6 rounded-full border-2 border-gray-400 bg-gray-500 bg-opacity-50"
+                                ></div>
+                            </div>
+                            
+                            <!-- Speaking Indicator (bottom-right) -->
+                            <div class="absolute bottom-4 right-4 space-y-1">
+                                <p class="text-xs text-white font-semibold">Speaking</p>
+                                <div class="flex gap-0.5">
+                                    <div id="speakingBars" class="flex gap-0.5">
+                                        <div class="w-1 h-4 bg-gray-400 rounded-sm"></div>
+                                        <div class="w-1 h-4 bg-gray-400 rounded-sm"></div>
+                                        <div class="w-1 h-4 bg-gray-400 rounded-sm"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Timer (bottom-left) -->
+                            <div class="absolute bottom-4 left-4">
+                                <p class="text-sm text-white font-mono font-semibold" id="recordingTimer">00:00</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Recording Controls -->
+                    <div class="flex gap-3 justify-center">
+                        <button 
+                            type="button" 
+                            id="startRecordingBtn" 
+                            class="px-4 py-2 bg-red-500 text-white rounded-lg font-semibold hover:bg-red-600 transition"
+                        >
+                            Start Recording
+                        </button>
+                        <button 
+                            type="button" 
+                            id="stopRecordingBtn" 
+                            class="px-4 py-2 bg-slate-400 text-white rounded-lg font-semibold hover:bg-slate-500 transition disabled:opacity-50"
+                            disabled
+                        >
+                            Stop Recording
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Analysis Metrics Display -->
+                <div class="lg:col-span-1 bg-slate-50 rounded-2xl p-4 space-y-3">
+                    <h3 class="text-sm font-semibold text-slate-900">Real-time Metrics</h3>
+                    
+                    <div class="space-y-2 text-xs">
+                        <div class="flex justify-between">
+                            <span class="text-slate-600">Gaze at Camera</span>
+                            <span class="font-semibold text-slate-900" id="gazeMetric">--</span>
+                        </div>
+                        <div class="w-full bg-slate-200 rounded-full h-1.5">
+                            <div id="gazeBar" class="bg-green-500 h-1.5 rounded-full transition-all" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-2 text-xs">
+                        <div class="flex justify-between">
+                            <span class="text-slate-600">Blink Rate</span>
+                            <span class="font-semibold text-slate-900" id="blinkMetric">--</span>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-2 text-xs">
+                        <div class="flex justify-between">
+                            <span class="text-slate-600">Speaking</span>
+                            <span class="font-semibold text-slate-900" id="speakingMetric">--</span>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-2 text-xs pt-2 border-t border-slate-200">
+                        <div class="flex justify-between">
+                            <span class="text-slate-600">Head Pitch</span>
+                            <span class="font-semibold text-slate-900 font-mono" id="pitchMetric">--</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-slate-600">Head Yaw</span>
+                            <span class="font-semibold text-slate-900 font-mono" id="yawMetric">--</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-slate-600">Head Roll</span>
+                            <span class="font-semibold text-slate-900 font-mono" id="rollMetric">--</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Response Form -->
+        <div class="bg-white rounded-3xl border border-slate-100 shadow p-8">
+            <form id="responseForm" method="post" class="space-y-4">
+                {% csrf_token %}
+                {{ form.non_field_errors }}
+                
+                <div>
+                    <label class="text-sm font-semibold text-slate-700">{{ form.text_response.label }}</label>
+                    {{ form.text_response }}
+                    {{ form.text_response.errors }}
+                </div>
+                
+                <!-- Hidden field for video analysis metrics -->
+                <input type="hidden" id="videoAnalyticsInput" name="video_analysis_metrics" value="">
+                
+                <button 
+                    type="submit" 
+                    class="inline-flex items-center px-5 py-3 bg-primary text-white rounded-2xl font-semibold shadow hover:bg-primary-dark transition"
+                >
+                    Submit Answer
+                </button>
+            </form>
+        </div>
+
+        <!-- Previous Responses -->
+        {% if responses %}
+        <div class="bg-white rounded-3xl border border-slate-100 shadow space-y-4 p-6">
+            <h2 class="text-lg font-semibold text-slate-900">Previous Responses</h2>
+            <div class="space-y-4">
+                {% for response in responses %}
+                <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-2">
+                    <p class="text-sm text-slate-700">{{ response.text_response|default:"Video-only response" }}</p>
+                    {% if response.video_url %}
+                    <p class="text-xs text-primary">Video: <a href="{{ response.video_url }}" class="underline">{{ response.video_url }}</a></p>
+                    {% endif %}
+                    {% if response.ai_score %}
+                    <p class="text-xs text-slate-500">Score: {{ response.ai_score }} · {{ response.analysis.focus|default:"Focus data pending" }}</p>
+                    <p class="text-sm text-slate-600">{{ response.ai_feedback }}</p>
+                    {% endif %}
+                    <p class="text-xs text-slate-400">Submitted {{ response.submitted_at|naturaltime }}</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- MediaPipe and Video Analyzer Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14"></script>
+<script src="{% static 'js/video_analyzer.js' %}"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', async function() {
+    let videoAnalyzer = null;
+    let recordingActive = false;
+    let recordingStartTime = null;
+    let mediaRecorder = null;
+    let recordedChunks = [];
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    
+    const videoPreview = document.getElementById('videoPreview');
+    const startBtn = document.getElementById('startRecordingBtn');
+    const stopBtn = document.getElementById('stopRecordingBtn');
+    const responseForm = document.getElementById('responseForm');
+    const gazeIndicator = document.getElementById('gazeIndicator');
+    const postureIndicator = document.getElementById('postureIndicator');
+    const recordingTimer = document.getElementById('recordingTimer');
+    
+    // Initialize video analyzer
+    async function initAnalyzer() {
+        videoAnalyzer = new VideoAnalyzer({
+            videoElement: videoPreview,
+            canvasElement: document.getElementById('analysisCanvas'),
+            updateInterval: 1000,
+            onMetricsUpdate: updateMetricsDisplay,
+            onError: handleAnalyzerError
+        });
+        
+        const success = await videoAnalyzer.init();
+        if (!success) {
+            startBtn.disabled = true;
+            alert('Failed to initialize video analyzer. Check camera permissions.');
+        }
+    }
+    
+    // Start recording
+    startBtn.addEventListener('click', async function() {
+        if (!videoAnalyzer) {
+            await initAnalyzer();
+        }
+        
+        // Start MediaRecorder for the same stream to capture video
+        const stream = videoPreview.srcObject;
+        recordedChunks = [];
+        try {
+            mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp8', bitsPerSecond: 400000 });
+        } catch (e) {
+            mediaRecorder = new MediaRecorder(stream);
+        }
+
+        mediaRecorder.ondataavailable = function(e) {
+            if (e.data && e.data.size > 0) recordedChunks.push(e.data);
+        };
+
+        mediaRecorder.start(1000);
+
+        recordingActive = true;
+        recordingStartTime = Date.now();
+        startBtn.disabled = true;
+        stopBtn.disabled = false;
+        updateTimer();
+    });
+    
+    // Stop recording
+    stopBtn.addEventListener('click', function() {
+        recordingActive = false;
+        stopBtn.disabled = true;
+        startBtn.disabled = false;
+        
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+            mediaRecorder.stop();
+        }
+
+        const metrics = videoAnalyzer ? videoAnalyzer.stop() : [];
+        const summary = videoAnalyzer ? videoAnalyzer.getSummary() : null;
+
+        // Store metrics for form submission
+        const analyticsData = {
+            summary: summary,
+            detailed_metrics: metrics
+        };
+        document.getElementById('videoAnalyticsInput').value = JSON.stringify(analyticsData);
+
+        // If recorded video exists, compress/upload in chunks
+        if (recordedChunks.length > 0) {
+            const blob = new Blob(recordedChunks, { type: 'video/webm' });
+            uploadInChunks(blob).catch(err => console.error('Upload failed', err));
+        }
+        alert('Video analysis complete. ' + metrics.length + ' metrics captured.');
+    });
+
+    async function uploadInChunks(blob) {
+        const chunkSize = 5 * 1024 * 1024; // 5MB
+        const totalChunks = Math.ceil(blob.size / chunkSize);
+        const uploadId = localStorage.getItem('upload_in_progress') || (Date.now().toString(36) + Math.random().toString(36).slice(2));
+        localStorage.setItem('upload_in_progress', uploadId);
+
+        for (let i = 0; i < totalChunks; i++) {
+            const start = i * chunkSize;
+            const end = Math.min(blob.size, start + chunkSize);
+            const chunk = blob.slice(start, end);
+
+            const form = new FormData();
+            form.append('chunk', chunk, `chunk_${i}`);
+            form.append('upload_id', uploadId);
+            form.append('chunk_index', i);
+            form.append('total_chunks', totalChunks);
+            form.append('filename', 'response.webm');
+            form.append('session_id', '{{ session.id }}');
+            form.append('question_id', '{{ question.id }}');
+
+            // Try to resume if server already has this chunk
+            const resp = await fetch('{% url "interviews:practice_upload_video" %}', {
+                method: 'POST',
+                headers: {'X-CSRFToken': csrfToken},
+                body: form
+            });
+
+            if (!resp.ok) {
+                // Retry logic: try up to 3 times
+                let ok = false;
+                for (let attempt = 0; attempt < 3 && !ok; attempt++) {
+                    await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+                    const r2 = await fetch('{% url "interviews:practice_upload_video" %}', {
+                        method: 'POST',
+                        headers: {'X-CSRFToken': csrfToken},
+                        body: form
+                    });
+                    ok = r2.ok;
+                }
+                if (!ok) throw new Error('Failed to upload chunk ' + i);
+            }
+
+            // Update progress if desired
+            const progress = Math.round(((i + 1) / totalChunks) * 100);
+            // show progress UI if implemented
+        }
+
+        // All chunks uploaded; request finalization from server is handled there
+        localStorage.removeItem('upload_in_progress');
+    }
+    });
+    
+    // Update timer
+    function updateTimer() {
+        if (!recordingActive) return;
+        
+        const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
+        const minutes = Math.floor(elapsed / 60);
+        const seconds = elapsed % 60;
+        recordingTimer.textContent = 
+            `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        
+        setTimeout(updateTimer, 1000);
+    }
+    
+    // Update metrics display
+    function updateMetricsDisplay(metric) {
+        document.getElementById('gazeMetric').textContent = 
+            metric.gazeAtCameraPercent.toFixed(0) + '%';
+        document.getElementById('gazeBar').style.width = 
+            metric.gazeAtCameraPercent + '%';
+        
+        document.getElementById('blinkMetric').textContent = 
+            metric.blinkRatePerMinute.toFixed(1) + '/min';
+        
+        document.getElementById('speakingMetric').textContent = 
+            metric.speakingDetected ? 'Yes' : 'No';
+        
+        document.getElementById('pitchMetric').textContent = 
+            metric.headPose.pitch.toFixed(1) + '°';
+        document.getElementById('yawMetric').textContent = 
+            metric.headPose.yaw.toFixed(1) + '°';
+        document.getElementById('rollMetric').textContent = 
+            metric.headPose.roll.toFixed(1) + '°';
+        
+        // Update gaze indicator color
+        const gazeColor = metric.gazeAtCameraPercent > 70 
+            ? 'border-green-400 bg-green-500' 
+            : metric.gazeAtCameraPercent > 40 
+            ? 'border-yellow-400 bg-yellow-500' 
+            : 'border-red-400 bg-red-500';
+        gazeIndicator.className = 'w-6 h-6 rounded-full border-2 bg-opacity-50 transition-colors ' + gazeColor;
+        
+        // Update posture indicator based on head tilt
+        const tilt = Math.abs(metric.headPose.roll);
+        const postureColor = tilt < 15 
+            ? 'border-green-400 bg-green-500' 
+            : tilt < 30 
+            ? 'border-yellow-400 bg-yellow-500' 
+            : 'border-red-400 bg-red-500';
+        postureIndicator.className = 'w-6 h-6 rounded-full border-2 bg-opacity-50 transition-colors ' + postureColor;
+    }
+    
+    // Handle analyzer errors
+    function handleAnalyzerError(error) {
+        console.error('Video analyzer error:', error);
+        alert('Error during video analysis: ' + error.message);
+    }
+    
+    // Form submission
+    responseForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        // Stop recording if still active
+        if (recordingActive) {
+            stopBtn.click();
+        }
+        
+        // Submit form
+        const formData = new FormData(responseForm);
+        
+        // Additional submission of analytics if available
+        const analyticsInput = document.getElementById('videoAnalyticsInput').value;
+        if (analyticsInput) {
+            formData.append('video_analysis_metrics', analyticsInput);
+        }
+        
+        // You can submit the form normally or via AJAX
+        responseForm.submit();
+    });
+    
+    // Initialize on page load
+    await initAnalyzer();
+});
+</script>
+
+<style>
+    #videoPreview {
+        background-color: #000;
+        display: block;
+    }
+    
+    #analysisCanvas {
+        display: block;
+    }
+    
+    textarea[name="text_response"] {
+        @apply w-full p-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary;
+    }
+</style>
+{% endblock %}
+
