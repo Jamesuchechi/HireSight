@@ -144,6 +144,11 @@ urlpatterns = [
         name='complete_warmup'
     ),
     path(
+        'practice/warmup/<int:session_id>/status/',
+        views_ux.warmup_question_status,
+        name='warmup_question_status'
+    ),
+    path(
         'practice/history/',
         views_ux.PracticeHistoryDashboardView.as_view(),
         name='practice_history'

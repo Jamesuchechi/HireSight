@@ -121,16 +121,6 @@ TEMPLATES = [
 WSGI_APPLICATION = 'hiresight.wsgi.application'
 
 
-# Database
-# https://docs.djangoproject.com/en/4.2/ref/settings/#databases
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
-
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
@@ -391,7 +381,7 @@ GEMINI_API_KEY_PRIMARY = config('GEMINI_API_KEY_PRIMARY', default='')
 GEMINI_API_KEY_SECONDARY = config('GEMINI_API_KEY_SECONDARY', default='')
 GEMINI_KEYS = [key for key in [GEMINI_API_KEY_PRIMARY, GEMINI_API_KEY_SECONDARY] if key]
 GEMINI_API_URL = config('GEMINI_API_URL', default='https://gemini.labs.ai/api/v1/generate')
-GEMINI_MODELS = config('GEMINI_MODEL', default='gemini-2.5-pro,gemini-2.5-flash,gemini-2.5-flash-lite', cast=lambda v: [s.strip() for s in v.split(',')])
+GEMINI_MODELS = config('GEMINI_MODEL', default='gemini-2.0-flash,gemini-1.5-flash', cast=lambda v: [s.strip() for s in v.split(',')])
 GEMINI_AI_TIMEOUT = config('GEMINI_AI_TIMEOUT', default=30, cast=int)
 
 

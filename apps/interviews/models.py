@@ -657,6 +657,17 @@ class InterviewPracticeSession(models.Model):
         blank=True,
         help_text='Serialized settings for this practice run'
     )
+
+    warmup_question_prompt = models.TextField(
+        blank=True, null=True, help_text="AI-generated warmup question."
+    )
+    warmup_question_state = models.CharField(
+        max_length=20,
+        choices=GenerationState.choices,
+        default=GenerationState.PENDING,
+        help_text="The generation state of the warmup question."
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     started_at = models.DateTimeField(null=True, blank=True)
     completed_at = models.DateTimeField(null=True, blank=True)

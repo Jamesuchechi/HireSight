@@ -9,6 +9,9 @@ from django.core.cache import cache
 from django.utils import timezone
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
+from celery import shared_task
+from .models import InterviewPracticeSession
+from apps.interviews import ai_connector, utils
 
 logger = logging.getLogger(__name__)
 
@@ -383,3 +386,45 @@ def track_question_rerecord(session_id, question_id):
     }
     
     broadcast_session_update.delay(session_id, 'question_rerecorded', rerecord_data)
+
+
+
+@shared_task
+def generate_warmup_question_task(session_id):
+    logger.info(f"Starting warmup question generation task for session {session_id}")
+    try:
+        session = InterviewPracticeSession.objects.get(pk=session_id)
+        session.warmup_question_state = InterviewPracticeSession.GenerationState.IN_PROGRESS
+        session.save(update_fields=['warmup_question_state'])
+
+        prompt = "Generate one simple, non-technical interview warmup question. The question should be something a candidate can answer to get comfortable, like 'Tell me about yourself' or 'What is a project you are proud of?'. Return only the question text, no JSON, no extra formatting."
+
+        warmup_question = utils.generate_text_with_fallback(prompt, json_mode=False)
+
+        if warmup_question.startswith("Error:"):
+            logger.error(f"Failed to generate warmup question for session {session_id}: {warmup_question}")
+            raise Exception(warmup_question)
+
+        # The response might be in JSON if the model defaults to it, let's try to parse.
+        try:
+            data = json.loads(warmup_question)
+            if 'question' in data:
+                warmup_question = data['question']
+            elif 'message' in data:
+                warmup_question = data['message']
+        except (json.JSONDecodeError, TypeError):
+            # It's likely plain text, which is what we want.
+            pass
+
+        session.warmup_question_prompt = warmup_question.strip().strip('"')
+        session.warmup_question_state = InterviewPracticeSession.GenerationState.COMPLETED
+        session.save(update_fields=['warmup_question_prompt', 'warmup_question_state'])
+        logger.info(f"Generated warmup question for session {session_id}")
+    except InterviewPracticeSession.DoesNotExist:
+        logger.error(f"Session {session_id} not found for warmup question generation.")
+        pass
+    except Exception as e:
+        logger.error(f"Error generating warmup question for session {session_id}: {e}")
+        if 'session' in locals() and isinstance(session, InterviewPracticeSession):
+            session.warmup_question_state = InterviewPracticeSession.GenerationState.FAILED
+            session.save(update_fields=['warmup_question_state'])

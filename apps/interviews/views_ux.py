@@ -13,6 +13,8 @@ from django.db.models import Avg, Q, Count
 from datetime import timedelta
 from django.utils import timezone
 from django.urls import reverse
+from django.core.cache import cache
+from .progress_tasks import generate_warmup_question_task
 
 from .models import InterviewPracticeSession, PracticeQuestion, PracticeResponse
 
@@ -74,9 +76,10 @@ class SaveSessionSetupView(View):
                 enable_video=enable_video,
                 video_analysis_enabled=enable_video,
                 settings=settings_payload,
-                interview_type='PHONE',  # Can be configurable
                 status=InterviewPracticeSession.Status.CREATED,
             )
+
+            generate_warmup_question_task.delay(session.id)
             
             return JsonResponse({
                 'success': True,
@@ -102,6 +105,11 @@ class WarmupFlowView(View):
             candidate=request.user
         )
         
+        # Self-healing: Ensure warmup question generation is started if it's missing
+        # This handles cases where the initial setup trigger failed or was lost
+        if not session.warmup_question_prompt and session.warmup_question_state == InterviewPracticeSession.GenerationState.PENDING:
+             generate_warmup_question_task.delay(session.id)
+        
         context = {
             'session': session,
             'camera_tips': [
@@ -118,22 +126,78 @@ class CompleteWarmupView(View):
     """Mark warmup as completed and move to practice questions."""
     
     def post(self, request, session_id):
-        """Mark warmup completed."""
+        """Mark warmup completed and redirect to first question."""
         session = get_object_or_404(
             InterviewPracticeSession,
             id=session_id,
             candidate=request.user
         )
         
+        # Mark warmup as completed
         session.warmup_completed = True
         session.status = InterviewPracticeSession.Status.IN_PROGRESS
         session.started_at = timezone.now()
         session.save()
         
+        # CRITICAL FIX: Check if questions exist, if not generate them
+        questions = PracticeQuestion.objects.filter(session=session).order_by('order')
+        
+        if not questions.exists():
+            # Questions haven't been generated yet - trigger generation
+            from .tasks import generate_practice_questions
+            
+            # Update generation state
+            session.question_generation_state = InterviewPracticeSession.GenerationState.IN_PROGRESS
+            session.save()
+            
+            # Trigger async question generation
+            generate_practice_questions.delay(session.id)
+            
+            # Return response asking user to wait
+            return JsonResponse({
+                'success': True,
+                'status': 'generating',
+                'message': 'Warmup completed. Generating your practice questions...',
+                'redirect_url': reverse('interviews:practice_feedback', kwargs={'session_id': session.id})
+            })
+        
+        # Questions exist - redirect to first question
+        first_question = questions.first()
+        
         return JsonResponse({
             'success': True,
-            'message': 'Warmup completed. Starting practice session.'
+            'status': 'ready',
+            'message': 'Warmup completed. Starting practice session.',
+            'redirect_url': reverse('interviews:practice_question', kwargs={'question_id': first_question.id})
         })
+
+
+@login_required
+def warmup_question_status(request, session_id):
+    """Check the status of the warmup question generation."""
+    session = get_object_or_404(InterviewPracticeSession, id=session_id, candidate=request.user)
+    
+    if session.warmup_question_state == InterviewPracticeSession.GenerationState.COMPLETED:
+        return JsonResponse({
+            "status": "completed",
+            "question": session.warmup_question_prompt
+        })
+    elif session.warmup_question_state == InterviewPracticeSession.GenerationState.FAILED:
+        return JsonResponse({
+            "status": "failed",
+            "message": "Failed to generate a warmup question. You can skip this step."
+        })
+    else: # PENDING or IN_PROGRESS
+        # Self-healing: If status is PENDING during polling, ensure task is queued.
+        # This fixes the "stuck in pending" issue if the task wasn't triggered.
+        if session.warmup_question_state == InterviewPracticeSession.GenerationState.PENDING:
+            cache_key = f"warmup_gen_triggered_{session.id}"
+            # Use cache to debounce triggers (prevent flooding every 3 seconds)
+            if not cache.get(cache_key):
+                generate_warmup_question_task.delay(session.id)
+                cache.set(cache_key, "true", timeout=15) # Don't re-trigger for 15s
+
+        return JsonResponse({"status": "pending"})
 
 
 @method_decorator(login_required, name='dispatch')

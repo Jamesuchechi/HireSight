@@ -4,16 +4,21 @@ import os
 
 load_dotenv()  
 
-api_key = os.getenv("GEMINI_API_KEY")
+# Fetch them individually
+primary = os.getenv("GEMINI_API_KEY_PRIMARY")
+secondary = os.getenv("GEMINI_API_KEY_SECONDARY")
+
+# Use primary if it exists, otherwise use secondary
+api_key = primary or secondary
 
 if not api_key:
-    raise ValueError("GEMINI_API_KEY not found. Check your .env file.")
+    raise ValueError("No Gemini API keys found in .env file.")
 
 client = genai.Client(api_key=api_key)
 
 response = client.models.generate_content(
     model="gemini-2.5-flash",
-    contents="Give me a brief overview of a project I can build in 3 days."
+    contents="Tell me what you think will happen between chelsea and Napoli today."
 )
 
 print(response.text)

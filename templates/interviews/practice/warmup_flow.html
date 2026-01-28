@@ -3,6 +3,16 @@
 
 {% block title %}Warmup Warmup - HireSight{% endblock %}
 
+{% block extra_css %}
+<style>
+    .spinner {
+        border-top-color: #3b82f6;
+        animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="min-h-screen bg-slate-50 py-10">
     <div class="max-w-6xl mx-auto px-4 space-y-6">
@@ -155,77 +165,61 @@
                 </div>
             </div>
 
-            <div id="testQuestion" class="warmup-step hidden bg-white rounded-3xl shadow-xl p-8 space-y-6">
+            <div id="testQuestion" class="warmup-step hidden bg-white rounded-3xl shadow-xl p-8 space-y-6" data-step-init="initWarmupStep3">
                 <div class="space-y-4">
                     <div class="flex items-center gap-3">
                         <span class="w-10 h-10 rounded-full bg-primary text-white font-semibold flex items-center justify-center">03</span>
                         <div>
-                            <p class="text-sm uppercase tracking-[0.4em] text-gray-400">Test Question</p>
+                            <p class="text-sm uppercase tracking-[0.4em] text-gray-400">Practice Question</p>
                             <h2 class="text-2xl text-gray-900 font-semibold">Try a sample answer</h2>
                         </div>
                     </div>
                     <p class="text-gray-600">
-                        You will not be scored for this question. Think aloud, speak into the camera, and get comfortable with the recording controls.
+                        This is a non-scored question to help you get comfortable. The AI is generating a question for you now.
                     </p>
                 </div>
-                <div class="grid md:grid-cols-3 gap-4">
-                    <div class="bg-blue-50 rounded-2xl p-4">
-                        <p class="text-sm text-blue-600 font-medium">Prep Time</p>
-                        <p class="text-3xl font-bold text-gray-900">0:30</p>
+
+                <!-- Question container -->
+                <div id="warmupQuestionContainer" class="bg-gray-50 border border-gray-200 rounded-2xl p-6 min-h-[150px] flex items-center justify-center">
+                    <!-- Loading state -->
+                    <div id="warmupQuestionLoading" class="text-center space-y-3 text-gray-600">
+                        <div class="spinner w-8 h-8 border-4 border-gray-200 rounded-full mx-auto"></div>
+                        <p>Generating your AI warmup question...</p>
+                        <p class="text-xs">This should only take a moment.</p>
                     </div>
-                    <div class="bg-green-50 rounded-2xl p-4">
-                        <p class="text-sm text-green-600 font-medium">Recording</p>
-                        <p class="text-3xl font-bold text-gray-900">2:00</p>
+                    <!-- Question display state -->
+                    <div id="warmupQuestionDisplay" class="hidden w-full">
+                        <p class="text-sm font-semibold text-gray-900 mb-2">Your Practice Question:</p>
+                        <p id="warmupQuestionText" class="text-lg font-medium text-gray-700"></p>
+                        <button id="answerWarmupQuestion" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition">
+                            <i class="fas fa-video mr-2"></i>Answer Question
+                        </button>
                     </div>
-                    <div class="bg-purple-50 rounded-2xl p-4">
-                        <p class="text-sm text-purple-600 font-medium">Score</p>
-                        <p class="text-3xl font-bold text-gray-900">Not scored</p>
-                    </div>
-                </div>
-                <div class="bg-gray-50 border border-dashed border-primary rounded-2xl p-6 space-y-3">
-                    <p class="text-sm font-semibold text-gray-900">Question</p>
-                    <p class="text-lg font-medium text-gray-700">
-                        Tell me about a time you learned something new quickly to solve a work problem. How did you approach it?
-                    </p>
-                </div>
-                <div class="grid md:grid-cols-2 gap-6">
-                    <div class="space-y-2">
-                        <p class="text-sm font-semibold text-gray-900">Tips for a good recording</p>
-                        <ul class="space-y-2 text-sm text-gray-600">
-                            <li class="flex items-center gap-2">
-                                <i class="fas fa-check text-green-500"></i>
-                                Take a breath, then speak clearly.
-                            </li>
-                            <li class="flex items-center gap-2">
-                                <i class="fas fa-check text-green-500"></i>
-                                Maintain eye contact with the camera.
-                            </li>
-                            <li class="flex items-center gap-2">
-                                <i class="fas fa-check text-green-500"></i>
-                                Use metrics and outcomes when possible.
-                            </li>
-                        </ul>
-                    </div>
-                    <div class="space-y-2">
-                        <p class="text-sm font-semibold text-gray-900">Need more practice?</p>
-                        <p class="text-sm text-gray-600">Skip the test question if you feel ready and move straight to the warmup confirmation.</p>
-                        <label class="flex items-center gap-2 text-sm text-gray-600">
-                            <input id="skipTestQuestion" type="checkbox" class="form-checkbox h-4 w-4 text-primary">
-                            Skip test question
-                        </label>
+                    <!-- Error state -->
+                    <div id="warmupQuestionError" class="hidden text-center text-red-600">
+                        <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
+                        <p>Could not generate a warmup question. You can skip this step.</p>
                     </div>
                 </div>
+
+                <div class="flex items-center justify-center">
+                    <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+                        <input id="skipTestQuestion" type="checkbox" class="form-checkbox h-4 w-4 text-primary rounded">
+                        I want to skip the practice question
+                    </label>
+                </div>
+
                 <div class="flex justify-between pt-6 border-t border-gray-100">
                     <button class="prevStep px-4 py-2 border border-gray-200 rounded-2xl text-gray-600 hover:bg-gray-50 transition">
                         Back
                     </button>
-                    <button id="testQuestionContinue" disabled class="px-4 py-2 bg-primary text-white rounded-2xl hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed transition font-semibold">
+                    <button id="testQuestionContinue" class="px-4 py-2 bg-primary text-white rounded-2xl hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed transition font-semibold" disabled>
                         Continue to Confirmation
                     </button>
                 </div>
             </div>
 
-            <div id="finalConfirmation" class="warmup-step hidden bg-white rounded-3xl shadow-xl p-8 space-y-6">
+            <div id="finalConfirmation" class="warmup-step hidden bg-white rounded-3xl shadow-xl p-8 space-y-6" data-step-init="loadSetupData">
                 <div class="flex items-center gap-3">
                     <span class="w-10 h-10 rounded-full bg-primary text-white font-semibold flex items-center justify-center">04</span>
                     <div>
@@ -270,30 +264,73 @@
         </div>
     </div>
 </div>
+
+<!-- Warmup Recording Modal -->
+<div id="warmupRecordModal" class="hidden fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl shadow-xl max-w-3xl w-full space-y-4 p-6">
+        <h3 class="text-xl font-semibold text-gray-900">Practice Recording (Not Saved)</h3>
+        <p id="modalWarmupQuestion" class="text-gray-700"></p>
+        <div class="relative bg-black rounded-2xl overflow-hidden aspect-video">
+            <video id="warmupRecordVideo" class="w-full h-full object-cover" playsinline autoplay muted></video>
+            <div class="absolute bottom-4 left-4 text-white font-mono font-semibold" id="warmupRecordTimer">00:00</div>
+        </div>
+        <div class="flex justify-center gap-4">
+            <button id="startWarmupRecord" class="px-6 py-2 bg-red-600 text-white rounded-lg font-semibold">Start Recording</button>
+            <button id="stopWarmupRecord" class="px-6 py-2 bg-gray-400 text-white rounded-lg font-semibold" disabled>Stop Recording</button>
+        </div>
+        <div class="text-center">
+            <button id="closeWarmupModal" class="text-sm text-gray-600 hover:underline">Finish Practice Answer</button>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
     const completeWarmupUrl = '{% url "interviews:complete_warmup" session.id %}';
-    const practiceDashboardUrl = '{% url "interviews:practice_dashboard" %}';
+    const practiceFeedbackUrl = '{% url "interviews:practice_feedback" session.id %}';
+    const warmupQuestionStatusUrl = '{% url "interviews:warmup_question_status" session.id %}';
 
     let cameraStream = null;
     let micStream = null;
     let audioContext = null;
     let analyser = null;
+    let warmupQuestionPollInterval = null;
+    let warmupQuestionAnswered = false;
+    let warmupRecordStream = null;
+    let warmupTimerInterval = null;
 
     document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('startCameraTest').addEventListener('click', startCameraTest);
         document.getElementById('cameraTestContinue').addEventListener('click', nextStep);
         document.getElementById('startMicTest').addEventListener('click', startMicTest);
         document.getElementById('micTestContinue').addEventListener('click', nextStep);
-        document.getElementById('skipTestQuestion').addEventListener('change', toggleTestQuestionContinue);
+        document.getElementById('skipTestQuestion').addEventListener('change', updateTestQuestionContinueButton);
         document.getElementById('testQuestionContinue').addEventListener('click', nextStep);
         document.getElementById('startPractice').addEventListener('click', startPractice);
         document.querySelectorAll('.prevStep').forEach(btn => btn.addEventListener('click', prevStep));
         document.querySelectorAll('.cancelWarmup').forEach(btn => btn.addEventListener('click', cancelWarmup));
 
-        loadSetupData();
+        // Warmup modal handlers
+        document.getElementById('answerWarmupQuestion').addEventListener('click', openWarmupRecordModal);
+        document.getElementById('closeWarmupModal').addEventListener('click', closeWarmupModal);
+        document.getElementById('startWarmupRecord').addEventListener('click', startWarmupRecording);
+        document.getElementById('stopWarmupRecord').addEventListener('click', stopWarmupRecording);
+
+        // Run initializer for the currently visible step on page load (handles refreshes)
+        const currentVisibleStep = document.querySelector('.warmup-step:not(.hidden)');
+        if (currentVisibleStep) {
+            const initFnName = currentVisibleStep.dataset.stepInit;
+            if (initFnName && typeof window[initFnName] === 'function') {
+                window[initFnName]();
+            } else if (initFnName) {
+                console.error(`Initialization function '${initFnName}' not found.`);
+            }
+        }
+        
+        // Start generating warmup question immediately on page load (proactive)
+        console.log('Starting proactive warmup question generation...');
+        initWarmupStep3();
     });
 
     async function startCameraTest() {
@@ -325,7 +362,7 @@
             source.connect(analyser);
 
             visualizeMicLevel();
-            document.getElementById('micStatus').innerHTML = '<i class="fas fa-microphone text-4xl mb-2"></i><p class="text-sm">Recording...</p>';
+            document.getElementById('micStatus').innerHTML = '<i class="fas fa-microphone-lines"></i> Recording...';
 
             setTimeout(() => {
                 document.getElementById('micSuccess').classList.remove('hidden');
@@ -353,11 +390,6 @@
         requestAnimationFrame(visualizeMicLevel);
     }
 
-    function toggleTestQuestionContinue() {
-        const shouldSkip = document.getElementById('skipTestQuestion').checked;
-        document.getElementById('testQuestionContinue').disabled = !shouldSkip;
-    }
-
     function nextStep() {
         const steps = ['cameraTest', 'microphoneTest', 'testQuestion', 'finalConfirmation'];
         const current = document.querySelector('.warmup-step:not(.hidden)');
@@ -367,6 +399,14 @@
             current.classList.add('hidden');
             document.getElementById(steps[currentIndex + 1]).classList.remove('hidden');
             document.getElementById('warmupProgress').textContent = `Step ${currentIndex + 2} of ${steps.length}`;
+
+            const nextStepEl = document.getElementById(steps[currentIndex + 1]);
+            const initFnName = nextStepEl.dataset.stepInit;
+            if (initFnName && typeof window[initFnName] === 'function') {
+                window[initFnName]();
+            } else if (initFnName) {
+                console.error(`Initialization function '${initFnName}' not found.`);
+            }
         }
     }
 
@@ -391,15 +431,37 @@
 
     async function startPractice() {
         stopAllStreams();
+        
         try {
-            await fetch(completeWarmupUrl, {
+            const response = await fetch(completeWarmupUrl, {
                 method: 'POST',
                 headers: {
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'Content-Type': 'application/json'
                 }
             });
-        } finally {
-            window.location.href = practiceDashboardUrl;
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                if (data.status === 'generating') {
+                    // Questions are being generated - show loading message
+                    alert(data.message || 'Generating your practice questions. This will take a moment...');
+                    window.location.href = data.redirect_url;
+                } else if (data.status === 'ready') {
+                    // Questions are ready - go to first question
+                    window.location.href = data.redirect_url;
+                } else {
+                    // Fallback - go to feedback page
+                    window.location.href = practiceFeedbackUrl;
+                }
+            } else {
+                alert('Error completing warmup. Please try again.');
+            }
+        } catch (error) {
+            console.error('Error completing warmup:', error);
+            alert('Error completing warmup. Redirecting to feedback page...');
+            window.location.href = practiceFeedbackUrl;
         }
     }
 
@@ -417,6 +479,17 @@
             audioContext = null;
         }
         analyser = null;
+        
+        // Clear polling interval
+        if (warmupQuestionPollInterval) {
+            clearInterval(warmupQuestionPollInterval);
+            warmupQuestionPollInterval = null;
+        }
+    }
+
+    function updateTestQuestionContinueButton() {
+        const shouldSkip = document.getElementById('skipTestQuestion').checked;
+        document.getElementById('testQuestionContinue').disabled = !shouldSkip && !warmupQuestionAnswered;
     }
 
     function loadSetupData() {
@@ -435,5 +508,93 @@
         }
         document.getElementById('confirmVideo').textContent = setup.enable_video ? 'Yes' : 'No';
     }
+
+    // --- Step 3: Practice Question Logic ---
+    function initWarmupStep3() {
+        console.log('Initializing warmup step 3...');
+        if (warmupQuestionPollInterval) {
+            console.log('Poll interval already running.');
+            return; // Already initialized
+        }
+        
+        // Start polling immediately
+        console.log('Starting warmup question polling...');
+        pollWarmupQuestion();
+        warmupQuestionPollInterval = setInterval(pollWarmupQuestion, 3000);
+    }
+
+    async function pollWarmupQuestion() {
+        try {
+            console.log('Polling warmup question status...');
+            const response = await fetch(warmupQuestionStatusUrl);
+            const data = await response.json();
+            console.log('Warmup question status:', data);
+
+            if (data.status === 'completed') {
+                console.log('Warmup question completed! Question:', data.question);
+                clearInterval(warmupQuestionPollInterval);
+                warmupQuestionPollInterval = null;
+                document.getElementById('warmupQuestionLoading').classList.add('hidden');
+                document.getElementById('warmupQuestionText').textContent = data.question;
+                document.getElementById('modalWarmupQuestion').textContent = data.question;
+                document.getElementById('warmupQuestionDisplay').classList.remove('hidden');
+            } else if (data.status === 'failed') {
+                console.error('Warmup question generation failed');
+                clearInterval(warmupQuestionPollInterval);
+                warmupQuestionPollInterval = null;
+                document.getElementById('warmupQuestionLoading').classList.add('hidden');
+                document.getElementById('warmupQuestionError').classList.remove('hidden');
+                document.getElementById('skipTestQuestion').checked = true;
+                updateTestQuestionContinueButton();
+            } else {
+                console.log('Warmup question still pending/in-progress...');
+            }
+        } catch (error) {
+            console.error("Polling error:", error);
+            // Don't stop polling on transient errors
+        }
+    }
+
+    async function openWarmupRecordModal() {
+        document.getElementById('warmupRecordModal').classList.remove('hidden');
+        if (!warmupRecordStream) {
+            warmupRecordStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            document.getElementById('warmupRecordVideo').srcObject = warmupRecordStream;
+        }
+    }
+
+    function closeWarmupModal() {
+        if (warmupRecordStream) {
+            warmupRecordStream.getTracks().forEach(track => track.stop());
+            warmupRecordStream = null;
+        }
+        document.getElementById('warmupRecordModal').classList.add('hidden');
+        warmupQuestionAnswered = true;
+        updateTestQuestionContinueButton();
+    }
+
+    function startWarmupRecording() {
+        document.getElementById('startWarmupRecord').disabled = true;
+        document.getElementById('stopWarmupRecord').disabled = false;
+        
+        let seconds = 0;
+        const timerEl = document.getElementById('warmupRecordTimer');
+        timerEl.textContent = '00:00';
+
+        warmupTimerInterval = setInterval(() => {
+            seconds++;
+            const mins = String(Math.floor(seconds / 60)).padStart(2, '0');
+            const secs = String(seconds % 60).padStart(2, '0');
+            timerEl.textContent = `${mins}:${secs}`;
+        }, 1000);
+    }
+
+    function stopWarmupRecording() {
+        document.getElementById('startWarmupRecord').disabled = false;
+        document.getElementById('stopWarmupRecord').disabled = true;
+        clearInterval(warmupTimerInterval);
+        warmupTimerInterval = null;
+    }
+
 </script>
 {% endblock %}
