@@ -16,6 +16,7 @@ class VideoAnalyzer {
             videoElement: config.videoElement || null,
             canvasElement: config.canvasElement || null,
             onMetricsUpdate: config.onMetricsUpdate || null,
+            onFrameUpdate: config.onFrameUpdate || null, // Real-time frame updates
             onError: config.onError || null,
             ...config
         };
@@ -46,6 +47,8 @@ class VideoAnalyzer {
                 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm'
             );
 
+            console.log("FilesetResolver loaded for vision tasks");
+
             this.faceMesh = await FaceLandmarker.createFromOptions(wasmRuntime, {
                 baseOptions: {
                     modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task',
@@ -54,8 +57,11 @@ class VideoAnalyzer {
                 runningMode: 'VIDEO',
                 numFaces: 1
             });
+            console.log("FaceLandmarker initialized successfully");
 
             await this._initCamera();
+            console.log("Camera initialized successfully");
+
             this.isRunning = true;
             this.recordingStartTime = Date.now();
             this._detectLoop();
@@ -117,7 +123,7 @@ class VideoAnalyzer {
      * Perform face detection on current frame
      */
     _detect() {
-        if (!this.config.videoElement || this.config.videoElement.readyState !== 2) {
+        if (!this.config.videoElement || this.config.videoElement.readyState < 2) {
             return;
         }
 
@@ -142,6 +148,11 @@ class VideoAnalyzer {
                 this.mouthOpenBuffer.push(frameAnalysis.mouthOpen);
                 this.gazeFrameBuffer.push(frameAnalysis.gaze);
                 this.headPoseBuffer.push(frameAnalysis.headPose);
+
+                // Update real-time UI if callback provided
+                if (this.config.onFrameUpdate) {
+                    this.config.onFrameUpdate(frameAnalysis);
+                }
 
                 // Update metrics every updateInterval
                 const now = Date.now();
@@ -177,7 +188,7 @@ class VideoAnalyzer {
         );
 
         // Threshold for eye open (adjust based on camera distance)
-        const EYE_OPEN_THRESHOLD = 0.02;
+        const EYE_OPEN_THRESHOLD = 0.015;
         return verticalDistance > EYE_OPEN_THRESHOLD ? 1.0 : 0.0;
     }
 
@@ -201,20 +212,23 @@ class VideoAnalyzer {
      * Determine gaze direction (looking at camera percentage)
      */
     _getGazeDirection(landmarks) {
-        // Key facial landmarks for gaze
-        const leftEye = landmarks[133]; // Left eye
-        const rightEye = landmarks[33]; // Right eye
-        const noseTip = landmarks[1]; // Nose tip
+        // Key facial landmarks for gaze using accurate indices
+        // Left Eye: 33 (outer), 133 (inner)
+        // Right Eye: 263 (outer), 362 (inner)
+        // Nose Tip: 1
+        const leftEyeInner = landmarks[133];
+        const rightEyeInner = landmarks[362];
+        const noseTip = landmarks[1];
 
         // Calculate eye-to-nose distance to determine if looking at camera
         const leftEyeToNose = Math.sqrt(
-            Math.pow(leftEye.x - noseTip.x, 2) +
-            Math.pow(leftEye.y - noseTip.y, 2)
+            Math.pow(leftEyeInner.x - noseTip.x, 2) +
+            Math.pow(leftEyeInner.y - noseTip.y, 2)
         );
 
         const rightEyeToNose = Math.sqrt(
-            Math.pow(rightEye.x - noseTip.x, 2) +
-            Math.pow(rightEye.y - noseTip.y, 2)
+            Math.pow(rightEyeInner.x - noseTip.x, 2) +
+            Math.pow(rightEyeInner.y - noseTip.y, 2)
         );
 
         // Average distance
@@ -224,23 +238,26 @@ class VideoAnalyzer {
         const LOOKING_AT_CAMERA_THRESHOLD = 0.15;
 
         if (avgEyeToNose < LOOKING_AT_CAMERA_THRESHOLD) {
+            const score = Math.max(0, 1 - avgEyeToNose / LOOKING_AT_CAMERA_THRESHOLD);
             return {
                 direction: 'center',
-                confidence: Math.max(0, 1 - avgEyeToNose / LOOKING_AT_CAMERA_THRESHOLD),
+                score: score,
+                confidence: score, // fallback
                 x: 0,
                 y: 0
             };
         }
 
         // Determine direction (left/right/up/down)
-        const eyeCenterX = (leftEye.x + rightEye.x) / 2;
-        const eyeCenterY = (leftEye.y + rightEye.y) / 2;
+        const eyeCenterX = (leftEyeInner.x + rightEyeInner.x) / 2;
+        const eyeCenterY = (leftEyeInner.y + rightEyeInner.y) / 2;
 
-        let directionX = eyeCenterX < 0.3 ? 'left' : (eyeCenterX > 0.7 ? 'right' : 'center');
-        let directionY = eyeCenterY < 0.3 ? 'up' : (eyeCenterY > 0.7 ? 'down' : 'center');
+        let directionX = eyeCenterX < 0.4 ? 'left' : (eyeCenterX > 0.6 ? 'right' : 'center');
+        let directionY = eyeCenterY < 0.4 ? 'up' : (eyeCenterY > 0.6 ? 'down' : 'center');
 
         return {
             direction: `${directionY}-${directionX}`,
+            score: Math.max(0, 0.5 - (avgEyeToNose - LOOKING_AT_CAMERA_THRESHOLD)),
             confidence: Math.min(avgEyeToNose, 1.0),
             x: eyeCenterX,
             y: eyeCenterY
@@ -269,9 +286,9 @@ class VideoAnalyzer {
         const pitch = (noseOffsetY * 45);
 
         // Calculate roll (tilt rotation)
-        const eyeLeft = landmarks[133];
-        const eyeRight = landmarks[33];
-        const eyeAngle = Math.atan2(eyeRight.y - eyeLeft.y, eyeRight.x - eyeLeft.x);
+        const eyeLeftInner = landmarks[133];
+        const eyeRightInner = landmarks[362];
+        const eyeAngle = Math.atan2(eyeRightInner.y - eyeLeftInner.y, eyeRightInner.x - eyeLeftInner.x);
         const roll = (eyeAngle * 180) / Math.PI;
 
         return {
@@ -362,8 +379,8 @@ class VideoAnalyzer {
         const ctx = this.config.canvasElement.getContext('2d');
         const canvas = this.config.canvasElement;
 
-        // Get canvas size from video
-        if (this.config.videoElement) {
+        // Sync canvas size with video once or when changed to avoid flickering/context reset
+        if (this.config.videoElement && (canvas.width !== this.config.videoElement.videoWidth || canvas.height !== this.config.videoElement.videoHeight)) {
             canvas.width = this.config.videoElement.videoWidth;
             canvas.height = this.config.videoElement.videoHeight;
         }
@@ -441,6 +458,11 @@ class VideoAnalyzer {
     stop() {
         this.isRunning = false;
 
+        // Final flush of metrics if there are pending frames
+        if (this.frameBuffer.length > 0) {
+            this._calculateAndStoreMetrics();
+        }
+
         if (this.config.videoElement && this.config.videoElement.srcObject) {
             const tracks = this.config.videoElement.srcObject.getTracks();
             tracks.forEach(track => track.stop());
@@ -496,3 +518,5 @@ class VideoAnalyzer {
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = VideoAnalyzer;
 }
+export default VideoAnalyzer;
+window.VideoAnalyzer = VideoAnalyzer;

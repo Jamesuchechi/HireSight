@@ -1,128 +1,84 @@
 <!DOCTYPE html>
 <html lang="en">
 {% load static %}
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    
+
     <!-- SEO Meta Tags -->
-    <meta name="description" content="{% block meta_description %}HireSight - AI-powered recruitment platform that finds the right talent based on skills and potential, not just keywords.{% endblock %}">
-    <meta name="keywords" content="{% block meta_keywords %}recruitment, hiring, AI, resume screening, talent acquisition, job posting{% endblock %}">
+    <meta name="description"
+        content="{% block meta_description %}HireSight - AI-powered recruitment platform that finds the right talent based on skills and potential, not just keywords.{% endblock %}">
+    <meta name="keywords"
+        content="{% block meta_keywords %}recruitment, hiring, AI, resume screening, talent acquisition, job posting{% endblock %}">
     <meta name="author" content="HireSight">
-    
+
     <!-- Open Graph Meta Tags -->
     <meta property="og:title" content="{% block og_title %}HireSight - AI-Powered Recruitment{% endblock %}">
-    <meta property="og:description" content="{% block og_description %}Find the perfect talent in minutes with AI-powered resume screening and matching.{% endblock %}">
+    <meta property="og:description"
+        content="{% block og_description %}Find the perfect talent in minutes with AI-powered resume screening and matching.{% endblock %}">
     <meta property="og:type" content="website">
     <meta property="og:url" content="{{ request.build_absolute_uri }}">
-    <meta property="og:image" content="{% block og_image %}{{ request.scheme }}://{{ request.get_host }}/static/images/og-image.jpg{% endblock %}">
-    
+    <meta property="og:image"
+        content="{% block og_image %}{{ request.scheme }}://{{ request.get_host }}/static/images/og-image.jpg{% endblock %}">
+
     <!-- Favicon -->
-    <link rel="icon" type="image/png" sizes="32x32" href="/static/images/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/static/images/favicon-16x16.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/static/images/apple-touch-icon.png">
-    
+    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'images/favicon-32x32.png' %}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{% static 'images/favicon-16x16.png' %}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'images/apple-touch-icon.png' %}">
+
     <title>{% block title %}HireSight - AI-Powered Recruitment{% endblock %}</title>
-    
+
     <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Tailwind Config -->
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        'primary': '#0066FF',
-                        'primary-light': '#E6F0FF',
-                        'primary-dark': '#0052CC',
-                        'secondary': '#00D4FF',
-                        'secondary-light': '#E6F9FF',
-                        'accent': '#FFB800',
-                        'success': '#00C853',
-                        'danger': '#FF3B30',
-                        'warning': '#FF9500',
-                        'purple': '#9333EA',
-                    },
-                    fontFamily: {
-                        'display': ['Poppins', 'sans-serif'],
-                        'body': ['Inter', 'sans-serif'],
-                    },
-                    animation: {
-                        'fade-in': 'fadeIn 0.5s ease-in-out',
-                        'slide-up': 'slideUp 0.5s ease-out',
-                        'slide-down': 'slideDown 0.3s ease-out',
-                        'scale-in': 'scaleIn 0.3s ease-out',
-                    },
-                    keyframes: {
-                        fadeIn: {
-                            '0%': { opacity: '0' },
-                            '100%': { opacity: '1' },
-                        },
-                        slideUp: {
-                            '0%': { transform: 'translateY(20px)', opacity: '0' },
-                            '100%': { transform: 'translateY(0)', opacity: '1' },
-                        },
-                        slideDown: {
-                            '0%': { transform: 'translateY(-20px)', opacity: '0' },
-                            '100%': { transform: 'translateY(0)', opacity: '1' },
-                        },
-                        scaleIn: {
-                            '0%': { transform: 'scale(0.9)', opacity: '0' },
-                            '100%': { transform: 'scale(1)', opacity: '1' },
-                        },
-                    }
-                }
-            }
-        }
-    </script>
-    
+    <link href="{% static 'css/output.css' %}" rel="stylesheet">
+
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Poppins:wght@400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+
     <!-- Alpine.js for interactivity -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    
+
     <!-- HTMX for dynamic updates -->
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-    
+
     <!-- Custom Styles -->
     <style>
         body {
             font-family: 'Inter', sans-serif;
         }
-        
+
         .font-display {
             font-family: 'Poppins', sans-serif;
         }
-        
+
         /* Smooth scrolling */
         html {
             scroll-behavior: smooth;
         }
-        
+
         /* Custom scrollbar */
         ::-webkit-scrollbar {
             width: 8px;
         }
-        
+
         ::-webkit-scrollbar-track {
             background: #f1f1f1;
         }
-        
+
         ::-webkit-scrollbar-thumb {
             background: #cbd5e1;
             border-radius: 4px;
         }
-        
+
         ::-webkit-scrollbar-thumb:hover {
             background: #94a3b8;
         }
-        
+
         /* Underline animation */
         .underline-animate {
             position: relative;
@@ -139,7 +95,7 @@
             transition: width 0.3s ease;
             border-radius: 2px;
         }
-        
+
         .touch-button {
             min-width: 44px;
             min-height: 44px;
@@ -173,10 +129,11 @@
                 z-index: 60;
             }
         }
+
         .underline-animate:hover::after {
             width: 100%;
         }
-        
+
         /* Button effects */
         .btn-primary {
             position: relative;
@@ -212,7 +169,7 @@
         body.dark-mode .shadow-lg {
             box-shadow: 0 20px 45px rgba(2, 6, 23, 0.65);
         }
-        
+
         .btn-primary::before {
             content: '';
             position: absolute;
@@ -225,69 +182,87 @@
             transform: translate(-50%, -50%);
             transition: width 0.6s ease, height 0.6s ease;
         }
-        
+
         .btn-primary:hover::before {
             width: 300px;
             height: 300px;
         }
-        
+
         .btn-primary:hover {
             transform: translateY(-2px);
             box-shadow: 0 12px 24px rgba(0, 102, 255, 0.3);
         }
-        
+
         /* Card hover effect */
         .card-hover {
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        
+
         .card-hover:hover {
             transform: translateY(-4px);
             box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
         }
-        
+
         /* Flash messages animation */
         @keyframes slideInRight {
             from {
                 transform: translateX(100%);
                 opacity: 0;
             }
+
             to {
                 transform: translateX(0);
                 opacity: 1;
             }
         }
-        
+
         .flash-message {
             animation: slideInRight 0.4s ease-out;
         }
-        
+
         /* Badge pulse */
         .badge-pulse {
             animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
         }
-        
+
         @keyframes pulse {
-            0%, 100% {
+
+            0%,
+            100% {
                 opacity: 1;
             }
+
             50% {
                 opacity: .5;
             }
         }
-        
+
         /* Avatar gradient backgrounds */
-        .avatar-gradient-1 { background: linear-gradient(135deg, #0066FF, #00D4FF); }
-        .avatar-gradient-2 { background: linear-gradient(135deg, #00D4FF, #FFB800); }
-        .avatar-gradient-3 { background: linear-gradient(135deg, #FFB800, #00C853); }
-        .avatar-gradient-4 { background: linear-gradient(135deg, #00C853, #9333EA); }
-        .avatar-gradient-5 { background: linear-gradient(135deg, #9333EA, #0066FF); }
-        
+        .avatar-gradient-1 {
+            background: linear-gradient(135deg, #0066FF, #00D4FF);
+        }
+
+        .avatar-gradient-2 {
+            background: linear-gradient(135deg, #00D4FF, #FFB800);
+        }
+
+        .avatar-gradient-3 {
+            background: linear-gradient(135deg, #FFB800, #00C853);
+        }
+
+        .avatar-gradient-4 {
+            background: linear-gradient(135deg, #00C853, #9333EA);
+        }
+
+        .avatar-gradient-5 {
+            background: linear-gradient(135deg, #9333EA, #0066FF);
+        }
+
         /* Alpine.js cloak */
         [x-cloak] {
             display: none !important;
         }
-        
+
         /* Mobile menu overlay */
         .mobile-menu-overlay {
             background: rgba(0, 0, 0, 0.5);
@@ -393,11 +368,12 @@
             color: #d1d5db;
         }
     </style>
-    
+
     {% block extra_css %}{% endblock %}
 </head>
+
 <body class="bg-gray-50 text-gray-900 antialiased">
-    
+
     {% if request.user.is_authenticated %}
     <!-- Mobile Navbar for Authenticated Users -->
     <nav id="mobile-navbar" class="md:hidden bg-white border-b border-gray-200 sticky top-0 z-50">
@@ -405,14 +381,17 @@
             <div class="flex justify-between h-16">
                 <div class="flex items-center">
                     <a href="{% url 'dashboard:landing' %}" class="flex items-center space-x-3">
-                        <div class="w-8 h-8 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center shadow-md">
+                        <div
+                            class="w-8 h-8 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center shadow-md">
                             <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none">
-                                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                                <path d="M12 6L12 12L16 16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                                <circle cx="12" cy="12" r="2" fill="currentColor"/>
+                                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" />
+                                <path d="M12 6L12 12L16 16" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" />
+                                <circle cx="12" cy="12" r="2" fill="currentColor" />
                             </svg>
                         </div>
-                        <span class="font-display text-lg font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                        <span
+                            class="font-display text-lg font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
                             HireSight
                         </span>
                     </a>
@@ -420,143 +399,186 @@
                 <div class="flex items-center space-x-4">
                     <!-- User Avatar -->
                     {% if request.user.account_type == 'personal' and request.user.personal_profile.avatar %}
-                        <img src="{{ request.user.personal_profile.avatar.url }}" alt="{{ request.user.get_full_name }}" class="w-8 h-8 rounded-lg object-cover">
+                    <img src="{{ request.user.personal_profile.avatar.url }}" alt="{{ request.user.get_full_name }}"
+                        class="w-8 h-8 rounded-lg object-cover">
                     {% elif request.user.account_type == 'company' and request.user.company_profile.logo %}
-                        <img src="{{ request.user.company_profile.logo.url }}" alt="{{ request.user.get_full_name }}" class="w-8 h-8 rounded-lg object-cover">
+                    <img src="{{ request.user.company_profile.logo.url }}" alt="{{ request.user.get_full_name }}"
+                        class="w-8 h-8 rounded-lg object-cover">
                     {% else %}
-                        <div class="w-8 h-8 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center text-white font-bold text-sm">
-                            {{ request.user.get_full_name|slice:":2"|upper }}
-                        </div>
+                    <div
+                        class="w-8 h-8 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center text-white font-bold text-sm">
+                        {{ request.user.get_full_name|slice:":2"|upper }}
+                    </div>
                     {% endif %}
                     <a href="{% url 'notifications:list' %}"
-                       class="relative inline-flex items-center justify-center w-10 h-10 rounded-lg bg-white border border-gray-200 text-gray-600 hover:text-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary shadow-sm">
+                        class="relative inline-flex items-center justify-center w-10 h-10 rounded-lg bg-white border border-gray-200 text-gray-600 hover:text-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary shadow-sm">
                         <span class="sr-only">Open notification center</span>
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+                                d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9">
+                            </path>
                         </svg>
                         {% if unread_notifications_count %}
-                            <span class="absolute -top-1 -right-1 inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white bg-danger rounded-full">
-                                {{ unread_notifications_count }}
-                            </span>
+                        <span
+                            class="absolute -top-1 -right-1 inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white bg-danger rounded-full">
+                            {{ unread_notifications_count }}
+                        </span>
                         {% endif %}
                     </a>
-                    
+
                     <!-- Hamburger Menu Button -->
-                    <button id="mobile-menu-toggle" 
-                            class="p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors relative z-50"
-                            type="button"
-                            aria-label="Toggle menu">
+                    <button id="mobile-menu-toggle"
+                        class="p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors relative z-50"
+                        type="button" aria-label="Toggle menu">
                         <svg id="menu-icon-open" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 6h16M4 12h16M4 18h16"></path>
                         </svg>
-                        <svg id="menu-icon-close" class="w-6 h-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        <svg id="menu-icon-close" class="w-6 h-6 hidden" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M6 18L18 6M6 6l12 12"></path>
                         </svg>
                     </button>
                 </div>
             </div>
-            
+
             <!-- Mobile Menu Overlay (click to close) -->
-            <div id="mobile-menu-overlay" 
-                 class="fixed inset-0 mobile-menu-overlay z-40 hidden opacity-0 transition-opacity duration-200">
+            <div id="mobile-menu-overlay"
+                class="fixed inset-0 mobile-menu-overlay z-40 hidden opacity-0 transition-opacity duration-200">
             </div>
-            
+
             <!-- Mobile Menu Panel -->
-            <div id="mobile-menu-panel" 
-                 class="fixed top-16 right-0 bottom-0 w-72 bg-white shadow-2xl overflow-y-auto z-50 transform translate-x-full transition-transform duration-200 ease-out">
+            <div id="mobile-menu-panel"
+                class="fixed top-16 right-0 bottom-0 w-72 bg-white shadow-2xl overflow-y-auto z-50 transform translate-x-full transition-transform duration-200 ease-out">
                 <div class="px-4 pt-4 pb-3 space-y-1">
                     {% if request.user.account_type == 'personal' %}
-                        <!-- Personal Navigation -->
-                        <a href="{% url 'dashboard:personal_dashboard' %}" class="block px-3 py-3 text-base font-medium text-gray-900 hover:bg-primary-light hover:text-primary rounded-md transition-colors">Dashboard</a>
-                        <a href="{% url 'jobs:browse' %}" class="block px-3 py-3 text-base font-medium text-gray-900 hover:bg-primary-light hover:text-primary rounded-md transition-colors">Browse Jobs</a>
-                        <a href="{% url 'applications:my_applications' %}" class="block px-3 py-3 text-base font-medium text-gray-900 hover:bg-primary-light hover:text-primary rounded-md transition-colors">My Applications</a>
-                        <a href="{% url 'resumes:list' %}" class="block px-3 py-3 text-base font-medium text-gray-900 hover:bg-primary-light hover:text-primary rounded-md transition-colors">Resumes</a>
-                        <a href="{% url 'jobs:saved' %}" class="block px-3 py-3 text-base font-medium text-gray-900 hover:bg-primary-light hover:text-primary rounded-md transition-colors">Saved Jobs</a>
-                        <a href="{% url 'messaging:inbox' %}" class="block px-3 py-3 text-base font-medium text-gray-900 hover:bg-primary-light hover:text-primary rounded-md transition-colors">
-                            Messages
-                            <span class="ml-2 inline-flex items-center justify-center rounded-full bg-red-600 px-2 py-0.5 text-xs font-semibold text-white hidden" data-unread-badge></span>
-                        </a>
-                        <a href="{% url 'accounts:profile' %}" class="block px-3 py-3 text-base font-medium text-gray-900 hover:bg-primary-light hover:text-primary rounded-md transition-colors">Profile</a>
+                    <!-- Personal Navigation -->
+                    <a href="{% url 'dashboard:personal_dashboard' %}"
+                        class="block px-3 py-3 text-base font-medium text-gray-900 hover:bg-primary-light hover:text-primary rounded-md transition-colors">Dashboard</a>
+                    <a href="{% url 'jobs:browse' %}"
+                        class="block px-3 py-3 text-base font-medium text-gray-900 hover:bg-primary-light hover:text-primary rounded-md transition-colors">Browse
+                        Jobs</a>
+                    <a href="{% url 'applications:my_applications' %}"
+                        class="block px-3 py-3 text-base font-medium text-gray-900 hover:bg-primary-light hover:text-primary rounded-md transition-colors">My
+                        Applications</a>
+                    <a href="{% url 'resumes:list' %}"
+                        class="block px-3 py-3 text-base font-medium text-gray-900 hover:bg-primary-light hover:text-primary rounded-md transition-colors">Resumes</a>
+                    <a href="{% url 'jobs:saved' %}"
+                        class="block px-3 py-3 text-base font-medium text-gray-900 hover:bg-primary-light hover:text-primary rounded-md transition-colors">Saved
+                        Jobs</a>
+                    <a href="{% url 'messaging:inbox' %}"
+                        class="block px-3 py-3 text-base font-medium text-gray-900 hover:bg-primary-light hover:text-primary rounded-md transition-colors">
+                        Messages
+                        <span
+                            class="ml-2 inline-flex items-center justify-center rounded-full bg-red-600 px-2 py-0.5 text-xs font-semibold text-white hidden"
+                            data-unread-badge></span>
+                    </a>
+                    <a href="{% url 'accounts:profile' %}"
+                        class="block px-3 py-3 text-base font-medium text-gray-900 hover:bg-primary-light hover:text-primary rounded-md transition-colors">Profile</a>
                     {% elif request.user.account_type == 'company' %}
-                        <!-- Company Navigation -->
-                        <a href="{% url 'dashboard:company_dashboard' %}" class="block px-3 py-3 text-base font-medium text-gray-900 hover:bg-primary-light hover:text-primary rounded-md transition-colors">Dashboard</a>
-                        <a href="{% url 'jobs:manage' %}" class="block px-3 py-3 text-base font-medium text-gray-900 hover:bg-primary-light hover:text-primary rounded-md transition-colors">Manage Jobs</a>
-                        <a href="{% url 'jobs:create' %}" class="block px-3 py-3 text-base font-medium text-gray-900 hover:bg-primary-light hover:text-primary rounded-md transition-colors">Post New Job</a>
-                        <a href="{% url 'applications:manage' %}" class="block px-3 py-3 text-base font-medium text-gray-900 hover:bg-primary-light hover:text-primary rounded-md transition-colors">Candidates</a>
-                        <a href="{% url 'screening:session_list' %}" class="block px-3 py-3 text-base font-medium text-gray-900 hover:bg-primary-light hover:text-primary rounded-md transition-colors">Screening</a>
-                        <a href="{% url 'messaging:inbox' %}" class="block px-3 py-3 text-base font-medium text-gray-900 hover:bg-primary-light hover:text-primary rounded-md transition-colors">
-                            Messages
-                            <span class="ml-2 inline-flex items-center justify-center rounded-full bg-red-600 px-2 py-0.5 text-xs font-semibold text-white hidden" data-unread-badge></span>
-                        </a>
-                        <a href="{% url 'accounts:profile' %}" class="block px-3 py-3 text-base font-medium text-gray-900 hover:bg-primary-light hover:text-primary rounded-md transition-colors">Profile</a>
+                    <!-- Company Navigation -->
+                    <a href="{% url 'dashboard:company_dashboard' %}"
+                        class="block px-3 py-3 text-base font-medium text-gray-900 hover:bg-primary-light hover:text-primary rounded-md transition-colors">Dashboard</a>
+                    <a href="{% url 'jobs:manage' %}"
+                        class="block px-3 py-3 text-base font-medium text-gray-900 hover:bg-primary-light hover:text-primary rounded-md transition-colors">Manage
+                        Jobs</a>
+                    <a href="{% url 'jobs:create' %}"
+                        class="block px-3 py-3 text-base font-medium text-gray-900 hover:bg-primary-light hover:text-primary rounded-md transition-colors">Post
+                        New Job</a>
+                    <a href="{% url 'applications:manage' %}"
+                        class="block px-3 py-3 text-base font-medium text-gray-900 hover:bg-primary-light hover:text-primary rounded-md transition-colors">Candidates</a>
+                    <a href="{% url 'screening:session_list' %}"
+                        class="block px-3 py-3 text-base font-medium text-gray-900 hover:bg-primary-light hover:text-primary rounded-md transition-colors">Screening</a>
+                    <a href="{% url 'messaging:inbox' %}"
+                        class="block px-3 py-3 text-base font-medium text-gray-900 hover:bg-primary-light hover:text-primary rounded-md transition-colors">
+                        Messages
+                        <span
+                            class="ml-2 inline-flex items-center justify-center rounded-full bg-red-600 px-2 py-0.5 text-xs font-semibold text-white hidden"
+                            data-unread-badge></span>
+                    </a>
+                    <a href="{% url 'accounts:profile' %}"
+                        class="block px-3 py-3 text-base font-medium text-gray-900 hover:bg-primary-light hover:text-primary rounded-md transition-colors">Profile</a>
                     {% endif %}
-                    
+
                     <div class="border-t border-gray-200 my-2"></div>
 
                     <p class="text-xs font-semibold uppercase tracking-wider text-gray-500 px-3 py-2">Assessments</p>
                     <div class="space-y-1 px-3 pb-2">
-                        <a href="{% url 'assessments:browse' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Browse Tests</a>
-                        <a href="{% url 'assessments:history' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">History</a>
-                        <a href="{% url 'assessments:analytics' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Analytics</a>
-                        <a href="{% url 'assessments:study_groups' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Study Groups</a>
-                        <a href="{% url 'assessments:my_bookmarks' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Bookmarks</a>
+                        <a href="{% url 'assessments:browse' %}"
+                            class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Browse
+                            Tests</a>
+                        <a href="{% url 'assessments:history' %}"
+                            class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">History</a>
+                        <a href="{% url 'assessments:analytics' %}"
+                            class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Analytics</a>
+                        <a href="{% url 'assessments:study_groups' %}"
+                            class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Study
+                            Groups</a>
+                        <a href="{% url 'assessments:my_bookmarks' %}"
+                            class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Bookmarks</a>
                     </div>
 
-                    <a href="{% url 'accounts:logout' %}" class="block px-3 py-3 text-base font-medium text-red-600 hover:bg-red-50 rounded-md transition-colors">Logout</a>
+                    <a href="{% url 'accounts:logout' %}"
+                        class="block px-3 py-3 text-base font-medium text-red-600 hover:bg-red-50 rounded-md transition-colors">Logout</a>
                 </div>
             </div>
         </div>
     </nav>
-    
+
     <!-- Sidebar Layout for Authenticated Users -->
     <div class="w-full flex">
         <!-- Sidebar - Hidden on mobile, visible on desktop -->
-        <aside id="sidebar" 
-               class="hidden md:block bg-white border-r border-gray-200 fixed left-0 top-0 h-full transition-all duration-300 ease-in-out overflow-y-auto z-40 w-64">
+        <aside id="sidebar"
+            class="hidden md:block bg-white border-r border-gray-200 fixed left-0 top-0 h-full transition-all duration-300 ease-in-out overflow-y-auto z-40 w-64">
             <div class="flex flex-col h-full">
                 <!-- Logo & Toggle - FIXED: Logo always visible, hamburger only when collapsed -->
                 <div class="h-16 flex items-center justify-between px-4 border-b border-gray-200 flex-shrink-0">
                     <!-- Logo (always visible on desktop) -->
-                    <a id="sidebar-logo" 
-                       href="{% url 'dashboard:landing' %}" 
-                       class="flex items-center space-x-3 group flex-1">
-                        <div class="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center shadow-md transform group-hover:scale-110 transition-transform duration-300 flex-shrink-0">
+                    <a id="sidebar-logo" href="{% url 'dashboard:landing' %}"
+                        class="flex items-center space-x-3 group flex-1">
+                        <div
+                            class="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center shadow-md transform group-hover:scale-110 transition-transform duration-300 flex-shrink-0">
                             <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none">
-                                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                                <path d="M12 6L12 12L16 16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                                <circle cx="12" cy="12" r="2" fill="currentColor"/>
+                                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" />
+                                <path d="M12 6L12 12L16 16" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" />
+                                <circle cx="12" cy="12" r="2" fill="currentColor" />
                             </svg>
                         </div>
-                        <span id="sidebar-logo-text" class="font-display text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent whitespace-nowrap">
+                        <span id="sidebar-logo-text"
+                            class="font-display text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent whitespace-nowrap">
                             HireSight
                         </span>
                     </a>
-                    
+
                     <!-- Collapse/Expand Button -->
-                    <button id="sidebar-toggle" 
-                            class="p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors flex-shrink-0"
-                            type="button"
-                            aria-label="Toggle sidebar"
-                            title="Toggle sidebar">
-                        <svg id="sidebar-toggle-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path id="sidebar-toggle-path" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"></path>
+                    <button id="sidebar-toggle"
+                        class="p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors flex-shrink-0"
+                        type="button" aria-label="Toggle sidebar" title="Toggle sidebar">
+                        <svg id="sidebar-toggle-icon" class="w-5 h-5" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path id="sidebar-toggle-path" stroke-linecap="round" stroke-linejoin="round"
+                                stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"></path>
                         </svg>
                     </button>
                 </div>
 
                 <!-- User Info (Expanded) -->
-                <div id="user-info-expanded" 
-                     class="p-4 border-b border-gray-200 flex-shrink-0 transition-all duration-300">
+                <div id="user-info-expanded"
+                    class="p-4 border-b border-gray-200 flex-shrink-0 transition-all duration-300">
                     <div class="flex items-center space-x-3">
                         {% if request.user.account_type == 'personal' and request.user.personal_profile.avatar %}
-                            <img src="{{ request.user.personal_profile.avatar.url }}" alt="{{ request.user.get_full_name }}" class="w-10 h-10 rounded-lg object-cover flex-shrink-0">
+                        <img src="{{ request.user.personal_profile.avatar.url }}" alt="{{ request.user.get_full_name }}"
+                            class="w-10 h-10 rounded-lg object-cover flex-shrink-0">
                         {% elif request.user.account_type == 'company' and request.user.company_profile.logo %}
-                            <img src="{{ request.user.company_profile.logo.url }}" alt="{{ request.user.get_full_name }}" class="w-10 h-10 rounded-lg object-cover flex-shrink-0">
+                        <img src="{{ request.user.company_profile.logo.url }}" alt="{{ request.user.get_full_name }}"
+                            class="w-10 h-10 rounded-lg object-cover flex-shrink-0">
                         {% else %}
-                            <div class="w-10 h-10 avatar-gradient-1 rounded-lg flex items-center justify-center text-white font-bold flex-shrink-0">
-                                {{ request.user.get_full_name|slice:":2"|upper }}
-                            </div>
+                        <div
+                            class="w-10 h-10 avatar-gradient-1 rounded-lg flex items-center justify-center text-white font-bold flex-shrink-0">
+                            {{ request.user.get_full_name|slice:":2"|upper }}
+                        </div>
                         {% endif %}
                         <div class="flex-1 min-w-0">
                             <p class="font-semibold text-gray-900 text-sm truncate">{{ request.user.get_full_name }}</p>
@@ -566,187 +588,248 @@
                 </div>
 
                 <!-- Avatar Only (Collapsed) -->
-                <div id="user-info-collapsed" 
-                     class="p-4 border-b border-gray-200 flex-shrink-0 flex justify-center transition-all duration-300 hidden">
+                <div id="user-info-collapsed"
+                    class="p-4 border-b border-gray-200 flex-shrink-0 flex justify-center transition-all duration-300 hidden">
                     {% if request.user.account_type == 'personal' and request.user.personal_profile.avatar %}
-                        <img src="{{ request.user.personal_profile.avatar.url }}" alt="{{ request.user.get_full_name }}" class="w-10 h-10 rounded-lg object-cover">
+                    <img src="{{ request.user.personal_profile.avatar.url }}" alt="{{ request.user.get_full_name }}"
+                        class="w-10 h-10 rounded-lg object-cover">
                     {% elif request.user.account_type == 'company' and request.user.company_profile.logo %}
-                        <img src="{{ request.user.company_profile.logo.url }}" alt="{{ request.user.get_full_name }}" class="w-10 h-10 rounded-lg object-cover">
+                    <img src="{{ request.user.company_profile.logo.url }}" alt="{{ request.user.get_full_name }}"
+                        class="w-10 h-10 rounded-lg object-cover">
                     {% else %}
-                        <div class="w-10 h-10 avatar-gradient-1 rounded-lg flex items-center justify-center text-white font-bold">
-                            {{ request.user.get_full_name|slice:":2"|upper }}
-                        </div>
+                    <div
+                        class="w-10 h-10 avatar-gradient-1 rounded-lg flex items-center justify-center text-white font-bold">
+                        {{ request.user.get_full_name|slice:":2"|upper }}
+                    </div>
                     {% endif %}
                 </div>
                 <!-- Navigation Items (Scrollable) -->
                 <nav class="flex-1 overflow-y-auto py-4">
                     {% if request.user.account_type == 'personal' %}
-                        <!-- Personal Navigation -->
-                        <a href="{% url 'dashboard:personal_dashboard' %}" 
-                           class="sidebar-nav-link flex items-center px-4 py-3 text-gray-700 hover:bg-primary-light hover:text-primary transition-colors">
-                            <svg class="sidebar-nav-icon w-5 h-5 flex-shrink-0 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
-                            </svg>
-                            <span class="sidebar-nav-text font-medium whitespace-nowrap">Dashboard</span>
-                        </a>
-                        <a href="{% url 'jobs:browse' %}" 
-                           class="sidebar-nav-link flex items-center px-4 py-3 text-gray-700 hover:bg-primary-light hover:text-primary transition-colors">
-                            <svg class="sidebar-nav-icon w-5 h-5 flex-shrink-0 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                            </svg>
-                            <span class="sidebar-nav-text font-medium whitespace-nowrap">Browse Jobs</span>
-                        </a>
-                        <a href="{% url 'applications:my_applications' %}" 
-                           class="sidebar-nav-link flex items-center px-4 py-3 text-gray-700 hover:bg-primary-light hover:text-primary transition-colors">
-                            <svg class="sidebar-nav-icon w-5 h-5 flex-shrink-0 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                            </svg>
-                            <span class="sidebar-nav-text font-medium whitespace-nowrap">My Applications</span>
-                        </a>
-                        <a href="{% url 'resumes:list' %}" 
-                           class="sidebar-nav-link flex items-center px-4 py-3 text-gray-700 hover:bg-primary-light hover:text-primary transition-colors">
-                            <svg class="sidebar-nav-icon w-5 h-5 flex-shrink-0 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
-                            </svg>
-                            <span class="sidebar-nav-text font-medium whitespace-nowrap">Resumes</span>
-                        </a>
-                        <a href="{% url 'jobs:saved' %}" 
-                           class="sidebar-nav-link flex items-center px-4 py-3 text-gray-700 hover:bg-primary-light hover:text-primary transition-colors">
-                            <svg class="sidebar-nav-icon w-5 h-5 flex-shrink-0 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path>
-                            </svg>
-                            <span class="sidebar-nav-text font-medium whitespace-nowrap">Saved Jobs</span>
-                        </a>
-                        <a href="{% url 'analytics:dashboard' %}" 
-                           class="sidebar-nav-link flex items-center px-4 py-3 text-gray-700 hover:bg-primary-light hover:text-primary transition-colors">
-                            <svg class="sidebar-nav-icon w-5 h-5 flex-shrink-0 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                            </svg>
-                            <span class="sidebar-nav-text font-medium whitespace-nowrap">My Analytics</span>
-                        </a>
-                        <a href="{{ interview_nav_link }}" 
-                           class="sidebar-nav-link flex items-center px-4 py-3 text-gray-700 hover:bg-primary-light hover:text-primary transition-colors">
-                            <svg class="sidebar-nav-icon w-5 h-5 flex-shrink-0 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17l3-5-3-5m6 10l-3-5 3-5"></path>
-                            </svg>
-                            <span class="sidebar-nav-text font-medium whitespace-nowrap flex items-center gap-2">
-                                Interviews
-                                {% if upcoming_interviews_count > 0 %}
-                                <span class="inline-flex items-center justify-center w-6 h-6 text-xs font-semibold text-white bg-blue-600 rounded-full">
-                                    {{ upcoming_interviews_count }}
-                                </span>
-                                {% endif %}
+                    <!-- Personal Navigation -->
+                    <a href="{% url 'dashboard:personal_dashboard' %}"
+                        class="sidebar-nav-link flex items-center px-4 py-3 text-gray-700 hover:bg-primary-light hover:text-primary transition-colors">
+                        <svg class="sidebar-nav-icon w-5 h-5 flex-shrink-0 mr-3" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6">
+                            </path>
+                        </svg>
+                        <span class="sidebar-nav-text font-medium whitespace-nowrap">Dashboard</span>
+                    </a>
+                    <a href="{% url 'jobs:browse' %}"
+                        class="sidebar-nav-link flex items-center px-4 py-3 text-gray-700 hover:bg-primary-light hover:text-primary transition-colors">
+                        <svg class="sidebar-nav-icon w-5 h-5 flex-shrink-0 mr-3" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                        <span class="sidebar-nav-text font-medium whitespace-nowrap">Browse Jobs</span>
+                    </a>
+                    <a href="{% url 'applications:my_applications' %}"
+                        class="sidebar-nav-link flex items-center px-4 py-3 text-gray-700 hover:bg-primary-light hover:text-primary transition-colors">
+                        <svg class="sidebar-nav-icon w-5 h-5 flex-shrink-0 mr-3" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                            </path>
+                        </svg>
+                        <span class="sidebar-nav-text font-medium whitespace-nowrap">My Applications</span>
+                    </a>
+                    <a href="{% url 'resumes:list' %}"
+                        class="sidebar-nav-link flex items-center px-4 py-3 text-gray-700 hover:bg-primary-light hover:text-primary transition-colors">
+                        <svg class="sidebar-nav-icon w-5 h-5 flex-shrink-0 mr-3" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z">
+                            </path>
+                        </svg>
+                        <span class="sidebar-nav-text font-medium whitespace-nowrap">Resumes</span>
+                    </a>
+                    <a href="{% url 'jobs:saved' %}"
+                        class="sidebar-nav-link flex items-center px-4 py-3 text-gray-700 hover:bg-primary-light hover:text-primary transition-colors">
+                        <svg class="sidebar-nav-icon w-5 h-5 flex-shrink-0 mr-3" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path>
+                        </svg>
+                        <span class="sidebar-nav-text font-medium whitespace-nowrap">Saved Jobs</span>
+                    </a>
+                    <a href="{% url 'analytics:dashboard' %}"
+                        class="sidebar-nav-link flex items-center px-4 py-3 text-gray-700 hover:bg-primary-light hover:text-primary transition-colors">
+                        <svg class="sidebar-nav-icon w-5 h-5 flex-shrink-0 mr-3" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
+                            </path>
+                        </svg>
+                        <span class="sidebar-nav-text font-medium whitespace-nowrap">My Analytics</span>
+                    </a>
+                    <a href="{{ interview_nav_link }}"
+                        class="sidebar-nav-link flex items-center px-4 py-3 text-gray-700 hover:bg-primary-light hover:text-primary transition-colors">
+                        <svg class="sidebar-nav-icon w-5 h-5 flex-shrink-0 mr-3" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 17l3-5-3-5m6 10l-3-5 3-5"></path>
+                        </svg>
+                        <span class="sidebar-nav-text font-medium whitespace-nowrap flex items-center gap-2">
+                            Interviews
+                            {% if upcoming_interviews_count > 0 %}
+                            <span
+                                class="inline-flex items-center justify-center w-6 h-6 text-xs font-semibold text-white bg-blue-600 rounded-full">
+                                {{ upcoming_interviews_count }}
                             </span>
-                        </a>
+                            {% endif %}
+                        </span>
+                    </a>
                     {% elif request.user.account_type == 'company' %}
-                        <!-- Company Navigation -->
-                        <a href="{% url 'dashboard:company_dashboard' %}" 
-                           class="sidebar-nav-link flex items-center px-4 py-3 text-gray-700 hover:bg-primary-light hover:text-primary transition-colors">
-                            <svg class="sidebar-nav-icon w-5 h-5 flex-shrink-0 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
-                            </svg>
-                            <span class="sidebar-nav-text font-medium whitespace-nowrap">Dashboard</span>
-                        </a>
-                        <a href="{% url 'jobs:manage' %}" 
-                           class="sidebar-nav-link flex items-center px-4 py-3 text-gray-700 hover:bg-primary-light hover:text-primary transition-colors">
-                            <svg class="sidebar-nav-icon w-5 h-5 flex-shrink-0 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-                            </svg>
-                            <span class="sidebar-nav-text font-medium whitespace-nowrap">Manage Jobs</span>
-                        </a>
-                        <a href="{% url 'jobs:create' %}" 
-                           class="sidebar-nav-link flex items-center px-4 py-3 text-gray-700 hover:bg-primary-light hover:text-primary transition-colors">
-                            <svg class="sidebar-nav-icon w-5 h-5 flex-shrink-0 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                            </svg>
-                            <span class="sidebar-nav-text font-medium whitespace-nowrap">Post New Job</span>
-                        </a>
-                        <a href="{% url 'applications:manage' %}"
-                           class="sidebar-nav-link flex items-center px-4 py-3 text-gray-700 hover:bg-primary-light hover:text-primary transition-colors">
-                            <svg class="sidebar-nav-icon w-5 h-5 flex-shrink-0 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                            </svg>
-                            <span class="sidebar-nav-text font-medium whitespace-nowrap">Candidates</span>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        </a>
-                        <a href="{% url 'screening:session_list' %}" 
-                           class="sidebar-nav-link flex items-center px-4 py-3 text-gray-700 hover:bg-primary-light hover:text-primary transition-colors">
-                            <svg class="sidebar-nav-icon w-5 h-5 flex-shrink-0 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
-                            </svg>
-                            <span class="sidebar-nav-text font-medium whitespace-nowrap">AI Screening</span>
-                        </a>
-                        <a href="{% url 'analytics:dashboard' %}" 
-                           class="sidebar-nav-link flex items-center px-4 py-3 text-gray-700 hover:bg-primary-light hover:text-primary transition-colors">
-                            <svg class="sidebar-nav-icon w-5 h-5 flex-shrink-0 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                            </svg>
-                            <span class="sidebar-nav-text font-medium whitespace-nowrap">Analytics</span>
-                        </a>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            
-                        <a href="{{ interview_nav_link }}" 
-                           class="sidebar-nav-link flex items-center px-4 py-3 text-gray-700 hover:bg-primary-light hover:text-primary transition-colors">
-                            <svg class="sidebar-nav-icon w-5 h-5 flex-shrink-0 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17l3-5-3-5m6 10l-3-5 3-5"></path>
-                            </svg>
-                            <span class="sidebar-nav-text font-medium whitespace-nowrap flex items-center gap-2">
-                                Interviews
-                                {% if upcoming_interviews_count > 0 %}
-                                <span class="inline-flex items-center justify-center w-6 h-6 text-xs font-semibold text-white bg-blue-600 rounded-full">
-                                    {{ upcoming_interviews_count }}
-                                </span>
-                                {% endif %}
-                                {% if show_interview_schedule_action %}
-                                <span class="text-[10px] px-2 py-0.5 rounded-full bg-green-100 text-green-800">
-                                    Schedule
-                                </span>
-                                {% endif %}
+                    <!-- Company Navigation -->
+                    <a href="{% url 'dashboard:company_dashboard' %}"
+                        class="sidebar-nav-link flex items-center px-4 py-3 text-gray-700 hover:bg-primary-light hover:text-primary transition-colors">
+                        <svg class="sidebar-nav-icon w-5 h-5 flex-shrink-0 mr-3" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6">
+                            </path>
+                        </svg>
+                        <span class="sidebar-nav-text font-medium whitespace-nowrap">Dashboard</span>
+                    </a>
+                    <a href="{% url 'jobs:manage' %}"
+                        class="sidebar-nav-link flex items-center px-4 py-3 text-gray-700 hover:bg-primary-light hover:text-primary transition-colors">
+                        <svg class="sidebar-nav-icon w-5 h-5 flex-shrink-0 mr-3" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z">
+                            </path>
+                        </svg>
+                        <span class="sidebar-nav-text font-medium whitespace-nowrap">Manage Jobs</span>
+                    </a>
+                    <a href="{% url 'jobs:create' %}"
+                        class="sidebar-nav-link flex items-center px-4 py-3 text-gray-700 hover:bg-primary-light hover:text-primary transition-colors">
+                        <svg class="sidebar-nav-icon w-5 h-5 flex-shrink-0 mr-3" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4">
+                            </path>
+                        </svg>
+                        <span class="sidebar-nav-text font-medium whitespace-nowrap">Post New Job</span>
+                    </a>
+                    <a href="{% url 'applications:manage' %}"
+                        class="sidebar-nav-link flex items-center px-4 py-3 text-gray-700 hover:bg-primary-light hover:text-primary transition-colors">
+                        <svg class="sidebar-nav-icon w-5 h-5 flex-shrink-0 mr-3" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z">
+                            </path>
+                        </svg>
+                        <span class="sidebar-nav-text font-medium whitespace-nowrap">Candidates</span>
+                    </a>
+                    <a href="{% url 'screening:session_list' %}"
+                        class="sidebar-nav-link flex items-center px-4 py-3 text-gray-700 hover:bg-primary-light hover:text-primary transition-colors">
+                        <svg class="sidebar-nav-icon w-5 h-5 flex-shrink-0 mr-3" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4">
+                            </path>
+                        </svg>
+                        <span class="sidebar-nav-text font-medium whitespace-nowrap">AI Screening</span>
+                    </a>
+                    <a href="{% url 'analytics:dashboard' %}"
+                        class="sidebar-nav-link flex items-center px-4 py-3 text-gray-700 hover:bg-primary-light hover:text-primary transition-colors">
+                        <svg class="sidebar-nav-icon w-5 h-5 flex-shrink-0 mr-3" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
+                            </path>
+                        </svg>
+                        <span class="sidebar-nav-text font-medium whitespace-nowrap">Analytics</span>
+                    </a>
+                    <a href="{{ interview_nav_link }}"
+                        class="sidebar-nav-link flex items-center px-4 py-3 text-gray-700 hover:bg-primary-light hover:text-primary transition-colors">
+                        <svg class="sidebar-nav-icon w-5 h-5 flex-shrink-0 mr-3" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 17l3-5-3-5m6 10l-3-5 3-5"></path>
+                        </svg>
+                        <span class="sidebar-nav-text font-medium whitespace-nowrap flex items-center gap-2">
+                            Interviews
+                            {% if upcoming_interviews_count > 0 %}
+                            <span
+                                class="inline-flex items-center justify-center w-6 h-6 text-xs font-semibold text-white bg-blue-600 rounded-full">
+                                {{ upcoming_interviews_count }}
                             </span>
-                        </a>
+                            {% endif %}
+                            {% if show_interview_schedule_action %}
+                            <span class="text-[10px] px-2 py-0.5 rounded-full bg-green-100 text-green-800">
+                                Schedule
+                            </span>
+                            {% endif %}
+                        </span>
+                    </a>
                     {% endif %}
                     <!-- Divider -->
-                    <div id="sidebar-divider-expanded" class="border-t border-gray-200 my-4 transition-all duration-300"></div>
-                    <div id="sidebar-divider-collapsed" class="h-px bg-gray-200 mx-4 my-4 transition-all duration-300 hidden"></div>
+                    <div id="sidebar-divider-expanded"
+                        class="border-t border-gray-200 my-4 transition-all duration-300"></div>
+                    <div id="sidebar-divider-collapsed"
+                        class="h-px bg-gray-200 mx-4 my-4 transition-all duration-300 hidden"></div>
 
                     <!-- Account Section -->
-                    <a href="{% url 'accounts:profile' %}" 
-                       class="sidebar-nav-link flex items-center px-4 py-3 text-gray-700 hover:bg-primary-light hover:text-primary transition-colors">
-                        <svg class="sidebar-nav-icon w-5 h-5 flex-shrink-0 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                    <a href="{% url 'accounts:profile' %}"
+                        class="sidebar-nav-link flex items-center px-4 py-3 text-gray-700 hover:bg-primary-light hover:text-primary transition-colors">
+                        <svg class="sidebar-nav-icon w-5 h-5 flex-shrink-0 mr-3" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
                         </svg>
                         <span class="sidebar-nav-text font-medium whitespace-nowrap">My Profile</span>
                     </a>
-                    <a href="{% url 'assessments:browse' %}" 
-                       class="sidebar-nav-link flex items-center px-4 py-3 text-gray-700 hover:bg-primary-light hover:text-primary transition-colors">
-                        <svg class="sidebar-nav-icon w-5 h-5 flex-shrink-0 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    <a href="{% url 'assessments:browse' %}"
+                        class="sidebar-nav-link flex items-center px-4 py-3 text-gray-700 hover:bg-primary-light hover:text-primary transition-colors">
+                        <svg class="sidebar-nav-icon w-5 h-5 flex-shrink-0 mr-3" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7">
+                            </path>
                         </svg>
                         <span class="sidebar-nav-text font-medium whitespace-nowrap">Assessments</span>
                     </a>
-                    <a href="{% url 'accounts:settings' %}" 
-                       class="sidebar-nav-link flex items-center px-4 py-3 text-gray-700 hover:bg-primary-light hover:text-primary transition-colors">
-                        <svg class="sidebar-nav-icon w-5 h-5 flex-shrink-0 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    <a href="{% url 'accounts:settings' %}"
+                        class="sidebar-nav-link flex items-center px-4 py-3 text-gray-700 hover:bg-primary-light hover:text-primary transition-colors">
+                        <svg class="sidebar-nav-icon w-5 h-5 flex-shrink-0 mr-3" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z">
+                            </path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                         </svg>
                         <span class="sidebar-nav-text font-medium whitespace-nowrap">Settings</span>
                     </a>
-                    <a href="{% url 'notifications:list' %}" 
-                       class="sidebar-nav-link flex items-center px-4 py-3 text-gray-700 hover:bg-primary-light hover:text-primary transition-colors">
-                        <svg class="sidebar-nav-icon w-5 h-5 flex-shrink-0 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+                    <a href="{% url 'notifications:list' %}"
+                        class="sidebar-nav-link flex items-center px-4 py-3 text-gray-700 hover:bg-primary-light hover:text-primary transition-colors">
+                        <svg class="sidebar-nav-icon w-5 h-5 flex-shrink-0 mr-3" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9">
+                            </path>
                         </svg>
                         <span class="sidebar-nav-text font-medium whitespace-nowrap">Notifications</span>
-                        <span class="ml-auto inline-flex items-center justify-center rounded-full bg-danger px-2 py-0.5 text-xs font-semibold text-white {% if not unread_notifications_count %}hidden{% endif %}"
-                              data-notification-badge>
+                        <span
+                            class="ml-auto inline-flex items-center justify-center rounded-full bg-danger px-2 py-0.5 text-xs font-semibold text-white {% if not unread_notifications_count %}hidden{% endif %}"
+                            data-notification-badge>
                             {{ unread_notifications_count }}
                         </span>
                     </a>
-                    <a href="{% url 'messaging:inbox' %}" 
-                       class="sidebar-nav-link flex items-center px-4 py-3 text-gray-700 hover:bg-primary-light hover:text-primary transition-colors">
-                        <svg class="sidebar-nav-icon w-5 h-5 flex-shrink-0 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path>
+                    <a href="{% url 'messaging:inbox' %}"
+                        class="sidebar-nav-link flex items-center px-4 py-3 text-gray-700 hover:bg-primary-light hover:text-primary transition-colors">
+                        <svg class="sidebar-nav-icon w-5 h-5 flex-shrink-0 mr-3" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z">
+                            </path>
                         </svg>
                         <span class="sidebar-nav-text font-medium whitespace-nowrap">Messages</span>
-                        <span class="ml-auto inline-flex items-center justify-center rounded-full bg-red-600 px-2 py-0.5 text-xs font-semibold text-white hidden" data-unread-badge></span>
+                        <span
+                            class="ml-auto inline-flex items-center justify-center rounded-full bg-red-600 px-2 py-0.5 text-xs font-semibold text-white hidden"
+                            data-unread-badge></span>
                     </a>
                 </nav>
 
@@ -754,10 +837,13 @@
                 <div class="border-t border-gray-200 p-4 flex-shrink-0">
                     <form method="post" action="{% url 'accounts:logout' %}">
                         {% csrf_token %}
-                        <button type="submit" 
-                                class="sidebar-logout-btn w-full flex items-center px-4 py-3 text-danger hover:bg-red-50 rounded-lg transition-colors">
-                            <svg class="sidebar-nav-icon w-5 h-5 flex-shrink-0 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                        <button type="submit"
+                            class="sidebar-logout-btn w-full flex items-center px-4 py-3 text-danger hover:bg-red-50 rounded-lg transition-colors">
+                            <svg class="sidebar-nav-icon w-5 h-5 flex-shrink-0 mr-3" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1">
+                                </path>
                             </svg>
                             <span class="sidebar-nav-text font-medium whitespace-nowrap">Sign Out</span>
                         </button>
@@ -767,7 +853,8 @@
         </aside>
 
         <!-- Main Content Area -->
-        <div id="main-content" class="flex flex-col overflow-hidden flex-1 transition-all duration-300 ease-in-out" style="margin-left: 256px;">
+        <div id="main-content" class="flex flex-col overflow-hidden flex-1 transition-all duration-300 ease-in-out"
+            style="margin-left: 256px;">
             <!-- Flash Messages -->
             {% if messages %}
             <div class="fixed top-4 right-4 z-50 space-y-3">
@@ -776,26 +863,30 @@
                             {% if message.tags == 'error' or message.tags == 'danger' %}border-danger
                             {% elif message.tags == 'warning' %}border-warning
                             {% elif message.tags == 'success' %}border-success
-                            {% else %}border-primary{% endif %}"
-                     data-flash-message
-                     style="animation: slideInRight 0.4s ease-out;">
+                            {% else %}border-primary{% endif %}" data-flash-message
+                    style="animation: slideInRight 0.4s ease-out;">
                     <div class="flex items-start p-4">
                         <div class="flex-shrink-0">
                             {% if message.tags == 'error' or message.tags == 'danger' %}
                             <svg class="w-6 h-6 text-danger" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
                             {% elif message.tags == 'warning' %}
                             <svg class="w-6 h-6 text-warning" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
+                                </path>
                             </svg>
                             {% elif message.tags == 'success' %}
                             <svg class="w-6 h-6 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
                             {% else %}
                             <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
                             {% endif %}
                         </div>
@@ -808,721 +899,754 @@
                             </p>
                             <p class="mt-1 text-sm text-gray-600">{{ message }}</p>
                         </div>
-                        <button type="button" class="ml-4 flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors" data-close-message>
+                        <button type="button"
+                            class="ml-4 flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors"
+                            data-close-message>
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M6 18L18 6M6 6l12 12"></path>
                             </svg>
                         </button>
                     </div>
                 </div>
                 {% endfor %}
             </div>
-            
+
             <script>
-            (function() {
-                // Auto-dismiss flash messages after 5 seconds and handle close button
-                const messages = document.querySelectorAll('[data-flash-message]');
-                
-                messages.forEach((message) => {
-                    // Auto-dismiss after 5 seconds
-                    const timeoutId = setTimeout(() => {
-                        fadeOut(message);
-                    }, 5000);
-                    
-                    // Handle close button click
-                    const closeBtn = message.querySelector('[data-close-message]');
-                    if (closeBtn) {
-                        closeBtn.addEventListener('click', (e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            clearTimeout(timeoutId);
+                (function () {
+                    // Auto-dismiss flash messages after 5 seconds and handle close button
+                    const messages = document.querySelectorAll('[data-flash-message]');
+
+                    messages.forEach((message) => {
+                        // Auto-dismiss after 5 seconds
+                        const timeoutId = setTimeout(() => {
                             fadeOut(message);
-                        });
+                        }, 5000);
+
+                        // Handle close button click
+                        const closeBtn = message.querySelector('[data-close-message]');
+                        if (closeBtn) {
+                            closeBtn.addEventListener('click', (e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                clearTimeout(timeoutId);
+                                fadeOut(message);
+                            });
+                        }
+                    });
+
+                    function fadeOut(element) {
+                        element.style.opacity = '1';
+                        element.style.transition = 'opacity 0.3s ease-out';
+                        element.style.opacity = '0';
+
+                        setTimeout(() => {
+                            element.style.display = 'none';
+                            element.remove();
+                        }, 300);
                     }
-                });
-                
-                function fadeOut(element) {
-                    element.style.opacity = '1';
-                    element.style.transition = 'opacity 0.3s ease-out';
-                    element.style.opacity = '0';
-                    
-                    setTimeout(() => {
-                        element.style.display = 'none';
-                        element.remove();
-                    }, 300);
-                }
-            })();
+                })();
             </script>
             {% endif %}
 
             <!-- Main Content (Scrollable) -->
             <main class="flex-1 overflow-y-auto bg-gray-50 min-h-screen md:min-h-0">
                 {% block content %}
-                    {% block interview_content %}{% endblock %}
+                {% block interview_content %}{% endblock %}
                 {% endblock %}
-                
+
                 <!-- Footer -->
                 {% block footer %}
                 <footer class="bg-white border-t border-gray-200 mt-12">
                     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                    <div class="grid md:grid-cols-2 lg:grid-cols-5 gap-8">
-                        <!-- Brand -->
-                        <div class="lg:col-span-2">
-                            <a href="/" class="flex items-center space-x-3 mb-4">
-                                <div class="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center shadow-md">
-                                    <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none">
-                                        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                                        <path d="M12 6L12 12L16 16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                                        <circle cx="12" cy="12" r="2" fill="currentColor"/>
-                                    </svg>
-                                </div>
-                                <span class="font-display text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                                    HireSight
-                                </span>
-                            </a>
-                            <p class="text-gray-600 text-sm max-w-xs leading-relaxed">
-                                AI-powered recruitment that finds the right talent based on skills and potential, not just keywords.
-                            </p>
+                        <div class="grid md:grid-cols-2 lg:grid-cols-5 gap-8">
+                            <!-- Brand -->
+                            <div class="lg:col-span-2">
+                                <a href="/" class="flex items-center space-x-3 mb-4">
+                                    <div
+                                        class="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center shadow-md">
+                                        <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none">
+                                            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" />
+                                            <path d="M12 6L12 12L16 16" stroke="currentColor" stroke-width="2"
+                                                stroke-linecap="round" />
+                                            <circle cx="12" cy="12" r="2" fill="currentColor" />
+                                        </svg>
+                                    </div>
+                                    <span
+                                        class="font-display text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                                        HireSight
+                                    </span>
+                                </a>
+                                <p class="text-gray-600 text-sm max-w-xs leading-relaxed">
+                                    AI-powered recruitment that finds the right talent based on skills and potential,
+                                    not just keywords.
+                                </p>
+                            </div>
+
+                            <!-- Links -->
+                            <div>
+                                <h3 class="font-display font-bold text-gray-900 mb-4">Product</h3>
+                                <ul class="space-y-2.5 text-sm">
+                                    <li><a href="#"
+                                            class="text-gray-600 hover:text-primary transition-colors">Features</a></li>
+                                    <li><a href="#"
+                                            class="text-gray-600 hover:text-primary transition-colors">Pricing</a></li>
+                                </ul>
+                            </div>
+
+                            <div>
+                                <h3 class="font-display font-bold text-gray-900 mb-4">Company</h3>
+                                <ul class="space-y-2.5 text-sm">
+                                    <li><a href="#" class="text-gray-600 hover:text-primary transition-colors">About</a>
+                                    </li>
+                                    <li><a href="#"
+                                            class="text-gray-600 hover:text-primary transition-colors">Contact</a></li>
+                                </ul>
+                            </div>
+
+                            <div>
+                                <h3 class="font-display font-bold text-gray-900 mb-4">Legal</h3>
+                                <ul class="space-y-2.5 text-sm">
+                                    <li><a href="#"
+                                            class="text-gray-600 hover:text-primary transition-colors">Privacy</a></li>
+                                    <li><a href="#" class="text-gray-600 hover:text-primary transition-colors">Terms</a>
+                                    </li>
+                                </ul>
+                            </div>
                         </div>
-                        
-                        <!-- Links -->
-                        <div>
-                            <h3 class="font-display font-bold text-gray-900 mb-4">Product</h3>
-                            <ul class="space-y-2.5 text-sm">
-                                <li><a href="#" class="text-gray-600 hover:text-primary transition-colors">Features</a></li>
-                                <li><a href="#" class="text-gray-600 hover:text-primary transition-colors">Pricing</a></li>
-                            </ul>
-                        </div>
-                        
-                        <div>
-                            <h3 class="font-display font-bold text-gray-900 mb-4">Company</h3>
-                            <ul class="space-y-2.5 text-sm">
-                                <li><a href="#" class="text-gray-600 hover:text-primary transition-colors">About</a></li>
-                                <li><a href="#" class="text-gray-600 hover:text-primary transition-colors">Contact</a></li>
-                            </ul>
-                        </div>
-                        
-                        <div>
-                            <h3 class="font-display font-bold text-gray-900 mb-4">Legal</h3>
-                            <ul class="space-y-2.5 text-sm">
-                                <li><a href="#" class="text-gray-600 hover:text-primary transition-colors">Privacy</a></li>
-                                <li><a href="#" class="text-gray-600 hover:text-primary transition-colors">Terms</a></li>
-                            </ul>
+
+                        <!-- Bottom Bar -->
+                        <div class="mt-8 pt-6 border-t border-gray-200 text-center text-sm text-gray-500">
+                            <p>© 2026 HireSight. All rights reserved.</p>
                         </div>
                     </div>
-                    
-                    <!-- Bottom Bar -->
-                    <div class="mt-8 pt-6 border-t border-gray-200 text-center text-sm text-gray-500">
-                        <p>© 2026 HireSight. All rights reserved.</p>
-                    </div>
-                </div>
-            </footer>
-            {% endblock %}
+                </footer>
+                {% endblock %}
             </main>
-    </div>
-    
-    {% else %}
-    <!-- Guest Navigation (Simple Top Bar) -->
-    <nav class="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16">
-                <div class="flex items-center">
-                    <a href="{% url 'dashboard:landing' %}" class="flex items-center space-x-3 group">
-                        <div class="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center shadow-md transform group-hover:scale-110 transition-transform duration-300">
-                            <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none">
-                                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                                <path d="M12 6L12 12L16 16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                                <circle cx="12" cy="12" r="2" fill="currentColor"/>
-                            </svg>
-                        </div>
-                        <span class="font-display text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                            HireSight
-                        </span>
-                    </a>
-                </div>
-                <div class="flex items-center space-x-4">
-                    <a href="{% url 'accounts:login' %}" class="px-4 py-2 text-gray-700 hover:text-primary font-semibold transition-colors underline-animate">
-                        Sign In
-                    </a>
-                    <a href="{% url 'accounts:register' %}" class="btn-primary px-5 py-2.5 bg-gradient-to-r from-primary to-secondary text-white rounded-lg font-semibold shadow-md relative z-10">
-                        Get Started
-                    </a>
-                </div>
-            </div>
         </div>
-    </nav>
-    
-    <!-- Main Content for Guests -->
-    <main class="flex-1">
-        {% block guest_content %}{% endblock %}
-    </main>
-    
-    <!-- Footer for Guests -->
-    {% block guest_footer %}
-    <footer class="bg-white border-t border-gray-200 mt-auto">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-            <div class="grid md:grid-cols-2 lg:grid-cols-5 gap-8">
-                <div class="lg:col-span-2">
-                    <a href="/" class="flex items-center space-x-3 mb-4">
-                        <div class="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center shadow-md">
-                            <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none">
-                                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                                <path d="M12 6L12 12L16 16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                                <circle cx="12" cy="12" r="2" fill="currentColor"/>
-                            </svg>
-                        </div>
-                        <span class="font-display text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                            HireSight
-                        </span>
-                    </a>
-                    <p class="text-gray-600 text-sm max-w-xs leading-relaxed">
-                        AI-powered recruitment that finds the right talent based on skills and potential, not just keywords.
-                    </p>
-                </div>
-                <div>
-                    <h3 class="font-display font-bold text-gray-900 mb-4">Product</h3>
-                    <ul class="space-y-2.5 text-sm">
-                        <li><a href="#" class="text-gray-600 hover:text-primary transition-colors">Features</a></li>
-                        <li><a href="#" class="text-gray-600 hover:text-primary transition-colors">Pricing</a></li>
-                    </ul>
-                </div>
-                <div>
-                    <h3 class="font-display font-bold text-gray-900 mb-4">Company</h3>
-                    <ul class="space-y-2.5 text-sm">
-                        <li><a href="#" class="text-gray-600 hover:text-primary transition-colors">About</a></li>
-                        <li><a href="#" class="text-gray-600 hover:text-primary transition-colors">Contact</a></li>
-                    </ul>
-                </div>
-                <div>
-                    <h3 class="font-display font-bold text-gray-900 mb-4">Legal</h3>
-                    <ul class="space-y-2.5 text-sm">
-                        <li><a href="#" class="text-gray-600 hover:text-primary transition-colors">Privacy</a></li>
-                        <li><a href="#" class="text-gray-600 hover:text-primary transition-colors">Terms</a></li>
-                    </ul>
+
+        {% else %}
+        <!-- Guest Navigation (Simple Top Bar) -->
+        <nav class="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between h-16">
+                    <div class="flex items-center">
+                        <a href="{% url 'dashboard:landing' %}" class="flex items-center space-x-3 group">
+                            <div
+                                class="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center shadow-md transform group-hover:scale-110 transition-transform duration-300">
+                                <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none">
+                                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" />
+                                    <path d="M12 6L12 12L16 16" stroke="currentColor" stroke-width="2"
+                                        stroke-linecap="round" />
+                                    <circle cx="12" cy="12" r="2" fill="currentColor" />
+                                </svg>
+                            </div>
+                            <span
+                                class="font-display text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                                HireSight
+                            </span>
+                        </a>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <a href="{% url 'accounts:login' %}"
+                            class="px-4 py-2 text-gray-700 hover:text-primary font-semibold transition-colors underline-animate">
+                            Sign In
+                        </a>
+                        <a href="{% url 'accounts:register' %}"
+                            class="btn-primary px-5 py-2.5 bg-gradient-to-r from-primary to-secondary text-white rounded-lg font-semibold shadow-md relative z-10">
+                            Get Started
+                        </a>
+                    </div>
                 </div>
             </div>
-            <div class="mt-12 pt-8 border-t border-gray-200 text-center text-sm text-gray-500">
-                <p>© 2026 HireSight. All rights reserved.</p>
+        </nav>
+
+        <!-- Main Content for Guests -->
+        <main class="flex-1">
+            {% block guest_content %}{% endblock %}
+        </main>
+
+        <!-- Footer for Guests -->
+        {% block guest_footer %}
+        <footer class="bg-white border-t border-gray-200 mt-auto">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+                <div class="grid md:grid-cols-2 lg:grid-cols-5 gap-8">
+                    <div class="lg:col-span-2">
+                        <a href="/" class="flex items-center space-x-3 mb-4">
+                            <div
+                                class="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center shadow-md">
+                                <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none">
+                                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" />
+                                    <path d="M12 6L12 12L16 16" stroke="currentColor" stroke-width="2"
+                                        stroke-linecap="round" />
+                                    <circle cx="12" cy="12" r="2" fill="currentColor" />
+                                </svg>
+                            </div>
+                            <span
+                                class="font-display text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                                HireSight
+                            </span>
+                        </a>
+                        <p class="text-gray-600 text-sm max-w-xs leading-relaxed">
+                            AI-powered recruitment that finds the right talent based on skills and potential, not just
+                            keywords.
+                        </p>
+                    </div>
+                    <div>
+                        <h3 class="font-display font-bold text-gray-900 mb-4">Product</h3>
+                        <ul class="space-y-2.5 text-sm">
+                            <li><a href="#" class="text-gray-600 hover:text-primary transition-colors">Features</a></li>
+                            <li><a href="#" class="text-gray-600 hover:text-primary transition-colors">Pricing</a></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 class="font-display font-bold text-gray-900 mb-4">Company</h3>
+                        <ul class="space-y-2.5 text-sm">
+                            <li><a href="#" class="text-gray-600 hover:text-primary transition-colors">About</a></li>
+                            <li><a href="#" class="text-gray-600 hover:text-primary transition-colors">Contact</a></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 class="font-display font-bold text-gray-900 mb-4">Legal</h3>
+                        <ul class="space-y-2.5 text-sm">
+                            <li><a href="#" class="text-gray-600 hover:text-primary transition-colors">Privacy</a></li>
+                            <li><a href="#" class="text-gray-600 hover:text-primary transition-colors">Terms</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="mt-12 pt-8 border-t border-gray-200 text-center text-sm text-gray-500">
+                    <p>© 2026 HireSight. All rights reserved.</p>
+                </div>
             </div>
-        </div>
-    </footer>
-    {% endblock %}
-    {% endif %}
-    
-    <!-- Extra JavaScript -->
-    {% block extra_js %}{% endblock %}
-    
-    {% if request.user.is_authenticated %}
-    <script>
-    (function () {
-        const badges = document.querySelectorAll('[data-unread-badge]');
-        if (!badges.length) return;
-        const url = "{% url 'messaging:unread_count' %}";
-        const wsScheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
-        const wsUrl = `${wsScheme}://${window.location.host}/ws/messaging/unread/`;
-        let fallbackInterval;
+        </footer>
+        {% endblock %}
+        {% endif %}
 
-        function updateBadges(count) {
-            badges.forEach(badge => {
-                if (count > 0) {
-                    badge.textContent = count;
-                    badge.classList.remove('hidden');
-                } else {
-                    badge.classList.add('hidden');
-                }
-            });
-        }
+        <!-- Extra JavaScript -->
+        {% block extra_js %}{% endblock %}
 
-        async function fetchBadge() {
-            try {
-                const response = await fetch(url, {
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                });
-                if (!response.ok) return;
-                const { unread_count } = await response.json();
-                updateBadges(unread_count);
-            } catch (error) {
-                console.error('Failed to refresh unread badge', error);
-            }
-        }
+        {% if request.user.is_authenticated %}
+        <script>
+            (function () {
+                const badges = document.querySelectorAll('[data-unread-badge]');
+                if (!badges.length) return;
+                const url = "{% url 'messaging:unread_count' %}";
+                const wsScheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
+                const wsUrl = `${wsScheme}://${window.location.host}/ws/messaging/unread/`;
+                let fallbackInterval;
 
-        function startFallback(fetchNow = true) {
-            if (fetchNow) {
-                fetchBadge();
-            }
-            if (fallbackInterval) return;
-            fallbackInterval = setInterval(fetchBadge, 15000);
-        }
-
-        function stopFallback() {
-            if (fallbackInterval) {
-                clearInterval(fallbackInterval);
-                fallbackInterval = null;
-            }
-        }
-
-        if ('WebSocket' in window) {
-            const socket = new WebSocket(wsUrl);
-            socket.addEventListener('open', () => {
-                stopFallback();
-            });
-            socket.addEventListener('message', (event) => {
-                try {
-                    const data = JSON.parse(event.data);
-                    if (data.type === 'unread_count') {
-                        updateBadges(data.unread_count);
-                    }
-                } catch (error) {
-                    console.error('Unread badge WS parse error', error);
-                }
-            });
-            socket.addEventListener('error', startFallback);
-            socket.addEventListener('close', startFallback);
-        } else {
-            startFallback();
-        }
-    })();
-    </script>
-    <script>
-    (function () {
-        const badge = document.querySelector('[data-notification-badge]');
-        if (!badge) return;
-        const url = "{% url 'notifications:unread_count' %}";
-        const wsScheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
-        const wsUrl = `${wsScheme}://${window.location.host}/ws/notifications/`;
-        let fallbackInterval;
-
-        function updateBadge(count) {
-            const value = Number(count) || 0;
-            badge.textContent = value;
-            badge.classList.toggle('hidden', value === 0);
-        }
-
-        async function fetchBadge() {
-            try {
-                const response = await fetch(url, {
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                });
-                if (!response.ok) return;
-                const data = await response.json();
-                updateBadge(data.unread_count);
-            } catch (error) {
-                console.error('Failed to refresh notification badge', error);
-            }
-        }
-
-        function startFallback(fetchNow = true) {
-            if (fetchNow) {
-                fetchBadge();
-            }
-            if (fallbackInterval) return;
-            fallbackInterval = setInterval(fetchBadge, 20000);
-        }
-
-        function stopFallback() {
-            if (fallbackInterval) {
-                clearInterval(fallbackInterval);
-                fallbackInterval = null;
-            }
-        }
-
-        if ('WebSocket' in window) {
-            const socket = new WebSocket(wsUrl);
-            socket.addEventListener('open', () => {
-                stopFallback();
-            });
-            socket.addEventListener('message', (event) => {
-                try {
-                    const data = JSON.parse(event.data);
-                    if (data.type === 'notification') {
-                        if (typeof data.unread_count === 'number') {
-                            updateBadge(data.unread_count);
+                function updateBadges(count) {
+                    badges.forEach(badge => {
+                        if (count > 0) {
+                            badge.textContent = count;
+                            badge.classList.remove('hidden');
                         } else {
-                            const current = Number(badge.textContent) || 0;
-                            updateBadge(current + 1);
+                            badge.classList.add('hidden');
+                        }
+                    });
+                }
+
+                async function fetchBadge() {
+                    try {
+                        const response = await fetch(url, {
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                        });
+                        if (!response.ok) return;
+                        const { unread_count } = await response.json();
+                        updateBadges(unread_count);
+                    } catch (error) {
+                        console.error('Failed to refresh unread badge', error);
+                    }
+                }
+
+                function startFallback(fetchNow = true) {
+                    if (fetchNow) {
+                        fetchBadge();
+                    }
+                    if (fallbackInterval) return;
+                    fallbackInterval = setInterval(fetchBadge, 15000);
+                }
+
+                function stopFallback() {
+                    if (fallbackInterval) {
+                        clearInterval(fallbackInterval);
+                        fallbackInterval = null;
+                    }
+                }
+
+                if ('WebSocket' in window) {
+                    const socket = new WebSocket(wsUrl);
+                    socket.addEventListener('open', () => {
+                        stopFallback();
+                    });
+                    socket.addEventListener('message', (event) => {
+                        try {
+                            const data = JSON.parse(event.data);
+                            if (data.type === 'unread_count') {
+                                updateBadges(data.unread_count);
+                            }
+                        } catch (error) {
+                            console.error('Unread badge WS parse error', error);
+                        }
+                    });
+                    socket.addEventListener('error', startFallback);
+                    socket.addEventListener('close', startFallback);
+                } else {
+                    startFallback();
+                }
+            })();
+        </script>
+        <script>
+            (function () {
+                const badge = document.querySelector('[data-notification-badge]');
+                if (!badge) return;
+                const url = "{% url 'notifications:unread_count' %}";
+                const wsScheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
+                const wsUrl = `${wsScheme}://${window.location.host}/ws/notifications/`;
+                let fallbackInterval;
+
+                function updateBadge(count) {
+                    const value = Number(count) || 0;
+                    badge.textContent = value;
+                    badge.classList.toggle('hidden', value === 0);
+                }
+
+                async function fetchBadge() {
+                    try {
+                        const response = await fetch(url, {
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                        });
+                        if (!response.ok) return;
+                        const data = await response.json();
+                        updateBadge(data.unread_count);
+                    } catch (error) {
+                        console.error('Failed to refresh notification badge', error);
+                    }
+                }
+
+                function startFallback(fetchNow = true) {
+                    if (fetchNow) {
+                        fetchBadge();
+                    }
+                    if (fallbackInterval) return;
+                    fallbackInterval = setInterval(fetchBadge, 20000);
+                }
+
+                function stopFallback() {
+                    if (fallbackInterval) {
+                        clearInterval(fallbackInterval);
+                        fallbackInterval = null;
+                    }
+                }
+
+                if ('WebSocket' in window) {
+                    const socket = new WebSocket(wsUrl);
+                    socket.addEventListener('open', () => {
+                        stopFallback();
+                    });
+                    socket.addEventListener('message', (event) => {
+                        try {
+                            const data = JSON.parse(event.data);
+                            if (data.type === 'notification') {
+                                if (typeof data.unread_count === 'number') {
+                                    updateBadge(data.unread_count);
+                                } else {
+                                    const current = Number(badge.textContent) || 0;
+                                    updateBadge(current + 1);
+                                }
+                            }
+                        } catch (error) {
+                            console.error('Notification WS parse error', error);
+                        }
+                    });
+                    socket.addEventListener('error', startFallback);
+                    socket.addEventListener('close', startFallback);
+                } else {
+                    startFallback();
+                }
+            })();
+        </script>
+        <script>
+            (function () {
+                window.__hireSightPush = window.__hireSightPush || function () { };
+                if (!('serviceWorker' in navigator)) {
+                    return;
+                }
+                const swUrl = "{% static 'messaging/message-sw.js' %}";
+                navigator.serviceWorker.register(swUrl).then((registration) => {
+                    console.log('Messaging service worker registered', registration);
+                }).catch((error) => {
+                    console.error('Messaging service worker registration failed', error);
+                });
+
+                window.requestNotificationPermission = async function () {
+                    if (!('Notification' in window)) return;
+                    if (Notification.permission === 'default') {
+                        try {
+                            await Notification.requestPermission();
+                        } catch (e) {
+                            console.error('Error requesting notification permission', e);
                         }
                     }
-                } catch (error) {
-                    console.error('Notification WS parse error', error);
-                }
-            });
-            socket.addEventListener('error', startFallback);
-            socket.addEventListener('close', startFallback);
-        } else {
-            startFallback();
-        }
-    })();
-    </script>
-    <script>
-    (function () {
-        window.__hireSightPush = window.__hireSightPush || function () {};
-        if (!('serviceWorker' in navigator)) {
-            return;
-        }
-        const swUrl = "{% static 'messaging/message-sw.js' %}";
-        navigator.serviceWorker.register(swUrl, { scope: '/' }).catch((error) => {
-            console.error('Messaging service worker registration failed', error);
-        });
+                };
 
-        if ('Notification' in window && Notification.permission === 'default') {
-            Notification.requestPermission().catch(console.error);
-        }
-
-        window.__hireSightPush = function (payload) {
-            if (Notification.permission !== 'granted') {
-                return;
-            }
-            navigator.serviceWorker.ready.then((registration) => {
-                if (registration.active) {
-                    registration.active.postMessage(payload);
-                }
-            }).catch(console.error);
-        };
-    })();
-    </script>
-    {% endif %}
-
-    <!-- Mobile Menu & Sidebar Handler Script -->
-    <script>
-        // Initialize Mobile Menu
-        function initMobileMenu() {
-            const toggle = document.getElementById('mobile-menu-toggle');
-            const panel = document.getElementById('mobile-menu-panel');
-            const overlay = document.getElementById('mobile-menu-overlay');
-            const iconOpen = document.getElementById('menu-icon-open');
-            const iconClose = document.getElementById('menu-icon-close');
-            const links = panel ? panel.querySelectorAll('a') : [];
-            
-            if (!toggle || !panel || !overlay) return;
-            
-            let isOpen = false;
-            
-            function closeMenu() {
-                isOpen = false;
-                panel.classList.add('translate-x-full');
-                panel.classList.remove('translate-x-0');
-                overlay.classList.add('hidden');
-                overlay.classList.remove('opacity-100');
-                overlay.classList.add('opacity-0');
-                iconOpen.classList.remove('hidden');
-                iconClose.classList.add('hidden');
-            }
-            
-            function openMenu() {
-                isOpen = true;
-                panel.classList.remove('translate-x-full');
-                panel.classList.add('translate-x-0');
-                overlay.classList.remove('hidden');
-                overlay.classList.remove('opacity-0');
-                overlay.classList.add('opacity-100');
-                iconOpen.classList.add('hidden');
-                iconClose.classList.remove('hidden');
-            }
-            
-            function toggleMenu() {
-                if (isOpen) {
-                    closeMenu();
-                } else {
-                    openMenu();
-                }
-            }
-            
-            // Toggle button click
-            toggle.addEventListener('click', toggleMenu);
-            
-            // Overlay click
-            overlay.addEventListener('click', closeMenu);
-            
-            // Link clicks
-            links.forEach(link => {
-                link.addEventListener('click', closeMenu);
-            });
-            
-            // Escape key
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape' && isOpen) {
-                    closeMenu();
-                }
-            });
-        }
-    </script>
-    <script>
-    (function () {
-        // Mark notifications read when the user opens the dropdown (simple AJAX POST)
-        function getCookie(name) {
-            const value = `; ${document.cookie}`;
-            const parts = value.split(`; ${name}=`);
-            if (parts.length === 2) return parts.pop().split(';').shift();
-        }
-
-        const markAllUrl = "{% url 'notifications:mark_all_as_read' %}";
-        const csrftoken = getCookie('csrftoken');
-        const toggle = document.querySelector('[data-notification-toggle]');
-        if (!toggle) return;
-
-        toggle.addEventListener('click', () => {
-            // Small delay so Alpine can toggle the dropdown first
-            setTimeout(() => {
-                // If there is any unread badge visible, call mark-all-read
-                const badge = toggle.querySelector('span');
-                if (!badge) return;
-                const text = badge.textContent && badge.textContent.trim();
-                if (!text) return;
-                const n = parseInt(text, 10);
-                if (!n || n <= 0) return;
-
-                fetch(markAllUrl, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRFToken': csrftoken || '',
-                        'X-Requested-With': 'XMLHttpRequest',
-                    },
-                    credentials: 'same-origin',
-                }).then(() => {
-                    // hide any unread badges in the page
-                    document.querySelectorAll('[data-unread-badge]').forEach(el => el.style.display = 'none');
-                    document.querySelectorAll('.-top-1').forEach(el => el.style.display = 'none');
-                }).catch(() => {});
-            }, 120);
-        });
-    })();
-    </script>
-        
-    <script>
-        // Initialize Sidebar Toggle
-        function initSidebarToggle() {
-            const sidebar = document.getElementById('sidebar');
-            const sidebarToggle = document.getElementById('sidebar-toggle');
-            const sidebarToggleIcon = document.getElementById('sidebar-toggle-icon');
-            const sidebarTogglePath = document.getElementById('sidebar-toggle-path');
-            const sidebarLogo = document.getElementById('sidebar-logo');
-            const sidebarLogoText = document.getElementById('sidebar-logo-text');
-            const userInfoExpanded = document.getElementById('user-info-expanded');
-            const userInfoCollapsed = document.getElementById('user-info-collapsed');
-            const sidebarDividerExpanded = document.getElementById('sidebar-divider-expanded');
-            const sidebarDividerCollapsed = document.getElementById('sidebar-divider-collapsed');
-            const mainContent = document.getElementById('main-content');
-            const navTexts = document.querySelectorAll('.sidebar-nav-text');
-            const navIcons = document.querySelectorAll('.sidebar-nav-icon');
-            const navLinks = document.querySelectorAll('.sidebar-nav-link');
-            const logoutBtn = document.querySelector('.sidebar-logout-btn');
-            
-            if (!sidebar || !sidebarToggle || !mainContent) return;
-            
-            let isCollapsed = false;
-            
-            // Initialize with correct margin on page load
-            const initializeMargin = () => {
-                // Only apply margin on md screens (768px+)
-                if (window.innerWidth >= 768) {
-                    mainContent.style.marginLeft = '256px';
-                } else {
-                    mainContent.style.marginLeft = '0px';
-                }
-            };
-            
-            function collapseSidebar() {
-                isCollapsed = true;
-                sidebar.classList.remove('w-64');
-                sidebar.classList.add('w-20');
-                
-                // Update main content margin using inline style for reliability
-                mainContent.style.marginLeft = '80px';
-                
-                // Hide logo text
-                sidebarLogoText.classList.add('hidden');
-                sidebarLogo.classList.add('justify-center');
-                
-                // Hide expanded, show collapsed
-                userInfoExpanded.classList.add('hidden');
-                userInfoCollapsed.classList.remove('hidden');
-                sidebarDividerExpanded.classList.add('hidden');
-                sidebarDividerCollapsed.classList.remove('hidden');
-                
-                // Hide nav texts, center icons
-                navTexts.forEach(text => text.classList.add('hidden'));
-                navIcons.forEach(icon => icon.classList.remove('mr-3'));
-                navLinks.forEach(link => link.classList.add('justify-center'));
-                
-                // Handle logout button
-                if (logoutBtn) {
-                    logoutBtn.classList.add('justify-center');
-                    const logoutText = logoutBtn.querySelector('.sidebar-nav-text');
-                    if (logoutText) logoutText.classList.add('hidden');
-                    const logoutIcon = logoutBtn.querySelector('.sidebar-nav-icon');
-                    if (logoutIcon) logoutIcon.classList.remove('mr-3');
-                }
-                
-                // Update toggle icon to point outward (expand)
-                if (sidebarTogglePath) {
-                    sidebarTogglePath.setAttribute('d', 'M13 5l7 7-7 7M5 5l7 7-7 7');
-                }
-            }
-            
-            function expandSidebar() {
-                isCollapsed = false;
-                sidebar.classList.add('w-64');
-                sidebar.classList.remove('w-20');
-                
-                // Update main content margin using inline style for reliability
-                mainContent.style.marginLeft = '256px';
-                
-                // Show logo text
-                sidebarLogoText.classList.remove('hidden');
-                sidebarLogo.classList.remove('justify-center');
-                
-                // Show expanded, hide collapsed
-                userInfoExpanded.classList.remove('hidden');
-                userInfoCollapsed.classList.add('hidden');
-                sidebarDividerExpanded.classList.remove('hidden');
-                sidebarDividerCollapsed.classList.add('hidden');
-                
-                // Show nav texts, add margin to icons
-                navTexts.forEach(text => text.classList.remove('hidden'));
-                navIcons.forEach(icon => icon.classList.add('mr-3'));
-                navLinks.forEach(link => link.classList.remove('justify-center'));
-                
-                // Handle logout button
-                if (logoutBtn) {
-                    logoutBtn.classList.remove('justify-center');
-                    const logoutText = logoutBtn.querySelector('.sidebar-nav-text');
-                    if (logoutText) logoutText.classList.remove('hidden');
-                    const logoutIcon = logoutBtn.querySelector('.sidebar-nav-icon');
-                    if (logoutIcon) logoutIcon.classList.add('mr-3');
-                }
-                
-                // Update toggle icon to point inward (collapse)
-                if (sidebarTogglePath) {
-                    sidebarTogglePath.setAttribute('d', 'M11 19l-7-7 7-7m8 14l-7-7 7-7');
-                }
-            }
-            
-            function toggleSidebar() {
-                if (isCollapsed) {
-                    expandSidebar();
-                } else {
-                    collapseSidebar();
-                }
-            }
-            
-            // Toggle button click
-            sidebarToggle.addEventListener('click', toggleSidebar);
-            
-            // Initialize on load
-            initializeMargin();
-            
-            // Handle window resize
-            window.addEventListener('resize', () => {
-                if (window.innerWidth >= 768) {
-                    if (isCollapsed) {
-                        mainContent.style.marginLeft = '80px';
-                    } else {
-                        mainContent.style.marginLeft = '256px';
+                window.__hireSightPush = function (payload) {
+                    if (Notification.permission !== 'granted') {
+                        window.requestNotificationPermission();
+                        return;
                     }
-                } else {
-                    mainContent.style.marginLeft = '0px';
-                }
-            });
-        }
-        
-        // Initialize when DOM is ready
-    </script>
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-    <script>
-        (function () {
-            const body = document.body;
-            const themeStorageKey = 'hiresight-theme';
-            const themeToggle = document.querySelector('[data-theme-toggle]');
-            const themeLabel = themeToggle ? themeToggle.querySelector('[data-theme-label]') : null;
+                    navigator.serviceWorker.ready.then((registration) => {
+                        if (registration.active) {
+                            registration.active.postMessage(payload);
+                        }
+                    }).catch(console.error);
+                };
+            })();
+        </script>
+        {% endif %}
 
-            function applyTheme(theme) {
-                if (theme === 'dark') {
-                    body.classList.add('dark-mode');
-                    document.documentElement.classList.add('dark');
-                } else {
-                    body.classList.remove('dark-mode');
-                    document.documentElement.classList.remove('dark');
+        <!-- Mobile Menu & Sidebar Handler Script -->
+        <script>
+            // Initialize Mobile Menu
+            function initMobileMenu() {
+                const toggle = document.getElementById('mobile-menu-toggle');
+                const panel = document.getElementById('mobile-menu-panel');
+                const overlay = document.getElementById('mobile-menu-overlay');
+                const iconOpen = document.getElementById('menu-icon-open');
+                const iconClose = document.getElementById('menu-icon-close');
+                const links = panel ? panel.querySelectorAll('a') : [];
+
+                if (!toggle || !panel || !overlay) return;
+
+                let isOpen = false;
+
+                function closeMenu() {
+                    isOpen = false;
+                    panel.classList.add('translate-x-full');
+                    panel.classList.remove('translate-x-0');
+                    overlay.classList.add('hidden');
+                    overlay.classList.remove('opacity-100');
+                    overlay.classList.add('opacity-0');
+                    iconOpen.classList.remove('hidden');
+                    iconClose.classList.add('hidden');
                 }
-                localStorage.setItem(themeStorageKey, theme);
-                if (themeLabel) {
-                    themeLabel.textContent = theme === 'dark' ? 'Dark Mode' : 'Light Mode';
+
+                function openMenu() {
+                    isOpen = true;
+                    panel.classList.remove('translate-x-full');
+                    panel.classList.add('translate-x-0');
+                    overlay.classList.remove('hidden');
+                    overlay.classList.remove('opacity-0');
+                    overlay.classList.add('opacity-100');
+                    iconOpen.classList.add('hidden');
+                    iconClose.classList.remove('hidden');
                 }
+
+                function toggleMenu() {
+                    if (isOpen) {
+                        closeMenu();
+                    } else {
+                        openMenu();
+                    }
+                }
+
+                // Toggle button click
+                toggle.addEventListener('click', toggleMenu);
+
+                // Overlay click
+                overlay.addEventListener('click', closeMenu);
+
+                // Link clicks
+                links.forEach(link => {
+                    link.addEventListener('click', closeMenu);
+                });
+
+                // Escape key
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape' && isOpen) {
+                        closeMenu();
+                    }
+                });
             }
+        </script>
+        <script>
+            (function () {
+                // Mark notifications read when the user opens the dropdown (simple AJAX POST)
+                function getCookie(name) {
+                    const value = `; ${document.cookie}`;
+                    const parts = value.split(`; ${name}=`);
+                    if (parts.length === 2) return parts.pop().split(';').shift();
+                }
 
-            const storedTheme = localStorage.getItem(themeStorageKey) || 'light';
-            applyTheme(storedTheme);
+                const markAllUrl = "{% url 'notifications:mark_all_as_read' %}";
+                const csrftoken = getCookie('csrftoken');
+                const toggle = document.querySelector('[data-notification-toggle]');
+                if (!toggle) return;
 
-            if (themeToggle) {
-                themeToggle.addEventListener('click', () => {
-                    const nextTheme = body.classList.contains('dark-mode') ? 'light' : 'dark';
-                    applyTheme(nextTheme);
+                toggle.addEventListener('click', () => {
+                    // Small delay so Alpine can toggle the dropdown first
+                    setTimeout(() => {
+                        // If there is any unread badge visible, call mark-all-read
+                        const badge = toggle.querySelector('span');
+                        if (!badge) return;
+                        const text = badge.textContent && badge.textContent.trim();
+                        if (!text) return;
+                        const n = parseInt(text, 10);
+                        if (!n || n <= 0) return;
+
+                        fetch(markAllUrl, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRFToken': csrftoken || '',
+                                'X-Requested-With': 'XMLHttpRequest',
+                            },
+                            credentials: 'same-origin',
+                        }).then(() => {
+                            // hide any unread badges in the page
+                            document.querySelectorAll('[data-unread-badge]').forEach(el => el.style.display = 'none');
+                            document.querySelectorAll('.-top-1').forEach(el => el.style.display = 'none');
+                        }).catch(() => { });
+                    }, 120);
+                });
+            })();
+        </script>
+
+        <script>
+            // Initialize Sidebar Toggle
+            function initSidebarToggle() {
+                const sidebar = document.getElementById('sidebar');
+                const sidebarToggle = document.getElementById('sidebar-toggle');
+                const sidebarToggleIcon = document.getElementById('sidebar-toggle-icon');
+                const sidebarTogglePath = document.getElementById('sidebar-toggle-path');
+                const sidebarLogo = document.getElementById('sidebar-logo');
+                const sidebarLogoText = document.getElementById('sidebar-logo-text');
+                const userInfoExpanded = document.getElementById('user-info-expanded');
+                const userInfoCollapsed = document.getElementById('user-info-collapsed');
+                const sidebarDividerExpanded = document.getElementById('sidebar-divider-expanded');
+                const sidebarDividerCollapsed = document.getElementById('sidebar-divider-collapsed');
+                const mainContent = document.getElementById('main-content');
+                const navTexts = document.querySelectorAll('.sidebar-nav-text');
+                const navIcons = document.querySelectorAll('.sidebar-nav-icon');
+                const navLinks = document.querySelectorAll('.sidebar-nav-link');
+                const logoutBtn = document.querySelector('.sidebar-logout-btn');
+
+                if (!sidebar || !sidebarToggle || !mainContent) return;
+
+                let isCollapsed = false;
+
+                // Initialize with correct margin on page load
+                const initializeMargin = () => {
+                    // Only apply margin on md screens (768px+)
+                    if (window.innerWidth >= 768) {
+                        mainContent.style.marginLeft = '256px';
+                    } else {
+                        mainContent.style.marginLeft = '0px';
+                    }
+                };
+
+                function collapseSidebar() {
+                    isCollapsed = true;
+                    sidebar.classList.remove('w-64');
+                    sidebar.classList.add('w-20');
+
+                    // Update main content margin using inline style for reliability
+                    mainContent.style.marginLeft = '80px';
+
+                    // Hide logo text
+                    sidebarLogoText.classList.add('hidden');
+                    sidebarLogo.classList.add('justify-center');
+
+                    // Hide expanded, show collapsed
+                    userInfoExpanded.classList.add('hidden');
+                    userInfoCollapsed.classList.remove('hidden');
+                    sidebarDividerExpanded.classList.add('hidden');
+                    sidebarDividerCollapsed.classList.remove('hidden');
+
+                    // Hide nav texts, center icons
+                    navTexts.forEach(text => text.classList.add('hidden'));
+                    navIcons.forEach(icon => icon.classList.remove('mr-3'));
+                    navLinks.forEach(link => link.classList.add('justify-center'));
+
+                    // Handle logout button
+                    if (logoutBtn) {
+                        logoutBtn.classList.add('justify-center');
+                        const logoutText = logoutBtn.querySelector('.sidebar-nav-text');
+                        if (logoutText) logoutText.classList.add('hidden');
+                        const logoutIcon = logoutBtn.querySelector('.sidebar-nav-icon');
+                        if (logoutIcon) logoutIcon.classList.remove('mr-3');
+                    }
+
+                    // Update toggle icon to point outward (expand)
+                    if (sidebarTogglePath) {
+                        sidebarTogglePath.setAttribute('d', 'M13 5l7 7-7 7M5 5l7 7-7 7');
+                    }
+                }
+
+                function expandSidebar() {
+                    isCollapsed = false;
+                    sidebar.classList.add('w-64');
+                    sidebar.classList.remove('w-20');
+
+                    // Update main content margin using inline style for reliability
+                    mainContent.style.marginLeft = '256px';
+
+                    // Show logo text
+                    sidebarLogoText.classList.remove('hidden');
+                    sidebarLogo.classList.remove('justify-center');
+
+                    // Show expanded, hide collapsed
+                    userInfoExpanded.classList.remove('hidden');
+                    userInfoCollapsed.classList.add('hidden');
+                    sidebarDividerExpanded.classList.remove('hidden');
+                    sidebarDividerCollapsed.classList.add('hidden');
+
+                    // Show nav texts, add margin to icons
+                    navTexts.forEach(text => text.classList.remove('hidden'));
+                    navIcons.forEach(icon => icon.classList.add('mr-3'));
+                    navLinks.forEach(link => link.classList.remove('justify-center'));
+
+                    // Handle logout button
+                    if (logoutBtn) {
+                        logoutBtn.classList.remove('justify-center');
+                        const logoutText = logoutBtn.querySelector('.sidebar-nav-text');
+                        if (logoutText) logoutText.classList.remove('hidden');
+                        const logoutIcon = logoutBtn.querySelector('.sidebar-nav-icon');
+                        if (logoutIcon) logoutIcon.classList.add('mr-3');
+                    }
+
+                    // Update toggle icon to point inward (collapse)
+                    if (sidebarTogglePath) {
+                        sidebarTogglePath.setAttribute('d', 'M11 19l-7-7 7-7m8 14l-7-7 7-7');
+                    }
+                }
+
+                function toggleSidebar() {
+                    if (isCollapsed) {
+                        expandSidebar();
+                    } else {
+                        collapseSidebar();
+                    }
+                }
+
+                // Toggle button click
+                sidebarToggle.addEventListener('click', toggleSidebar);
+
+                // Initialize on load
+                initializeMargin();
+
+                // Handle window resize
+                window.addEventListener('resize', () => {
+                    if (window.innerWidth >= 768) {
+                        if (isCollapsed) {
+                            mainContent.style.marginLeft = '80px';
+                        } else {
+                            mainContent.style.marginLeft = '256px';
+                        }
+                    } else {
+                        mainContent.style.marginLeft = '0px';
+                    }
                 });
             }
 
-            const refreshButton = document.getElementById('dashboard-refresh-btn');
-            if (refreshButton) {
-                refreshButton.addEventListener('click', (event) => {
-                    event.preventDefault();
-                    refreshButton.disabled = true;
-                    refreshButton.classList.add('opacity-60', 'cursor-not-allowed');
-                    refreshButton.innerHTML = '<svg class="w-4 h-4 animate-spin" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg>Refreshing...';
-                    window.requestAnimationFrame(() => {
-                        window.location.reload();
+            // Initialize when DOM is ready
+        </script>
+        <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+        <script>
+            (function () {
+                const body = document.body;
+                const themeStorageKey = 'hiresight-theme';
+                const themeToggle = document.querySelector('[data-theme-toggle]');
+                const themeLabel = themeToggle ? themeToggle.querySelector('[data-theme-label]') : null;
+
+                function applyTheme(theme) {
+                    if (theme === 'dark') {
+                        body.classList.add('dark-mode');
+                        document.documentElement.classList.add('dark');
+                    } else {
+                        body.classList.remove('dark-mode');
+                        document.documentElement.classList.remove('dark');
+                    }
+                    localStorage.setItem(themeStorageKey, theme);
+                    if (themeLabel) {
+                        themeLabel.textContent = theme === 'dark' ? 'Dark Mode' : 'Light Mode';
+                    }
+                }
+
+                const storedTheme = localStorage.getItem(themeStorageKey) || 'light';
+                applyTheme(storedTheme);
+
+                if (themeToggle) {
+                    themeToggle.addEventListener('click', () => {
+                        const nextTheme = body.classList.contains('dark-mode') ? 'light' : 'dark';
+                        applyTheme(nextTheme);
                     });
-                });
-            }
+                }
 
-            function initDashboardLayouts() {
-                if (typeof Sortable === 'undefined') return;
-                document.querySelectorAll('[data-dashboard-grid]').forEach((grid) => {
-                    const column = grid.dataset.dashboardGrid || 'default';
-                    const context = grid.dataset.dashboardContext || 'global';
-                    const storageKey = `hiresight-layout-${context}-${column}`;
-
-                    const saveOrder = () => {
-                        const order = Array.from(grid.querySelectorAll('[data-dashboard-card]')).map((card) => card.dataset.dashboardCard);
-                        localStorage.setItem(storageKey, order.join(','));
-                    };
-
-                    const restoreOrder = () => {
-                        const stored = localStorage.getItem(storageKey);
-                        if (!stored) return;
-                        stored.split(',').forEach((cardId) => {
-                            const card = grid.querySelector(`[data-dashboard-card="${cardId}"]`);
-                            if (card) {
-                                grid.appendChild(card);
-                            }
+                const refreshButton = document.getElementById('dashboard-refresh-btn');
+                if (refreshButton) {
+                    refreshButton.addEventListener('click', (event) => {
+                        event.preventDefault();
+                        refreshButton.disabled = true;
+                        refreshButton.classList.add('opacity-60', 'cursor-not-allowed');
+                        refreshButton.innerHTML = '<svg class="w-4 h-4 animate-spin" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg>Refreshing...';
+                        window.requestAnimationFrame(() => {
+                            window.location.reload();
                         });
-                    };
-
-                    restoreOrder();
-
-                    new Sortable(grid, {
-                        animation: 180,
-                        handle: '.card-drag-handle',
-                        onEnd: saveOrder,
                     });
-                });
-            }
+                }
 
+                function initDashboardLayouts() {
+                    if (typeof Sortable === 'undefined') return;
+                    document.querySelectorAll('[data-dashboard-grid]').forEach((grid) => {
+                        const column = grid.dataset.dashboardGrid || 'default';
+                        const context = grid.dataset.dashboardContext || 'global';
+                        const storageKey = `hiresight-layout-${context}-${column}`;
+
+                        const saveOrder = () => {
+                            const order = Array.from(grid.querySelectorAll('[data-dashboard-card]')).map((card) => card.dataset.dashboardCard);
+                            localStorage.setItem(storageKey, order.join(','));
+                        };
+
+                        const restoreOrder = () => {
+                            const stored = localStorage.getItem(storageKey);
+                            if (!stored) return;
+                            stored.split(',').forEach((cardId) => {
+                                const card = grid.querySelector(`[data-dashboard-card="${cardId}"]`);
+                                if (card) {
+                                    grid.appendChild(card);
+                                }
+                            });
+                        };
+
+                        restoreOrder();
+
+                        new Sortable(grid, {
+                            animation: 180,
+                            handle: '.card-drag-handle',
+                            onEnd: saveOrder,
+                        });
+                    });
+                }
+
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', initDashboardLayouts);
+                } else {
+                    initDashboardLayouts();
+                }
+            })();
+        </script>
+
+        <script>
             if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', initDashboardLayouts);
+                document.addEventListener('DOMContentLoaded', () => {
+                    initMobileMenu();
+                    initSidebarToggle();
+                });
             } else {
-                initDashboardLayouts();
-            }
-        })();
-    </script>
-
-    <script>
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => {
                 initMobileMenu();
                 initSidebarToggle();
-            });
-        } else {
-            initMobileMenu();
-            initSidebarToggle();
-        }
-    </script>
+            }
+        </script>
 </body>
+
 </html>

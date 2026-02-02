@@ -22,36 +22,41 @@ print("=" * 80)
 print("TESTING AI CONNECTORS")
 print("=" * 80)
 
-# Test 1: Check Gemini configuration
-print("\n1. CHECKING GEMINI CONFIGURATION")
+# Test 1: Check Groq configuration
+print("\n1. CHECKING GROQ CONFIGURATION")
 print("-" * 40)
 try:
-    from google import genai
-    print("✓ google.genai import successful")
+    from groq import Groq
+    print("✓ groq import successful")
     
-    if hasattr(settings, 'GEMINI_KEYS') and settings.GEMINI_KEYS:
-        print(f"✓ Found {len(settings.GEMINI_KEYS)} Gemini API key(s)")
+    groq_key = getattr(settings, 'GROQ_API_KEY', '')
+    if groq_key:
+        print(f"✓ Found Groq API key")
         
         # Test connection
-        client = genai.Client(api_key=settings.GEMINI_KEYS[0])
-        print("✓ Gemini client initialized successfully")
+        client = Groq(api_key=groq_key)
+        print("✓ Groq client initialized successfully")
         
         # Try a simple generation
-        response = client.models.generate_content(
-            model='gemini-1.5-flash',
-            contents='Say "Hello, I am working!" in JSON format: {"message": "your message here"}',
-            config={'response_mime_type': 'application/json'}
+        response = client.chat.completions.create(
+            model=getattr(settings, 'GROQ_MODEL', 'llama-3.3-70b-versatile'),
+            messages=[
+                {"role": "user", "content": 'Say "Hello, I am working!" in JSON format: {"message": "your message here"}'}
+            ],
+            temperature=0.7,
+            max_tokens=100,
+            response_format={"type": "json_object"}
         )
-        print(f"✓ Gemini test response: {response.text[:100]}...")
+        print(f"✓ Groq test response: {response.choices[0].message.content[:100]}...")
         
     else:
-        print("✗ No GEMINI_KEYS found in settings")
+        print("✗ No GROQ_API_KEY found in settings")
         
 except ImportError as e:
-    print(f"✗ Could not import google.genai: {e}")
-    print("  Install with: pip install google-genai")
+    print(f"✗ Could not import groq: {e}")
+    print("  Install with: pip install groq")
 except Exception as e:
-    print(f"✗ Gemini test failed: {e}")
+    print(f"✗ Groq test failed: {e}")
 
 # Test 2: Check Mistral configuration
 print("\n2. CHECKING MISTRAL CONFIGURATION")

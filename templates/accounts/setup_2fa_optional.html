@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Secure Your Account - HireSight{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div class="sm:mx-auto sm:w-full sm:max-w-md">
+        <div class="text-center">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 mb-4">
+                <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+            </div>
+            <h2 class="text-3xl font-extrabold text-gray-900">Email Verified!</h2>
+            <p class="mt-2 text-sm text-gray-600">
+                Your account is now active. Would you like to add an extra layer of security?
+            </p>
+        </div>
+
+        <div class="mt-8 bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+            <div class="space-y-6">
+                <div>
+                    <h3 class="text-lg font-medium text-gray-900">Two-Factor Authentication (2FA)</h3>
+                    <p class="mt-1 text-sm text-gray-500">
+                        2FA adds an extra layer of security to your account by requiring a code from your phone whenever you log in.
+                    </p>
+                </div>
+
+                <div class="flex flex-col space-y-4">
+                    <a href="{% url 'accounts:enable_2fa' %}" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+                        Set up 2FA now
+                    </a>
+                    
+                    <a href="{% url 'dashboard:dashboard_home' %}" class="w-full flex justify-center py-3 px-4 border border-gray-300 rounded-xl shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+                        Skip for now, go to dashboard
+                    </a>
+                </div>
+
+                <div class="mt-6 border-t border-gray-200 pt-6">
+                    <p class="text-xs text-gray-500 text-center">
+                        You can always enable 2FA later in your account settings.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -2,13 +2,12 @@
 AI Connector for Interview Practice Sessions - Using Mistral SDK
 
 Handles integration with Mistral AI using the mistralai package (same as assessments).
-Falls back to Gemini when available.
+Falls back to Groq when Mistral is unavailable.
 """
 import json
 import logging
 import time
 from django.conf import settings
-from google.genai import errors  
 
 logger = logging.getLogger(__name__)
 
@@ -19,12 +18,12 @@ except ImportError:
     Mistral = None
     logger.warning("mistralai package not installed. Run: pip install mistralai")
 
-# Import Gemini (new SDK)
+# Import Groq SDK (fallback AI)
 try:
-    from google import genai
-except Exception as e:
-    genai = None
-    logger.warning(f"Could not import google.genai: {e}")
+    from groq import Groq
+except ImportError:
+    Groq = None
+    logger.warning("groq package not installed. Run: pip install groq")
 
 
 class PromptBuilder:
@@ -340,7 +339,7 @@ class QuestionValidator:
 class AIConnector:
     """
     AI service connector using Mistral SDK (same as assessments).
-    Falls back to Gemini when Mistral fails or quota is hit.
+    Falls back to Groq when Mistral fails or quota is hit.
     """
     
     def __init__(self):
@@ -361,6 +360,18 @@ class AIConnector:
                 logger.info("Mistral client initialized successfully")
             except Exception as e:
                 logger.error(f"Failed to initialize Mistral client: {e}")
+        
+        # Initialize Groq client (fallback)
+        self.groq_api_key = getattr(settings, 'GROQ_API_KEY', '')
+        self.groq_model = getattr(settings, 'GROQ_MODEL', 'llama-3.3-70b-versatile')
+        
+        self.groq_client = None
+        if Groq and self.groq_api_key:
+            try:
+                self.groq_client = Groq(api_key=self.groq_api_key)
+                logger.info("Groq client initialized successfully")
+            except Exception as e:
+                logger.error(f"Failed to initialize Groq client: {e}")
 
     def generate_questions(self, session):
         """
@@ -422,33 +433,33 @@ class AIConnector:
         else:
             logger.warning("Mistral client not available")
         
-        # Fall back to Gemini (only if Mistral fails)
-        logger.warning("Mistral generation failed or returned empty. Attempting Gemini fallback.")
+        # Fall back to Groq (only if Mistral fails)
+        logger.warning("Mistral generation failed or returned empty. Attempting Groq fallback.")
         
-        if genai is None or not hasattr(settings, 'GEMINI_KEYS') or not settings.GEMINI_KEYS:
-            error_msg = "Error: Both Mistral and Gemini AI are unavailable. No API keys configured."
+        if self.groq_client is None:
+            error_msg = "Error: Both Mistral and Groq AI are unavailable. No API keys configured."
             logger.error(error_msg)
             return [], error_msg, None
         
         try:
             start_time = time.time()
-            gemini_response = self._generate_questions_gemini(prompt)
-            gemini_latency = time.time() - start_time
+            groq_response = self._generate_questions_groq(prompt)
+            groq_latency = time.time() - start_time
             
-            if gemini_response and not gemini_response.startswith("Error:"):
-                questions, raw_data = self._parse_and_validate_questions(gemini_response)
+            if groq_response and not groq_response.startswith("Error:"):
+                questions, raw_data = self._parse_and_validate_questions(groq_response)
                 if questions:
                     logger.info(
-                        f"Successfully generated {len(questions)} questions using Gemini fallback "
-                        f"(latency: {gemini_latency:.2f}s, session_id: {session.id})"
+                        f"Successfully generated {len(questions)} questions using Groq fallback "
+                        f"(latency: {groq_latency:.2f}s, session_id: {session.id})"
                     )
                     for q in questions:
-                        q['model_used'] = 'gemini'
-                    return questions, raw_data, 'gemini'
+                        q['model_used'] = 'groq'
+                    return questions, raw_data, 'groq'
         except Exception as e:
-            logger.error(f"Gemini fallback also failed: {e}")
+            logger.error(f"Groq fallback also failed: {e}")
         
-        error_msg = "Error: All AI generation attempts failed (Mistral and Gemini). Cannot generate questions."
+        error_msg = "Error: All AI generation attempts failed (Mistral and Groq). Cannot generate questions."
         logger.error(error_msg)
         return [], error_msg, None
     
@@ -546,50 +557,47 @@ class AIConnector:
         validated_questions = QuestionValidator.validate(parsed)
         return validated_questions, content
 
-
-
-logger = logging.getLogger(__name__)
-
-def _generate_questions_gemini(self, prompt):
-    if not hasattr(settings, 'GEMINI_KEYS') or not settings.GEMINI_KEYS:
-        return "Error: Gemini not configured"
-
-    # Try each key you have
-    for key_idx, api_key in enumerate(settings.GEMINI_KEYS):
-        client = genai.Client(api_key=api_key)
+    def _generate_questions_groq(self, prompt):
+        """Generate questions using Groq API with retry logic."""
+        if not self.groq_client:
+            return "Error: Groq not configured"
         
-        # Try each model name
-        models = getattr(settings, 'GEMINI_MODELS', ['gemini-2.0-flash'])
-        for model_name in models:
-            
-            # ATTEMPT RETRIES (Max 3 times per model/key combo)
-            for attempt in range(3):
-                try:
-                    response = client.models.generate_content(
-                        model=model_name,
-                        contents=prompt,
-                        config={'response_mime_type': 'application/json',
-                                'temperature': 0.1,
-                                }
-                    )
-                    return response.text
-
-                except errors.ClientError as e:
-                    # Check specifically for the 429 status code
-                    if e.status_code == 429:
-                        wait_time = (attempt + 1) * 10  # Wait 10s, then 20s
-                        logger.warning(f"Quota hit (429) on {model_name}. Sleeping {wait_time}s...")
-                        time.sleep(wait_time)
-                        continue  # Retry this same model/key
-                    
-                    logger.error(f"Gemini API Client Error: {e}")
-                    break # Move to next model if it's a different error (like 400)
-
-                except Exception as e:
-                    logger.error(f"Unexpected Gemini error: {e}")
-                    break # Move to next model
-                    
-    return "Error: All Gemini keys and models exhausted after retries"
+        # Attempt with retries (max 3 times)
+        for attempt in range(3):
+            try:
+                response = self.groq_client.chat.completions.create(
+                    model=self.groq_model,
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": "You are an expert interview question generator. Generate high-quality, realistic interview questions in valid JSON format."
+                        },
+                        {
+                            "role": "user",
+                            "content": prompt
+                        }
+                    ],
+                    temperature=0.7,
+                    max_tokens=4000,
+                    response_format={"type": "json_object"}
+                )
+                
+                return response.choices[0].message.content
+                
+            except Exception as e:
+                error_msg = str(e)
+                
+                # Check for rate limiting
+                if '429' in error_msg or 'rate_limit' in error_msg.lower():
+                    wait_time = (attempt + 1) * 10  # Wait 10s, then 20s, then 30s
+                    logger.warning(f"Groq rate limit hit. Sleeping {wait_time}s...")
+                    time.sleep(wait_time)
+                    continue  # Retry
+                
+                logger.error(f"Groq API Error: {e}")
+                break  # Move on if it's a different error
+        
+        return "Error: All Groq attempts exhausted after retries"
 
 def score_response(self, question_prompt, answer_text, evaluation_criteria, video_metrics=None):
         """Score a candidate response using AI."""
@@ -646,24 +654,45 @@ def score_response(self, question_prompt, answer_text, evaluation_criteria, vide
             except Exception as e:
                 logger.warning(f"Mistral scoring failed: {e}")
         
-        # Fallback to Gemini
-        logger.warning("Attempting Gemini for scoring")
-        gemini_response = self._generate_questions_gemini(prompt)
+        # Fallback to Groq
+        logger.warning("Attempting Groq for scoring")
         
-        if not gemini_response.startswith("Error:"):
-            try:
-                parsed = json.loads(gemini_response)
-                scoring_result = ResponseScorer.score_response(parsed, ai_model='gemini')
-                
-                if scoring_result.get('success'):
-                    return scoring_result, gemini_response, 'gemini'
-            except Exception as e:
-                logger.warning(f"Gemini scoring failed: {e}")
+        if not self.groq_client:
+            error_msg = "Error: Both Mistral and Groq AI are unavailable for scoring"
+            logger.error(error_msg)
+            return {'success': False, 'error': error_msg}, error_msg, None
+        
+        try:
+            response = self.groq_client.chat.completions.create(
+                model=self.groq_model,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are an expert interview evaluator. Provide objective, constructive scoring."
+                    },
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
+                temperature=0.3,
+                max_tokens=1500,
+                response_format={"type": "json_object"}
+            )
+            
+            groq_response = response.choices[0].message.content
+            parsed = json.loads(groq_response)
+            scoring_result = ResponseScorer.score_response(parsed, ai_model='groq')
+            
+            if scoring_result.get('success'):
+                return scoring_result, groq_response, 'groq'
+        except Exception as e:
+            logger.warning(f"Groq scoring failed: {e}")
         
         error_msg = "Error: All AI scoring attempts failed"
         logger.error(error_msg)
         return {'success': False, 'error': error_msg}, error_msg, None
-    
+
 def _build_scoring_prompt(self, question_prompt, answer_text, evaluation_criteria, video_metrics=None):
         """Build a comprehensive scoring prompt."""
         prompt_parts = [

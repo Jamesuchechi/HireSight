@@ -14,6 +14,7 @@ urlpatterns = [
     path('verify-email/notice/', views.VerifyEmailNoticeView.as_view(), name='verify_email_notice'),
     path('verify-email/<str:token>/', views.VerifyEmailView.as_view(), name='verify_email'),
     path('verify-email/', views.VerifyEmailFormView.as_view(), name='verify_email_form'),
+    path('setup-2fa-optional/', views.Setup2FAOptionalView.as_view(), name='setup_2fa_optional'),
     path('resend-verification/', views.ResendVerificationView.as_view(), name='resend_verification'),
     
     # Password Management

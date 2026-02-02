@@ -55,7 +55,8 @@ DEFAULT_ACHIEVEMENTS = [
 ]
 
 
-def ensure_default_achievements():
+def ensure_default_achievements(sender, **kwargs):
+
     for data in DEFAULT_ACHIEVEMENTS:
         try:
             Achievement.objects.get_or_create(

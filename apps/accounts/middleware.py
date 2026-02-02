@@ -120,3 +120,37 @@ class CleanupExpiredSessionsMiddleware:
                 print(f"Cleaned up {deleted_count} expired sessions")
         except Exception as e:
             print(f"Error cleaning up sessions: {e}")
+
+
+class EmailVerificationMiddleware:
+    """
+    Middleware to ensure users have verified their email 
+    before accessing dashboard and other protected areas.
+    """
+    
+    def __init__(self, get_response):
+        self.get_response = get_response
+        
+    def __call__(self, request):
+        if request.user.is_authenticated and not request.user.is_verified:
+            # List of paths that unverified users ARE allowed to access
+            allowed_paths = [
+                '/accounts/verify-email/',
+                '/accounts/resend-verification/',
+                '/accounts/logout/',
+                '/accounts/verify-email/notice/',
+            ]
+            
+            # Check if current path is allowed
+            path = request.path
+            is_allowed = any(path.startswith(allowed) for allowed in allowed_paths)
+            
+            # If not allowed, redirect to verification notice or form
+            if not is_allowed and not path.startswith('/static/') and not path.startswith('/media/'):
+                from django.shortcuts import redirect
+                from django.contrib import messages
+                messages.warning(request, 'Please verify your email address to continue.')
+                return redirect('accounts:verify_email_form')
+                
+        response = self.get_response(request)
+        return response

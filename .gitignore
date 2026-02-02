@@ -1,6 +1,8 @@
 migrations/
 *.pyc
 __pycache__/
+migrations/
+media/
 env/
 venv/
 .DS_Store

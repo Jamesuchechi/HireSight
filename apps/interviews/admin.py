@@ -634,7 +634,7 @@ class AIUsageLogAdmin(admin.ModelAdmin):
     def model_used_badge(self, obj):
         """Display model with badge."""
         colors = {
-            'gemini': '#4285f4',
+            'groq': '#4285f4',  # Keeping the blue for consistency or choosing a new one
             'mistral': '#ff6b35',
             'openai': '#10a37f'
         }

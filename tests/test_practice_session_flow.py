@@ -38,9 +38,9 @@ from apps.interviews.ai_connector import (
 User = get_user_model()
 
 
-class MockGeminiClient:
+class MockGroqClient:
     """
-    Mock Gemini AI client that returns realistic structured responses.
+    Mock Groq AI client that returns realistic structured responses.
     Used to test the full question generation pipeline.
     """
 
@@ -50,22 +50,22 @@ class MockGeminiClient:
         self.call_count = 0
         self.token_count = 0
 
-    def generate_content(self, contents, **kwargs):
-        """Mock the Gemini generate_content method"""
+    def chat_completions_create(self, messages, **kwargs):
+        """Mock the Groq chat.completions.create method"""
         self.call_count += 1
         self.token_count += 150  # Mock token usage
         
         if self.should_fail:
-            raise Exception("Gemini API timeout")
+            raise Exception("Groq API timeout")
         
         response = Mock()
         
         if self.malformed:
             # Return invalid JSON to test validation error handling
-            response.text = "{invalid json"
+            content = "{invalid json"
         else:
             # Return realistic interview questions in expected format
-            response.text = json.dumps({
+            content = json.dumps({
                 "questions": [
                     {
                         "prompt": "Tell me about a time you led a team through a challenging project.",
@@ -160,9 +160,9 @@ class MockGeminiClient:
                 ]
             })
         
-        response.usage = Mock()
-        response.usage.prompt_tokens = 100
-        response.usage.candidates_tokens = 50
+        response.choices = [
+            Mock(message=Mock(content=content))
+        ]
         
         return response
 
@@ -216,8 +216,8 @@ class InterviewPracticeSessionFlowTest(TestCase):
             }
         )
 
-    @patch('apps.interviews.ai_connector.genai.Client')
-    def test_complete_practice_session_flow(self, mock_genai):
+    @patch('apps.interviews.ai_connector.Groq')
+    def test_complete_practice_session_flow(self, mock_groq):
         """
         Test the complete workflow:
         1. Questions are generated
@@ -225,14 +225,16 @@ class InterviewPracticeSessionFlowTest(TestCase):
         3. Responses are scored
         4. Report is generated
         """
-        # 1. Mock Gemini and generate questions
-        mock_gemini = MockGeminiClient()
+        # 1. Mock Groq and generate questions
+        mock_groq_client = MockGroqClient()
         mock_client = Mock()
-        mock_client.models.generate_content = mock_gemini.generate_content
-        mock_genai.return_value = mock_client
+        mock_client.chat.completions.create = mock_groq_client.chat_completions_create
+        mock_groq.return_value = mock_client
         
-        # Generate questions
-        generate_practice_questions(self.session.id)
+        # We need to ensure AIConnector uses the mock client
+        with patch('apps.interviews.ai_connector.Groq', return_value=mock_client):
+            # Generate questions
+            generate_practice_questions(self.session.id)
         
         # Verify questions were created
         self.session.refresh_from_db()
@@ -249,8 +251,8 @@ class InterviewPracticeSessionFlowTest(TestCase):
         self.assertEqual(first_question.difficulty, 'medium')
         self.assertTrue(len(first_question.evaluation_criteria) > 0)
 
-    @patch('apps.interviews.ai_connector.genai.Client')
-    def test_question_generation_failure_timeout(self, mock_genai):
+    @patch('apps.interviews.ai_connector.Groq')
+    def test_question_generation_failure_timeout(self, mock_groq):
         """
         Test handling of API timeout during question generation.
         
@@ -260,11 +262,11 @@ class InterviewPracticeSessionFlowTest(TestCase):
         - Error message stored
         - User gets proper error notification
         """
-        # Mock Gemini to fail with timeout
-        mock_gemini = MockGeminiClient(should_fail=True)
+        # Mock Groq to fail with timeout
+        mock_groq_client = MockGroqClient(should_fail=True)
         mock_client = Mock()
-        mock_client.models.generate_content = mock_gemini.generate_content
-        mock_genai.return_value = mock_client
+        mock_client.chat.completions.create = mock_groq_client.chat_completions_create
+        mock_groq.return_value = mock_client
         
         # Attempt to generate questions
         generate_practice_questions(self.session.id)
@@ -284,8 +286,8 @@ class InterviewPracticeSessionFlowTest(TestCase):
         self.assertIn('error_message', self.session.settings)
         self.assertIn('Failed', self.session.settings['error_message'])
 
-    @patch('apps.interviews.ai_connector.genai.Client')
-    def test_invalid_ai_response_malformed_json(self, mock_genai):
+    @patch('apps.interviews.ai_connector.Groq')
+    def test_invalid_ai_response_malformed_json(self, mock_groq):
         """
         Test handling of malformed JSON response from Gemini.
         
@@ -295,11 +297,11 @@ class InterviewPracticeSessionFlowTest(TestCase):
         - Error is logged properly
         - No questions created
         """
-        # Mock Gemini to return malformed JSON
-        mock_gemini = MockGeminiClient(malformed=True)
+        # Mock Groq to return malformed JSON
+        mock_groq_client = MockGroqClient(malformed=True)
         mock_client = Mock()
-        mock_client.models.generate_content = mock_gemini.generate_content
-        mock_genai.return_value = mock_client
+        mock_client.chat.completions.create = mock_groq_client.chat_completions_create
+        mock_groq.return_value = mock_client
         
         # Attempt to generate questions
         with self.assertLogs('apps.interviews.tasks', level='ERROR'):
@@ -312,8 +314,8 @@ class InterviewPracticeSessionFlowTest(TestCase):
         # Verify validation error was recorded
         self.assertIn('validation_error', self.session.settings)
 
-    @patch('apps.interviews.ai_connector.genai.Client')
-    def test_video_metrics_submission_and_storage(self, mock_genai):
+    @patch('apps.interviews.ai_connector.Groq')
+    def test_video_metrics_submission_and_storage(self, mock_groq):
         """
         Test video metrics submission and storage.
         
@@ -323,10 +325,10 @@ class InterviewPracticeSessionFlowTest(TestCase):
         - Metrics used in scoring
         """
         # Generate questions first
-        mock_gemini = MockGeminiClient()
+        mock_groq_client = MockGroqClient()
         mock_client = Mock()
-        mock_client.models.generate_content = mock_gemini.generate_content
-        mock_genai.return_value = mock_client
+        mock_client.chat.completions.create = mock_groq_client.chat_completions_create
+        mock_groq.return_value = mock_client
         
         generate_practice_questions(self.session.id)
         
@@ -365,8 +367,8 @@ class InterviewPracticeSessionFlowTest(TestCase):
             75
         )
 
-    @patch('apps.interviews.ai_connector.genai.Client')
-    def test_report_generation_aggregates_correctly(self, mock_genai):
+    @patch('apps.interviews.ai_connector.Groq')
+    def test_report_generation_aggregates_correctly(self, mock_groq):
         """
         Test report generation with multiple responses.
         
@@ -377,10 +379,10 @@ class InterviewPracticeSessionFlowTest(TestCase):
         - Category breakdown included
         """
         # Generate questions first
-        mock_gemini = MockGeminiClient()
+        mock_groq_client = MockGroqClient()
         mock_client = Mock()
-        mock_client.models.generate_content = mock_gemini.generate_content
-        mock_genai.return_value = mock_client
+        mock_client.chat.completions.create = mock_groq_client.chat_completions_create
+        mock_groq.return_value = mock_client
         
         generate_practice_questions(self.session.id)
         
@@ -421,8 +423,8 @@ class InterviewPracticeSessionFlowTest(TestCase):
         # Verify recommendations are provided
         self.assertTrue(len(report.recommendations) > 0)
 
-    @patch('apps.interviews.ai_connector.genai.Client')
-    def test_response_scoring_with_ai_mock(self, mock_genai):
+    @patch('apps.interviews.ai_connector.Groq')
+    def test_response_scoring_with_ai_mock(self, mock_groq):
         """
         Test response scoring with mocked AI.
         
@@ -432,10 +434,10 @@ class InterviewPracticeSessionFlowTest(TestCase):
         - Feedback generated
         """
         # Generate questions first
-        mock_gemini = MockGeminiClient()
+        mock_groq_client = MockGroqClient()
         mock_client = Mock()
-        mock_client.models.generate_content = mock_gemini.generate_content
-        mock_genai.return_value = mock_client
+        mock_client.chat.completions.create = mock_groq_client.chat_completions_create
+        mock_groq.return_value = mock_client
         
         generate_practice_questions(self.session.id)
         
@@ -454,7 +456,7 @@ class InterviewPracticeSessionFlowTest(TestCase):
             }
         )
         
-        # Analyze response (would normally call Gemini)
+        # Analyze response (would normally call Groq)
         analyze_practice_response(response.id)
         
         # Verify response was scored

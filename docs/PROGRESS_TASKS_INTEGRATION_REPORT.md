@@ -205,7 +205,7 @@ progress_tasks.track_question_generation_progress.delay(session_id, {...})
   "update_type": "generation_complete",
   "data": {
     "questions_count": 5,
-    "ai_model": "gemini",
+    "ai_model": "groq",
     "timestamp": "2026-01-24T10:31:15.456Z"
   }
 }

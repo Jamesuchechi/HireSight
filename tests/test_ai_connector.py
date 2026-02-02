@@ -2,8 +2,8 @@
 Comprehensive tests for AI connector and multi-model fallback system.
 
 Tests cover:
-- Gemini primary success path
-- Fallback to Mistral when Gemini fails
+- Groq primary success path
+- Fallback to Groq when Mistral fails
 - All models failing gracefully
 - Request ID tracking and logging
 - Token usage tracking
@@ -28,9 +28,9 @@ from apps.interviews.ai_connector import (
 User = get_user_model()
 
 
-class GeminiPrimarySuccessTest(TestCase):
+class GroqPrimarySuccessTest(TestCase):
     """
-    Tests for successful question generation using Gemini as primary AI.
+    Tests for successful question generation using Groq as primary AI.
     """
 
     def setUp(self):
@@ -52,116 +52,88 @@ class GeminiPrimarySuccessTest(TestCase):
         
         self.connector = AIConnector()
 
-    @patch('apps.interviews.ai_connector.genai')
-    def test_gemini_primary_success_returns_questions(self, mock_genai):
+    @patch('apps.interviews.ai_connector.Groq')
+    def test_groq_primary_success_returns_questions(self, mock_groq):
         """
-        Test that Gemini successfully generates questions.
+        Test that Groq successfully generates questions.
         
         Verify:
-        - Gemini is called as primary AI
+        - Groq is called correctly
         - Response is properly formatted
         - Questions are returned with metadata
-        - Request ID is captured
         """
-        # Mock successful Gemini response
+        # Mock successful Groq response
         mock_response = Mock()
-        mock_response.text = json.dumps({
-            "questions": [
-                {
-                    "prompt": "How do you approach product strategy?",
-                    "category": "behavioral",
-                    "difficulty": "hard",
-                    "evaluation_criteria": ["vision", "execution", "metrics"],
-                    "order": 1,
-                    "request_id": "gemini-123"
-                },
-                {
-                    "prompt": "Describe your experience leading cross-functional teams",
-                    "category": "behavioral",
-                    "difficulty": "hard",
-                    "evaluation_criteria": ["leadership", "communication", "results"],
-                    "order": 2,
-                    "request_id": "gemini-123"
-                }
-            ]
-        })
-        
-        mock_response.usage = Mock()
-        mock_response.usage.prompt_tokens = 200
-        mock_response.usage.candidates_tokens = 300
+        mock_response.choices = [
+            Mock(message=Mock(content=json.dumps({
+                "questions": [
+                    {
+                        "prompt": "How do you approach product strategy?",
+                        "category": "behavioral",
+                        "difficulty": "hard",
+                        "evaluation_criteria": ["vision", "execution", "metrics"],
+                        "order": 1
+                    }
+                ]
+            })))
+        ]
         
         mock_client = Mock()
-        mock_client.models.generate_content.return_value = mock_response
-        mock_genai.Client.return_value = mock_client
+        mock_client.chat.completions.create.return_value = mock_response
+        mock_groq.return_value = mock_client
         
         # Call the connector
-        questions, raw_response, model_used = self.connector.generate_questions(self.session)
+        # We need to ensure AIConnector uses the mock client
+        with patch.object(self.connector, 'groq_client', mock_client):
+            questions, raw_response, model_used = self.connector.generate_questions(self.session)
         
         # Verify results
-        self.assertEqual(len(questions), 2)
-        self.assertEqual(model_used, 'gemini')
+        self.assertEqual(len(questions), 1)
+        self.assertEqual(model_used, 'groq')
         self.assertEqual(questions[0]['category'], 'behavioral')
-        self.assertEqual(questions[0]['difficulty'], 'hard')
-        self.assertIn('request_id', questions[0])
 
-    @patch('apps.interviews.ai_connector.genai')
-    def test_gemini_request_structure(self, mock_genai):
+    @patch('apps.interviews.ai_connector.Groq')
+    def test_groq_request_structure(self, mock_groq):
         """
-        Test that Gemini is called with correct prompt structure.
-        
-        Verify:
-        - Prompt includes session context
-        - Request is properly formatted
-        - API key is used correctly
+        Test that Groq is called with correct prompt structure.
         """
         mock_response = Mock()
-        mock_response.text = json.dumps({"questions": []})
-        mock_response.usage = Mock()
+        mock_response.choices = [Mock(message=Mock(content=json.dumps({"questions": []})))]
         
         mock_client = Mock()
-        mock_client.models.generate_content.return_value = mock_response
-        mock_genai.Client.return_value = mock_client
+        mock_client.chat.completions.create.return_value = mock_response
+        mock_groq.return_value = mock_client
         
         # Call the connector
-        self.connector.generate_questions(self.session)
+        with patch.object(self.connector, 'groq_client', mock_client):
+            self.connector.generate_questions(self.session)
         
-        # Verify generate_content was called
-        self.assertTrue(mock_client.models.generate_content.called)
-        
-        # Get the call arguments
-        call_args = mock_client.models.generate_content.call_args
-        self.assertIsNotNone(call_args)
+        # Verify chat.completions.create was called
+        self.assertTrue(mock_client.chat.completions.create.called)
 
-    @patch('apps.interviews.ai_connector.genai')
-    def test_gemini_token_tracking(self, mock_genai):
+    @patch('apps.interviews.ai_connector.Groq')
+    def test_groq_retry_logic(self, mock_groq):
         """
-        Test that token usage is tracked from Gemini response.
-        
-        Verify:
-        - Token counts are captured
-        - Total tokens calculated correctly
-        - Token data stored in session settings
+        Test that Groq retry logic works for rate limits.
         """
-        mock_response = Mock()
-        mock_response.text = json.dumps({"questions": []})
-        mock_response.usage = Mock()
-        mock_response.usage.prompt_tokens = 500
-        mock_response.usage.candidates_tokens = 750
-        
         mock_client = Mock()
-        mock_client.models.generate_content.return_value = mock_response
-        mock_genai.Client.return_value = mock_client
+        # First call fails with 429, second succeeds
+        mock_client.chat.completions.create.side_effect = [
+            Exception("Rate limit 429"),
+            Mock(choices=[Mock(message=Mock(content=json.dumps({"questions": []})))] )
+        ]
+        mock_groq.return_value = mock_client
         
-        # Call the connector
-        self.connector.generate_questions(self.session)
+        with patch('time.sleep'): # Don't actually sleep
+            with patch.object(self.connector, 'groq_client', mock_client):
+                self.connector.generate_questions(self.session)
         
-        # Token usage should be captured
-        # (would be stored in session.settings in production)
+        self.assertEqual(mock_client.chat.completions.create.call_count, 2)
 
 
-class GeminiFallbackToMistralTest(TestCase):
+class MistralFallbackToGroqTest(TestCase):
     """
-    Tests for fallback from Gemini to Mistral when primary fails.
+    Tests for fallback from Mistral to Groq when primary fails.
     """
 
     def setUp(self):
@@ -178,84 +150,76 @@ class GeminiFallbackToMistralTest(TestCase):
         
         self.connector = AIConnector()
 
+    @patch('apps.interviews.ai_connector.Groq')
     @patch('apps.interviews.ai_connector.requests.post')
-    @patch('apps.interviews.ai_connector.genai')
-    def test_fallback_gemini_fails_mistral_succeeds(self, mock_genai, mock_requests):
+    def test_fallback_mistral_fails_groq_succeeds(self, mock_requests, mock_groq):
         """
-        Test fallback behavior when Gemini fails.
+        Test fallback behavior when Mistral fails.
         
         Verify:
-        - Gemini is attempted first
-        - Gemini failure is caught
-        - Mistral is used as fallback
-        - Questions are returned from Mistral
-        - Model used is correctly identified as 'mistral'
+        - Mistral is attempted first
+        - Mistral failure is caught
+        - Groq is used as fallback
+        - Questions are returned from Groq
+        - Model used is correctly identified as 'groq'
         """
-        # Mock Gemini to fail
-        mock_client = Mock()
-        mock_client.models.generate_content.side_effect = Exception("Gemini timeout")
-        mock_genai.Client.return_value = mock_client
+        # Mock Mistral to fail
+        mock_requests.side_effect = Exception("Mistral timeout")
         
-        # Mock successful Mistral response
-        mock_mistral_response = Mock()
-        mock_mistral_response.json.return_value = {
-            "choices": [
-                {
-                    "message": {
-                        "content": json.dumps({
-                            "questions": [
-                                {
-                                    "prompt": "Technical question",
-                                    "category": "technical",
-                                    "difficulty": "medium"
-                                }
-                            ]
-                        })
+        # Mock successful Groq response
+        mock_groq_response = Mock()
+        mock_groq_response.choices = [
+            Mock(message=Mock(content=json.dumps({
+                "questions": [
+                    {
+                        "prompt": "Groq question",
+                        "category": "technical",
+                        "difficulty": "medium"
                     }
-                }
-            ]
-        }
-        mock_mistral_response.status_code = 200
-        mock_requests.return_value = mock_mistral_response
+                ]
+            })))
+        ]
+        
+        mock_client = Mock()
+        mock_client.chat.completions.create.return_value = mock_groq_response
+        mock_groq.return_value = mock_client
         
         # Call the connector
-        questions, raw_response, model_used = self.connector.generate_questions(self.session)
+        with patch.object(self.connector, 'groq_client', mock_client):
+            questions, raw_response, model_used = self.connector.generate_questions(self.session)
         
         # Verify fallback happened
-        # (In actual implementation, would verify Mistral was called)
+        self.assertEqual(len(questions), 1)
+        self.assertEqual(model_used, 'groq')
+        self.assertEqual(questions[0]['prompt'], 'Groq question')
 
     @patch('apps.interviews.ai_connector.requests.post')
-    @patch('apps.interviews.ai_connector.genai')
-    def test_fallback_logs_gemini_failure(self, mock_genai, mock_requests):
+    def test_fallback_logs_mistral_failure(self, mock_requests):
         """
-        Test that Gemini failure is properly logged before fallback.
-        
-        Verify:
-        - Error is logged with context
-        - Error message includes reason
-        - Fallback decision is logged
+        Test that Mistral failure is properly logged before fallback.
         """
-        # Mock Gemini to fail
-        mock_client = Mock()
-        gemini_error = Exception("Gemini API key invalid")
-        mock_client.models.generate_content.side_effect = gemini_error
-        mock_genai.Client.return_value = mock_client
+        # Mock Mistral to fail
+        mock_requests.side_effect = Exception("Mistral timeout")
         
-        # Mock successful Mistral response
-        mock_mistral_response = Mock()
-        mock_mistral_response.json.return_value = {
-            "choices": [{"message": {"content": json.dumps({"questions": []})}}]
-        }
-        mock_mistral_response.status_code = 200
-        mock_requests.return_value = mock_mistral_response
+        # Mock successful Groq response
+        mock_groq_response = Mock()
+        mock_groq_response.choices = [
+            Mock(message=Mock(content=json.dumps({"questions": []})))
+        ]
         
         # Call and verify logging occurs
-        with self.assertLogs('apps.interviews.ai_connector', level='WARNING') as cm:
-            self.connector.generate_questions(self.session)
+        with patch('apps.interviews.ai_connector.Groq') as mock_groq:
+            mock_client = Mock()
+            mock_client.chat.completions.create.return_value = mock_groq_response
+            mock_groq.return_value = mock_client
+            
+            with patch.object(self.connector, 'groq_client', mock_client):
+                with self.assertLogs('apps.interviews.ai_connector', level='WARNING') as cm:
+                    self.connector.generate_questions(self.session)
         
         # Verify error was logged
         self.assertTrue(
-            any('Gemini' in msg or 'fallback' in msg for msg in cm.output)
+            any('Mistral' in msg or 'fallback' in msg for msg in cm.output)
         )
 
 
@@ -278,33 +242,33 @@ class AllModelsFailTest(TestCase):
         
         self.connector = AIConnector()
 
+    @patch('apps.interviews.ai_connector.Groq')
     @patch('apps.interviews.ai_connector.requests.post')
-    @patch('apps.interviews.ai_connector.genai')
-    def test_all_gemini_keys_fail_no_mistral_fallback(self, mock_genai, mock_requests):
+    def test_all_models_fail_gracefully(self, mock_requests, mock_groq):
         """
         Test that system fails gracefully when all models fail.
         
         Verify:
-        - Both Gemini and Mistral are attempted
+        - Both Mistral and Groq are attempted
         - When all fail, returns empty list
         - Error message is descriptive
-        - Session is marked as failed
         """
-        # Mock Gemini failure
-        mock_client = Mock()
-        mock_client.models.generate_content.side_effect = Exception("Gemini error")
-        mock_genai.Client.return_value = mock_client
-        
         # Mock Mistral failure
         mock_requests.side_effect = Exception("Mistral error")
         
+        # Mock Groq failure
+        mock_client = Mock()
+        mock_client.chat.completions.create.side_effect = Exception("Groq error")
+        mock_groq.return_value = mock_client
+        
         # Call the connector
-        questions, raw_response, model_used = self.connector.generate_questions(self.session)
+        with patch.object(self.connector, 'groq_client', mock_client):
+            questions, raw_response, model_used = self.connector.generate_questions(self.session)
         
         # Verify empty result
         self.assertEqual(len(questions), 0)
         self.assertIsNone(model_used)
-        self.assertIn('error', raw_response.lower() or 'failed' in raw_response.lower())
+        self.assertIn('failed', raw_response.lower())
 
     @patch('apps.interviews.ai_connector.requests.post')
     @patch('apps.interviews.ai_connector.genai')
@@ -352,65 +316,20 @@ class RequestIdLoggingTest(TestCase):
         
         self.connector = AIConnector()
 
-    @patch('apps.interviews.ai_connector.genai')
-    def test_request_id_captured_in_questions(self, mock_genai):
-        """
-        Test that request IDs are captured in generated questions.
-        
-        Verify:
-        - Each question includes request_id
-        - Request ID is consistent within batch
-        - Request ID format is valid
-        """
-        mock_response = Mock()
-        mock_response.text = json.dumps({
-            "questions": [
-                {
-                    "prompt": "Q1",
-                    "category": "behavioral",
-                    "difficulty": "medium",
-                    "request_id": "req-gemini-001"
-                },
-                {
-                    "prompt": "Q2",
-                    "category": "technical",
-                    "difficulty": "medium",
-                    "request_id": "req-gemini-001"
-                }
-            ]
-        })
-        mock_response.usage = Mock()
-        
-        mock_client = Mock()
-        mock_client.models.generate_content.return_value = mock_response
-        mock_genai.Client.return_value = mock_client
-        
-        # Generate questions
-        questions, _, _ = self.connector.generate_questions(self.session)
-        
-        # Verify request IDs
-        self.assertTrue(all('request_id' in q for q in questions))
-        request_ids = [q['request_id'] for q in questions]
-        self.assertEqual(len(set(request_ids)), 1)  # All same
+    @patch('apps.interviews.ai_connector.Groq')
+    def test_groq_error_logging(self, mock_groq):
 
-    @patch('apps.interviews.ai_connector.genai')
-    def test_request_id_logged_on_failure(self, mock_genai):
         """
-        Test that request ID is logged when generation fails.
-        
-        Verify:
-        - Failure includes relevant request ID
-        - Error message is traceable
+        Test that Groq errors are logged correctly.
         """
         mock_client = Mock()
-        error = Exception("API Error")
-        error.request_id = "req-gemini-failed-001"
-        mock_client.models.generate_content.side_effect = error
-        mock_genai.Client.return_value = mock_client
+        mock_client.chat.completions.create.side_effect = Exception("Groq API Error")
+        mock_groq.return_value = mock_client
         
         # Call should handle error gracefully
-        with self.assertLogs('apps.interviews.ai_connector', level='ERROR'):
-            self.connector.generate_questions(self.session)
+        with patch.object(self.connector, 'groq_client', mock_client):
+            with self.assertLogs('apps.interviews.ai_connector', level='ERROR'):
+                self.connector.generate_questions(self.session)
 
 
 class TokenUsageTrackingTest(TestCase):
@@ -432,31 +351,23 @@ class TokenUsageTrackingTest(TestCase):
         
         self.connector = AIConnector()
 
-    @patch('apps.interviews.ai_connector.genai')
-    def test_token_usage_captured_gemini(self, mock_genai):
+    @patch('apps.interviews.ai_connector.Groq')
+    def test_token_usage_captured_groq(self, mock_groq):
         """
-        Test that Gemini token usage is captured.
-        
-        Verify:
-        - Prompt tokens captured
-        - Completion tokens captured
-        - Total calculated correctly
+        Test that Groq token usage is captured.
         """
         mock_response = Mock()
-        mock_response.text = json.dumps({"questions": []})
-        mock_response.usage = Mock()
-        mock_response.usage.prompt_tokens = 1500
-        mock_response.usage.candidates_tokens = 2000
+        mock_response.choices = [
+            Mock(message=Mock(content=json.dumps({"questions": []})))
+        ]
         
         mock_client = Mock()
-        mock_client.models.generate_content.return_value = mock_response
-        mock_genai.Client.return_value = mock_client
+        mock_client.chat.completions.create.return_value = mock_response
+        mock_groq.return_value = mock_client
         
         # Generate questions
-        self.connector.generate_questions(self.session)
-        
-        # Token usage should be tracked
-        # (Implementation would store in session or logging)
+        with patch.object(self.connector, 'groq_client', mock_client):
+            self.connector.generate_questions(self.session)
 
     @patch('apps.interviews.ai_connector.requests.post')
     def test_token_usage_captured_mistral(self, mock_requests):
@@ -608,37 +519,34 @@ class AIConnectorIntegrationTest(TestCase):
             }
         )
 
-    @patch('apps.interviews.ai_connector.genai')
-    def test_full_generation_pipeline(self, mock_genai):
+    @patch('apps.interviews.ai_connector.Groq')
+    def test_full_generation_pipeline(self, mock_groq):
         """
-        Test complete question generation pipeline.
-        
-        Verify:
-        - Session context properly passed
-        - Questions properly validated
-        - Results properly formatted
+        Test complete question generation pipeline with Groq.
         """
         mock_response = Mock()
-        mock_response.text = json.dumps({
-            "questions": [
-                {
-                    "prompt": "How would you build a recommendation system?",
-                    "category": "technical",
-                    "difficulty": "hard",
-                    "evaluation_criteria": ["design thinking", "ml knowledge"],
-                    "order": 1
-                }
-            ]
-        })
-        mock_response.usage = Mock()
+        mock_response.choices = [
+            Mock(message=Mock(content=json.dumps({
+                "questions": [
+                    {
+                        "prompt": "How would you build a recommendation system?",
+                        "category": "technical",
+                        "difficulty": "hard",
+                        "evaluation_criteria": ["design thinking", "ml knowledge"],
+                        "order": 1
+                    }
+                ]
+            })))
+        ]
         
         mock_client = Mock()
-        mock_client.models.generate_content.return_value = mock_response
-        mock_genai.Client.return_value = mock_client
+        mock_client.chat.completions.create.return_value = mock_response
+        mock_groq.return_value = mock_client
         
         connector = AIConnector()
-        questions, raw_response, model = connector.generate_questions(self.session)
+        with patch.object(connector, 'groq_client', mock_client):
+            questions, raw_response, model = connector.generate_questions(self.session)
         
         self.assertEqual(len(questions), 1)
-        self.assertEqual(model, 'gemini')
+        self.assertEqual(model, 'groq')
         self.assertEqual(questions[0]['category'], 'technical')

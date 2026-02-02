@@ -11,7 +11,7 @@
         grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
         gap: 1rem;
     }
-    
+
     .badge {
         display: flex;
         flex-direction: column;
@@ -23,22 +23,22 @@
         cursor: pointer;
         transition: all 0.3s ease;
     }
-    
+
     .badge:hover {
         transform: translateY(-4px);
-        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
     }
-    
+
     .badge.earned {
         border-color: #fbbf24;
         background: #fffbeb;
     }
-    
+
     .badge-icon {
         font-size: 2rem;
         margin-bottom: 0.5rem;
     }
-    
+
     .badge-title {
         font-size: 0.75rem;
         font-weight: 600;
@@ -57,7 +57,8 @@
                 <h1 class="text-3xl font-bold text-gray-900">
                     <i class="fas fa-chart-line text-blue-600 mr-3"></i>Practice History
                 </h1>
-                <a href="{% url 'interviews:start_practice' %}" class="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold">
+                <a href="{% url 'interviews:start_practice' %}"
+                    class="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold">
                     <i class="fas fa-play"></i>Start New Session
                 </a>
             </div>
@@ -160,7 +161,8 @@
                                 <span class="text-sm font-bold text-gray-900">{{ category.score }}%</span>
                             </div>
                             <div class="w-full bg-gray-200 rounded-full h-2">
-                                <div class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: {{ category.score }}%"></div>
+                                <div class="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                                    style="width: {{ category.score }}%"></div>
                             </div>
                         </div>
                         {% endfor %}
@@ -180,43 +182,50 @@
                         </div>
 
                         <!-- 5 Sessions Badge -->
-                        <div class="badge {% if stats.total_sessions >= 5 %}earned{% endif %}" title="Complete 5 practice sessions">
+                        <div class="badge {% if stats.total_sessions >= 5 %}earned{% endif %}"
+                            title="Complete 5 practice sessions">
                             <div class="badge-icon">5️⃣</div>
                             <div class="badge-title">5 Sessions</div>
                         </div>
 
                         <!-- 10 Sessions Badge -->
-                        <div class="badge {% if stats.total_sessions >= 10 %}earned{% endif %}" title="Complete 10 practice sessions">
+                        <div class="badge {% if stats.total_sessions >= 10 %}earned{% endif %}"
+                            title="Complete 10 practice sessions">
                             <div class="badge-icon">🔟</div>
                             <div class="badge-title">10 Sessions</div>
                         </div>
 
                         <!-- Perfect Score Badge -->
-                        <div class="badge {% if stats.perfect_score %}earned{% endif %}" title="Achieve 100% on a session">
+                        <div class="badge {% if stats.perfect_score %}earned{% endif %}"
+                            title="Achieve 100% on a session">
                             <div class="badge-icon">💯</div>
                             <div class="badge-title">Perfect Score</div>
                         </div>
 
                         <!-- Consistency Badge -->
-                        <div class="badge {% if stats.current_streak >= 7 %}earned{% endif %}" title="Maintain a 7-day streak">
+                        <div class="badge {% if stats.current_streak >= 7 %}earned{% endif %}"
+                            title="Maintain a 7-day streak">
                             <div class="badge-icon">🔥</div>
                             <div class="badge-title">Consistent</div>
                         </div>
 
                         <!-- 90+ Average Badge -->
-                        <div class="badge {% if stats.average_score >= 90 %}earned{% endif %}" title="Maintain 90+ average">
+                        <div class="badge {% if stats.average_score >= 90 %}earned{% endif %}"
+                            title="Maintain 90+ average">
                             <div class="badge-icon">⭐</div>
                             <div class="badge-title">Expert</div>
                         </div>
 
                         <!-- Improvement Badge -->
-                        <div class="badge {% if stats.score_trend > 10 %}earned{% endif %}" title="Improve score by 10+%">
+                        <div class="badge {% if stats.score_trend > 10 %}earned{% endif %}"
+                            title="Improve score by 10+%">
                             <div class="badge-icon">📈</div>
                             <div class="badge-title">Improving</div>
                         </div>
 
                         <!-- Versatile Badge -->
-                        <div class="badge {% if stats.categories_practiced >= 5 %}earned{% endif %}" title="Practice all question types">
+                        <div class="badge {% if stats.categories_practiced >= 5 %}earned{% endif %}"
+                            title="Practice all question types">
                             <div class="badge-icon">🎭</div>
                             <div class="badge-title">Versatile</div>
                         </div>
@@ -233,13 +242,15 @@
                 {% if sessions %}
                 <div class="space-y-3 max-h-96 overflow-y-auto">
                     {% for session in sessions %}
-                    <div class="border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition cursor-pointer" onclick="viewSession({{ session.id }})">
+                    <div class="border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition cursor-pointer"
+                        onclick="viewSession({{ session.id }})">
                         <div class="flex items-start justify-between mb-2">
                             <div>
                                 <p class="font-semibold text-gray-900">{{ session.interview_type }}</p>
                                 <p class="text-xs text-gray-500">{{ session.created_at|date:"M d, Y h:i A" }}</p>
                             </div>
-                            <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold {% if session.status == 'COMPLETED' %}bg-green-100 text-green-800{% elif session.status == 'IN_PROGRESS' %}bg-blue-100 text-blue-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+                            <span
+                                class="inline-block px-3 py-1 rounded-full text-xs font-semibold {% if session.status == 'COMPLETED' %}bg-green-100 text-green-800{% elif session.status == 'IN_PROGRESS' %}bg-blue-100 text-blue-800{% else %}bg-gray-100 text-gray-800{% endif %}">
                                 {{ session.get_status_display }}
                             </span>
                         </div>
@@ -247,13 +258,14 @@
                         <!-- Score -->
                         <div class="flex items-center justify-between mb-2">
                             <span class="text-sm text-gray-600">Score</span>
-                            <span class="text-lg font-bold text-gray-900">{{ session.overall_score|default:"N/A" }}%</span>
+                            <span class="text-lg font-bold text-gray-900">{{ session.overall_score|default:"N/A"
+                                }}%</span>
                         </div>
 
                         <!-- Score Bar -->
                         <div class="w-full bg-gray-200 rounded-full h-2">
-                            <div class="bg-gradient-to-r from-red-500 via-yellow-500 to-green-500 h-2 rounded-full" 
-                                 style="width: {{ session.overall_score|default:0 }}%"></div>
+                            <div class="bg-gradient-to-r from-red-500 via-yellow-500 to-green-500 h-2 rounded-full"
+                                style="width: {{ session.overall_score|default:0 }}%"></div>
                         </div>
 
                         <!-- Meta -->
@@ -272,13 +284,15 @@
                         {% if session.focus_areas %}
                         <div class="mt-2 flex flex-wrap gap-1">
                             {% for area in session.focus_areas %}
-                            <span class="inline-block px-2 py-0.5 bg-blue-50 text-blue-700 text-xs rounded">{{ area }}</span>
+                            <span class="inline-block px-2 py-0.5 bg-blue-50 text-blue-700 text-xs rounded">{{ area
+                                }}</span>
                             {% endfor %}
                         </div>
                         {% endif %}
 
                         <!-- Action -->
-                        <button class="w-full mt-3 px-3 py-1.5 text-sm bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition font-medium">
+                        <button
+                            class="w-full mt-3 px-3 py-1.5 text-sm bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition font-medium">
                             View Report
                         </button>
                     </div>
@@ -288,7 +302,8 @@
                 <div class="text-center py-8">
                     <i class="fas fa-inbox text-4xl text-gray-300 mb-3"></i>
                     <p class="text-gray-600 mb-4">No practice sessions yet</p>
-                    <a href="{% url 'interviews:start_practice' %}" class="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium">
+                    <a href="{% url 'interviews:start_practice' %}"
+                        class="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium">
                         Start Your First Session
                     </a>
                 </div>
@@ -304,15 +319,18 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div class="border-l-4 border-blue-600 pl-4">
                     <p class="font-semibold text-gray-900 mb-1">Focus on Weak Areas</p>
-                    <p class="text-sm text-gray-600">Your lowest scores are in technical questions. Consider scheduling more technical practice sessions.</p>
+                    <p class="text-sm text-gray-600">Your lowest scores are in technical questions. Consider scheduling
+                        more technical practice sessions.</p>
                 </div>
                 <div class="border-l-4 border-green-600 pl-4">
                     <p class="font-semibold text-gray-900 mb-1">You're on a Roll!</p>
-                    <p class="text-sm text-gray-600">Your scores have improved by 15% over the last 2 weeks. Keep up the great work!</p>
+                    <p class="text-sm text-gray-600">Your scores have improved by 15% over the last 2 weeks. Keep up the
+                        great work!</p>
                 </div>
                 <div class="border-l-4 border-purple-600 pl-4">
                     <p class="font-semibold text-gray-900 mb-1">Mix Up Your Practice</p>
-                    <p class="text-sm text-gray-600">Try mixed difficulty sessions to strengthen your ability to handle unexpected challenges.</p>
+                    <p class="text-sm text-gray-600">Try mixed difficulty sessions to strengthen your ability to handle
+                        unexpected challenges.</p>
                 </div>
             </div>
         </div>
@@ -328,62 +346,62 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    initProgressChart();
-});
+    document.addEventListener('DOMContentLoaded', function () {
+        initProgressChart();
+    });
 
-function initProgressChart() {
-    const ctx = document.getElementById('progressChart').getContext('2d');
-    
-    // Mock data - replace with real data from server
-    const data = {
-        labels: ['Session 1', 'Session 2', 'Session 3', 'Session 4', 'Session 5'],
-        datasets: [{
-            label: 'Session Score',
-            data: [65, 72, 68, 78, 82],
-            borderColor: '#2563eb',
-            backgroundColor: 'rgba(37, 99, 235, 0.1)',
-            borderWidth: 2,
-            fill: true,
-            tension: 0.4,
-            pointRadius: 5,
-            pointBackgroundColor: '#2563eb',
-            pointBorderColor: '#fff',
-            pointBorderWidth: 2
-        }]
-    };
+    function initProgressChart() {
+        const ctx = document.getElementById('progressChart').getContext('2d');
 
-    new Chart(ctx, {
-        type: 'line',
-        data: data,
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    max: 100,
-                    ticks: { color: '#6b7280' }
+        // Mock data - replace with real data from server
+        const data = {
+            labels: ['Session 1', 'Session 2', 'Session 3', 'Session 4', 'Session 5'],
+            datasets: [{
+                label: 'Session Score',
+                data: [65, 72, 68, 78, 82],
+                borderColor: '#2563eb',
+                backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 5,
+                pointBackgroundColor: '#2563eb',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2
+            }]
+        };
+
+        new Chart(ctx, {
+            type: 'line',
+            data: data,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
                 },
-                x: {
-                    ticks: { color: '#6b7280' }
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: { color: '#6b7280' }
+                    },
+                    x: {
+                        ticks: { color: '#6b7280' }
+                    }
                 }
             }
-        }
-    });
-}
-
-function viewSession(sessionId) {
-    // Load and display session details in modal
-    fetch(`/interviews/session/${sessionId}/report/`)
-        .then(r => r.text())
-        .then(html => {
-            document.getElementById('sessionModal').innerHTML = html;
-            document.getElementById('sessionModal').classList.remove('hidden');
         });
-}
+    }
+
+    function viewSession(sessionId) {
+        // Load and display session details in modal
+        fetch(`/interviews/practice/session/${sessionId}/report/`)
+            .then(r => r.text())
+            .then(html => {
+                document.getElementById('sessionModal').innerHTML = html;
+                document.getElementById('sessionModal').classList.remove('hidden');
+            });
+    }
 </script>
 {% endblock %}

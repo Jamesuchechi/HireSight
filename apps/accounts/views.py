@@ -58,8 +58,9 @@ class RegisterView(FormView):
         """Save user and send verification email."""
         user = form.save()
         
-        # Create verification token
-        token = secrets.token_urlsafe(32)
+        # Create verification token (6-digit code)
+        import random
+        token = str(random.randint(100000, 999999))
         expires_at = timezone.now() + timedelta(hours=24)
         
         EmailVerificationToken.objects.create(
@@ -69,8 +70,10 @@ class RegisterView(FormView):
         )
         
         # Send verification email
+        # No longer using the link for automatic verification, but still providing it for convenience
+        # if the user prefers, but the primary method is the code.
         verification_url = self.request.build_absolute_uri(
-            reverse_lazy('accounts:verify_email', kwargs={'token': token})
+            reverse_lazy('accounts:verify_email_form')
         )
         
         # Send HTML email
@@ -81,6 +84,7 @@ class RegisterView(FormView):
         # Render HTML content
         html_content = render_to_string('emails/email_verification.html', {
             'user': user,
+            'verification_code': token,
             'verification_url': verification_url,
         })
         
@@ -91,7 +95,7 @@ class RegisterView(FormView):
         
         messages.success(
             self.request,
-            f'Account created! Please check {user.email} for a verification link.'
+            f'Account created! Please check {user.email} for your 6-digit verification code.'
         )
         
         return super().form_valid(form)
@@ -149,6 +153,12 @@ class LoginView(FormView):
                 messages.error(self.request, str(e))
                 return self.form_invalid(form)
             
+            # Check if email is verified
+            if not user.is_verified:
+                messages.warning(self.request, 'Please verify your email address to access the dashboard.')
+                login(self.request, user)  # Login so they can access the verification page
+                return redirect('accounts:verify_email_form')
+
             # Check if 2FA is enabled
             if user.has_2fa_enabled():
                 # Store user ID in session and redirect to 2FA verification
@@ -231,7 +241,7 @@ class VerifyEmailFormView(LoginRequiredMixin, FormView):
     """Email verification via manual token entry."""
     template_name = 'accounts/verify_email.html'
     form_class = EmailVerificationForm
-    success_url = reverse_lazy('dashboard:dashboard_home')
+    success_url = reverse_lazy('accounts:setup_2fa_optional')
     
     def dispatch(self, request, *args, **kwargs):
         """Redirect if already verified."""
@@ -261,7 +271,7 @@ class VerifyEmailFormView(LoginRequiredMixin, FormView):
             # Delete token
             verification.delete()
             
-            messages.success(self.request, 'Email verified successfully!')
+            messages.success(self.request, 'Email verified successfully! You can now secure your account.')
             return super().form_valid(form)
             
         except EmailVerificationToken.DoesNotExist:
@@ -281,8 +291,9 @@ class ResendVerificationView(LoginRequiredMixin, View):
         # Delete old tokens
         EmailVerificationToken.objects.filter(user=request.user).delete()
         
-        # Create new token
-        token = secrets.token_urlsafe(32)
+        # Create new token (6-digit code)
+        import random
+        token = str(random.randint(100000, 999999))
         expires_at = timezone.now() + timedelta(hours=24)
         
         EmailVerificationToken.objects.create(
@@ -304,7 +315,8 @@ class ResendVerificationView(LoginRequiredMixin, View):
         # Render HTML content
         html_content = render_to_string('emails/email_verification.html', {
             'user': request.user,
-            'verification_url': verification_url,
+            'verification_code': token,
+            'verification_url': request.build_absolute_uri(reverse_lazy('accounts:verify_email_form')),
         })
         
         # Create email message
@@ -312,8 +324,21 @@ class ResendVerificationView(LoginRequiredMixin, View):
         email.attach_alternative(html_content, "text/html")
         email.send(fail_silently=True)
         
-        messages.success(request, 'Verification email sent! Please check your inbox.')
+        messages.success(request, 'Verification code sent! Please check your inbox.')
         return redirect('accounts:verify_email_form')
+
+
+class Setup2FAOptionalView(LoginRequiredMixin, TemplateView):
+    """Optional 2FA setup prompt after email verification."""
+    template_name = 'accounts/setup_2fa_optional.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        """Redirect if 2FA is already enabled or user is unverified."""
+        if not request.user.is_verified:
+            return redirect('accounts:verify_email_form')
+        if request.user.has_2fa_enabled():
+            return redirect('dashboard:dashboard_home')
+        return super().dispatch(request, *args, **kwargs)
 
 
 class ForgotPasswordView(FormView):

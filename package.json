@@ -1,0 +1,27 @@
+{
+  "name": "hiresight",
+  "version": "1.0.0",
+  "description": "**HireSight** is a comprehensive, dual-sided recruitment platform that connects job seekers with companies through intelligent AI-powered resume screening and matching. Built for both candidates seeking opportunities and recruiters looking for top talent, HireSight streamlines the entire hiring lifecycle from job posting to offer acceptance.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Jamesuchechi/HireSight.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Jamesuchechi/HireSight/issues"
+  },
+  "homepage": "https://github.com/Jamesuchechi/HireSight#readme",
+  "devDependencies": {
+    "tailwindcss": "^3.4.19"
+  }
+}

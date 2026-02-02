@@ -814,11 +814,21 @@ class PracticeQuestionView(LoginRequiredMixin, CandidateRequiredMixin, FormView)
         return context
 
     def form_valid(self, form):
+        # Parse video metrics if provided
+        video_metrics = None
+        metrics_raw = form.cleaned_data.get('video_analysis_metrics')
+        if metrics_raw:
+            try:
+                video_metrics = json.loads(metrics_raw)
+            except (ValueError, TypeError):
+                pass
+
         response = PracticeResponse.objects.create(
             question=self.question,
             session=self.session,
             text_response=form.cleaned_data['text_response'],
-            video_url=form.cleaned_data['video_url']
+            video_url=form.cleaned_data['video_url'],
+            video_metrics=video_metrics
         )
         analyze_practice_response.delay(response.id)
         self.update_session_progress()

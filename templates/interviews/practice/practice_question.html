@@ -1,448 +1,607 @@
 {% extends 'base.html' %}
-{% load humanize %}
+{% load humanize static %}
 
-{% block title %}Practice Question{% endblock %}
+{% block title %}Interview Practice - {{ question.category|default:"General" }}{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-slate-100 py-10">
-    <div class="max-w-4xl mx-auto space-y-6">
-        <!-- Question Card -->
-        <div class="bg-white rounded-3xl border border-slate-100 shadow">
-            <div class="p-8 space-y-4">
-                <div class="flex items-start justify-between">
-                    <div>
-                        <p class="text-xs uppercase tracking-[0.4em] text-slate-500">Question</p>
-                        <h1 class="text-2xl font-semibold text-slate-900">{{ question.category|default:"General" }}</h1>
-                    </div>
-                    <div class="text-sm text-slate-500">
-                        Session: {{ session.focus_area|default:"General Practice" }}
-                    </div>
-                </div>
+<style>
+    [x-cloak] {
+        display: none !important;
+    }
+</style>
 
-                <p class="text-lg text-slate-800 leading-relaxed">{{ question.prompt }}</p>
-                <p class="text-xs text-slate-400">Evaluation criteria loaded from AI.</p>
-                <div class="text-xs text-slate-500">
-                    {% for criterion in question.evaluation_criteria %}
-                    <span class="inline-flex items-center px-3 py-1 rounded-full bg-slate-100 text-slate-600 mr-2">{{ criterion }}</span>
-                    {% endfor %}
+<div class="min-h-screen bg-gray-50 dark:bg-slate-900 pb-20" x-data="{ 
+    step: 'prep',
+    isRecording: false,
+    recorded: false,
+    showAnswerModal: false,
+    fullScreen: false
+}" x-init="step = 'prep'; showAnswerModal = false">
+    <!-- Top Navigation / Header -->
+    <div class="bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <a href="{% url 'interviews:practice_dashboard' %}"
+                    class="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full transition">
+                    <svg class="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                    </svg>
+                </a>
+                <div>
+                    <h1 class="font-display text-xl font-bold text-gray-900 dark:text-white">Practice Session</h1>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ session.focus_area|default:"Interview
+                        Readiness" }}</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <a href="{% url 'interviews:practice_history' %}"
+                    class="hidden sm:inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    Previous Responses
+                </a>
+                <div class="h-8 w-[1px] bg-gray-200 dark:bg-slate-700 mx-2"></div>
+                <div class="flex items-center gap-2 bg-gray-100 dark:bg-slate-900 px-3 py-1.5 rounded-full">
+                    <span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+                    <span class="text-xs font-bold text-gray-700 dark:text-gray-300" id="globalTimer">00:00</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Step 0: Prep / Question View -->
+        <div x-show="step === 'prep'" x-cloak x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
+            class="max-w-4xl mx-auto space-y-8">
+            <div
+                class="bg-white dark:bg-slate-800 rounded-[3rem] border border-gray-100 dark:border-slate-700 shadow-2xl overflow-hidden animate-zoom-in">
+                <div class="p-12 space-y-8">
+                    <div class="flex items-center justify-between">
+                        <span
+                            class="px-5 py-2 bg-primary/10 text-primary rounded-full text-xs font-black uppercase tracking-widest leading-none">Pre-Analysis
+                            Prep</span>
+                    </div>
+
+                    <div class="space-y-4">
+                        <h2 class="font-display text-5xl font-black text-gray-900 dark:text-white leading-tight">Ready
+                            for your challenge?</h2>
+                        <p class="text-xl text-gray-500 dark:text-gray-400 font-light max-w-2xl leading-relaxed">Review
+                            the question and evaluation criteria before starting your video analysis session.</p>
+                    </div>
+
+                    <div
+                        class="p-10 bg-gray-50 dark:bg-slate-900/50 rounded-[2.5rem] border border-gray-100 dark:border-slate-700 group hover:border-primary/30 transition-colors">
+                        <p class="text-xs font-bold text-primary uppercase tracking-[0.3em] mb-4">Practice Prompt</p>
+                        <p
+                            class="text-3xl font-display font-medium text-gray-800 dark:text-gray-200 leading-snug italic">
+                            "{{ question.prompt }}"</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div
+                            class="p-8 bg-white dark:bg-slate-800 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm">
+                            <h4 class="font-bold text-gray-900 dark:text-white mb-4">Evaluation Criteria</h4>
+                            <div class="flex flex-wrap gap-2">
+                                {% for criterion in question.evaluation_criteria %}
+                                <span
+                                    class="px-4 py-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-xl text-xs font-bold border border-indigo-100 dark:border-indigo-900/30">
+                                    {{ criterion }}
+                                </span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div
+                            class="p-8 bg-gradient-to-br from-primary to-indigo-600 rounded-3xl text-white shadow-xl flex flex-col justify-center">
+                            <p class="text-sm font-medium opacity-80 mb-1">Estimated Duration</p>
+                            <p class="text-3xl font-black">2-3 Minutes</p>
+                            <p class="text-xs opacity-70 mt-2">Focus on clarity and eye contact.</p>
+                        </div>
+                    </div>
+
+                    <div class="pt-6 flex justify-center">
+                        <button type="button" @click="step = 'recording'"
+                            class="group relative px-12 py-6 bg-slate-900 dark:bg-white dark:text-slate-900 text-white rounded-[2rem] font-black text-xl shadow-2xl hover:scale-105 active:scale-95 transition-all">
+                            <span class="relative z-10 flex items-center gap-4">
+                                Start Video Recording
+                                <svg class="w-6 h-6 group-hover:translate-x-1 transition-transform" fill="none"
+                                    stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
+                                        d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                                </svg>
+                            </span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Video Recording Section -->
-        <div class="bg-white rounded-3xl border border-slate-100 shadow p-8 space-y-4">
-            <h2 class="text-lg font-semibold text-slate-900">Record Your Answer</h2>
-            
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <!-- Video Preview with Overlay -->
-                <div class="lg:col-span-2 space-y-2">
-                    <div class="relative bg-black rounded-2xl overflow-hidden aspect-video">
-                        <video 
-                            id="videoPreview" 
-                            class="w-full h-full object-cover" 
-                            playsinline
-                        ></video>
-                        <canvas 
-                            id="analysisCanvas" 
-                            class="absolute inset-0 w-full h-full"
-                        ></canvas>
-                        
-                        <!-- Overlay Indicators -->
-                        <div class="absolute inset-0 pointer-events-none">
-                            <!-- Gaze Indicator (top-left) -->
-                            <div class="absolute top-4 left-4 space-y-1">
-                                <p class="text-xs text-white font-semibold">Gaze</p>
-                                <div 
-                                    id="gazeIndicator" 
-                                    class="w-6 h-6 rounded-full border-2 border-gray-400 bg-gray-500 bg-opacity-50"
-                                ></div>
+        <!-- Step 1: Video Analysis Section -->
+        <div x-show="step === 'recording'" x-cloak x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0"
+            class="space-y-6">
+
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                <!-- Video Main Card -->
+                <div class="lg:col-span-3">
+                    <div id="videoContainer"
+                        class="relative bg-black rounded-3xl overflow-hidden shadow-2xl aspect-video group"
+                        :class="{ 'fixed inset-0 z-50 rounded-none': fullScreen }">
+                        <video id="videoPreview" class="w-full h-full object-cover" playsinline></video>
+                        <canvas id="analysisCanvas" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
+
+                        <!-- HUD / Overlays -->
+                        <div class="absolute inset-0 p-6 flex flex-col justify-between pointer-events-none">
+                            <div class="flex justify-between items-start">
+                                <div class="flex gap-4">
+                                    <div
+                                        class="bg-black/40 backdrop-blur-md rounded-2xl p-3 border border-white/10 flex items-center gap-3">
+                                        <div id="gazeIndicator"
+                                            class="w-3 h-3 rounded-full bg-gray-400 shadow-[0_0_10px_rgba(255,255,255,0.5)]">
+                                        </div>
+                                        <span class="text-[10px] font-bold text-white uppercase tracking-widest">Gaze
+                                            Stability</span>
+                                    </div>
+                                    <div
+                                        class="bg-black/40 backdrop-blur-md rounded-2xl p-3 border border-white/10 flex items-center gap-3">
+                                        <div id="postureIndicator"
+                                            class="w-3 h-3 rounded-full bg-gray-400 shadow-[0_0_10px_rgba(255,255,255,0.5)]">
+                                        </div>
+                                        <span class="text-[10px] font-bold text-white uppercase tracking-widest">Posture
+                                            Alignment</span>
+                                    </div>
+                                </div>
+                                <button type="button" @click="fullScreen = !fullScreen"
+                                    class="p-3 bg-black/40 backdrop-blur-md rounded-2xl border border-white/10 text-white hover:bg-white/20 transition pointer-events-auto">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path x-show="!fullScreen" stroke-linecap="round" stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4">
+                                        </path>
+                                        <path x-show="fullScreen" stroke-linecap="round" stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M4 4l5 5m0 0v-4m0 4h-4m12 12l-5-5m0 0v4m0-4h4m-4-12l5 5m-5-5h4m-4 0v4m-12 12l5-5m-5 5h4m-4 0v-4">
+                                        </path>
+                                    </svg>
+                                </button>
                             </div>
-                            
-                            <!-- Posture Indicator (top-right) -->
-                            <div class="absolute top-4 right-4 space-y-1">
-                                <p class="text-xs text-white font-semibold">Posture</p>
-                                <div 
-                                    id="postureIndicator" 
-                                    class="w-6 h-6 rounded-full border-2 border-gray-400 bg-gray-500 bg-opacity-50"
-                                ></div>
+
+                            <div class="flex justify-between items-end">
+                                <div class="bg-black/60 backdrop-blur-xl rounded-2xl px-6 py-4 border border-white/20">
+                                    <div class="flex items-center gap-4">
+                                        <div class="flex gap-1 items-end h-6">
+                                            <div id="speakingBars" class="flex gap-1 items-end h-6">
+                                                <div
+                                                    class="w-1 h-2 bg-white/30 rounded-full transition-all duration-75">
+                                                </div>
+                                                <div
+                                                    class="w-1 h-2 bg-white/30 rounded-full transition-all duration-75">
+                                                </div>
+                                                <div
+                                                    class="w-1 h-2 bg-white/30 rounded-full transition-all duration-75">
+                                                </div>
+                                                <div
+                                                    class="w-1 h-2 bg-white/30 rounded-full transition-all duration-75">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <span class="text-xs font-bold text-white tracking-widest uppercase">Audio Voice
+                                            Analysis</span>
+                                    </div>
+                                </div>
+
+                                <div class="bg-primary/80 backdrop-blur-xl rounded-2xl px-6 py-4 border border-white/20"
+                                    x-show="isRecording">
+                                    <span class="text-xl font-mono font-bold text-white"
+                                        id="recordingTimerHUD">00:00</span>
+                                </div>
                             </div>
-                            
-                            <!-- Speaking Indicator (bottom-right) -->
-                            <div class="absolute bottom-4 right-4 space-y-1">
-                                <p class="text-xs text-white font-semibold">Speaking</p>
-                                <div class="flex gap-0.5">
-                                    <div id="speakingBars" class="flex gap-0.5">
-                                        <div class="w-1 h-4 bg-gray-400 rounded-sm"></div>
-                                        <div class="w-1 h-4 bg-gray-400 rounded-sm"></div>
-                                        <div class="w-1 h-4 bg-gray-400 rounded-sm"></div>
+                        </div>
+
+                        <!-- Recording Status Bar -->
+                        <div class="absolute bottom-0 left-0 right-0 h-1 bg-white/20 overflow-hidden"
+                            x-show="isRecording">
+                            <div class="h-full bg-red-500 animate-pulse w-full"></div>
+                        </div>
+                    </div>
+
+                    <!-- Recording Controls -->
+                    <div class="mt-8 flex flex-col sm:flex-row items-center justify-center gap-6">
+                        <button type="button" id="startRecordingBtn" @click="isRecording = true" x-show="!isRecording"
+                            class="group flex items-center gap-4 px-10 py-5 bg-red-500 hover:bg-red-600 text-white rounded-3xl font-bold shadow-[0_10px_40px_-10px_rgba(239,68,68,0.5)] transition-all hover:scale-105 active:scale-95">
+                            <span class="w-4 h-4 rounded-full bg-white animate-pulse"></span>
+                            Start Video Analysis
+                        </button>
+
+                        <button type="button" id="stopRecordingBtn" @click="isRecording = false; recorded = true"
+                            x-show="isRecording"
+                            class="flex items-center gap-4 px-10 py-5 bg-slate-900 text-white rounded-3xl font-bold shadow-2xl transition-all hover:scale-105 active:scale-95">
+                            <div class="w-4 h-4 bg-white rounded-sm"></div>
+                            Stop & Proceed
+                        </button>
+
+                        <button type="button" @click="step = 'answer'" x-show="recorded && !isRecording"
+                            class="flex items-center gap-3 px-8 py-5 bg-gradient-to-r from-primary to-secondary text-white rounded-3xl font-bold shadow-xl hover:shadow-2xl transition-all hover:scale-105">
+                            Next: Answer Question
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Analysis Sidebar -->
+                <div class="lg:col-span-1 space-y-6">
+                    <div
+                        class="bg-white dark:bg-slate-800 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-xl overflow-hidden">
+                        <div
+                            class="p-6 border-b border-gray-50 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-900/50">
+                            <h3
+                                class="font-display font-bold text-gray-900 dark:text-white uppercase tracking-widest text-[10px]">
+                                Real-time Metrics</h3>
+                        </div>
+                        <div class="p-6 space-y-8">
+                            <!-- Gaze Gauge -->
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-end">
+                                    <span class="text-xs font-semibold text-gray-500 dark:text-gray-400">Gaze
+                                        Accuracy</span>
+                                    <span class="text-lg font-bold text-gray-900 dark:text-white"
+                                        id="gazeMetric">--</span>
+                                </div>
+                                <div class="h-2 bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                                    <div id="gazeBar" class="h-full bg-primary transition-all duration-300"
+                                        style="width: 0%"></div>
+                                </div>
+                            </div>
+
+                            <!-- Blink Rate -->
+                            <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-900 rounded-2xl">
+                                <div class="flex items-center gap-3">
+                                    <div
+                                        class="w-8 h-8 rounded-xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-600">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z">
+                                            </path>
+                                        </svg>
+                                    </div>
+                                    <span class="text-xs font-semibold text-gray-600 dark:text-gray-400">Blinks</span>
+                                </div>
+                                <span class="font-bold text-gray-900 dark:text-white" id="blinkMetric">--</span>
+                            </div>
+
+                            <!-- Pose Stats -->
+                            <div class="grid grid-cols-3 gap-2 py-4 border-t border-gray-100 dark:border-slate-700">
+                                <div class="text-center">
+                                    <div class="text-[10px] uppercase font-bold text-gray-400 mb-1">Pitch</div>
+                                    <div class="text-xs font-bold text-gray-700 dark:text-gray-300" id="pitchMetric">--
+                                    </div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="text-[10px] uppercase font-bold text-gray-400 mb-1">Yaw</div>
+                                    <div class="text-xs font-bold text-gray-700 dark:text-gray-300" id="yawMetric">--
+                                    </div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="text-[10px] uppercase font-bold text-gray-400 mb-1">Roll</div>
+                                    <div class="text-xs font-bold text-gray-700 dark:text-gray-300" id="rollMetric">--
                                     </div>
                                 </div>
                             </div>
-                            
-                            <!-- Timer (bottom-left) -->
-                            <div class="absolute bottom-4 left-4">
-                                <p class="text-sm text-white font-mono font-semibold" id="recordingTimer">00:00</p>
+
+                            <div class="pt-4 border-t border-gray-100 dark:border-slate-700">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-semibold text-gray-500">Speaking Detected</span>
+                                    <div id="speakingMetric"
+                                        class="px-3 py-1 bg-gray-100 dark:bg-slate-700 text-gray-500 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                                        No</div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    
-                    <!-- Recording Controls -->
-                    <div class="flex gap-3 justify-center">
-                        <button 
-                            type="button" 
-                            id="startRecordingBtn" 
-                            class="px-4 py-2 bg-red-500 text-white rounded-lg font-semibold hover:bg-red-600 transition"
-                        >
-                            Start Recording
-                        </button>
-                        <button 
-                            type="button" 
-                            id="stopRecordingBtn" 
-                            class="px-4 py-2 bg-slate-400 text-white rounded-lg font-semibold hover:bg-slate-500 transition disabled:opacity-50"
-                            disabled
-                        >
-                            Stop Recording
-                        </button>
-                    </div>
-                </div>
 
-                <!-- Analysis Metrics Display -->
-                <div class="lg:col-span-1 bg-slate-50 rounded-2xl p-4 space-y-3">
-                    <h3 class="text-sm font-semibold text-slate-900">Real-time Metrics</h3>
-                    
-                    <div class="space-y-2 text-xs">
-                        <div class="flex justify-between">
-                            <span class="text-slate-600">Gaze at Camera</span>
-                            <span class="font-semibold text-slate-900" id="gazeMetric">--</span>
-                        </div>
-                        <div class="w-full bg-slate-200 rounded-full h-1.5">
-                            <div id="gazeBar" class="bg-green-500 h-1.5 rounded-full transition-all" style="width: 0%"></div>
-                        </div>
-                    </div>
-                    
-                    <div class="space-y-2 text-xs">
-                        <div class="flex justify-between">
-                            <span class="text-slate-600">Blink Rate</span>
-                            <span class="font-semibold text-slate-900" id="blinkMetric">--</span>
-                        </div>
-                    </div>
-                    
-                    <div class="space-y-2 text-xs">
-                        <div class="flex justify-between">
-                            <span class="text-slate-600">Speaking</span>
-                            <span class="font-semibold text-slate-900" id="speakingMetric">--</span>
-                        </div>
-                    </div>
-                    
-                    <div class="space-y-2 text-xs pt-2 border-t border-slate-200">
-                        <div class="flex justify-between">
-                            <span class="text-slate-600">Head Pitch</span>
-                            <span class="font-semibold text-slate-900 font-mono" id="pitchMetric">--</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-slate-600">Head Yaw</span>
-                            <span class="font-semibold text-slate-900 font-mono" id="yawMetric">--</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-slate-600">Head Roll</span>
-                            <span class="font-semibold text-slate-900 font-mono" id="rollMetric">--</span>
-                        </div>
+                    <div class="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl p-6 text-white shadow-lg">
+                        <h4 class="font-bold mb-2">Pro Tip</h4>
+                        <p class="text-xs leading-relaxed opacity-90">Keep your head centered and maintain eye contact
+                            with the camera to maximize your gaze stability score.</p>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Response Form -->
-        <div class="bg-white rounded-3xl border border-slate-100 shadow p-8">
-            <form id="responseForm" method="post" class="space-y-4">
-                {% csrf_token %}
-                {{ form.non_field_errors }}
-                
-                <div>
-                    <label class="text-sm font-semibold text-slate-700">{{ form.text_response.label }}</label>
-                    {{ form.text_response }}
-                    {{ form.text_response.errors }}
+        <!-- Step 2: Question Display & Answer Form -->
+        <div x-show="step === 'answer'" x-cloak x-transition:enter="transition ease-out duration-500"
+            x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
+            class="max-w-4xl mx-auto space-y-8">
+            <!-- Question Card -->
+            <div
+                class="bg-white dark:bg-slate-800 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-xl overflow-hidden animate-fade-in">
+                <div class="bg-gradient-to-r from-primary/10 to-transparent p-10">
+                    <p class="text-[10px] font-black uppercase tracking-[0.4em] text-primary mb-2">Practice Question</p>
+                    <h2 class="font-display text-4xl font-bold text-gray-900 dark:text-white mb-6 leading-tight">{{
+                        question.category|default:"Behavioral Question" }}</h2>
+                    <div
+                        class="p-8 bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm">
+                        <p class="text-xl text-gray-800 dark:text-gray-200 leading-relaxed font-light italic">"{{
+                            question.prompt }}"</p>
+                    </div>
                 </div>
-                
-                <!-- Hidden field for video analysis metrics -->
-                <input type="hidden" id="videoAnalyticsInput" name="video_analysis_metrics" value="">
-                
-                <button 
-                    type="submit" 
-                    class="inline-flex items-center px-5 py-3 bg-primary text-white rounded-2xl font-semibold shadow hover:bg-primary-dark transition"
-                >
-                    Submit Answer
+
+                <div class="px-10 py-6 border-t border-gray-50 dark:border-slate-700 flex flex-wrap gap-2">
+                    {% for criterion in question.evaluation_criteria %}
+                    <span
+                        class="px-4 py-2 bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-400 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700">
+                        {{ criterion }}
+                    </span>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Action Area -->
+            <div class="flex flex-col items-center gap-6 py-10">
+                <p class="text-gray-500 dark:text-gray-400 font-medium">Ready to finalize your response?</p>
+                <button type="button" @click="showAnswerModal = true"
+                    class="px-12 py-5 bg-primary text-white rounded-3xl font-bold text-lg shadow-2xl hover:bg-primary-dark transition-all hover:scale-105">
+                    Write My Final Answer
                 </button>
-            </form>
-        </div>
-
-        <!-- Previous Responses -->
-        {% if responses %}
-        <div class="bg-white rounded-3xl border border-slate-100 shadow space-y-4 p-6">
-            <h2 class="text-lg font-semibold text-slate-900">Previous Responses</h2>
-            <div class="space-y-4">
-                {% for response in responses %}
-                <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-2">
-                    <p class="text-sm text-slate-700">{{ response.text_response|default:"Video-only response" }}</p>
-                    {% if response.video_url %}
-                    <p class="text-xs text-primary">Video: <a href="{{ response.video_url }}" class="underline">{{ response.video_url }}</a></p>
-                    {% endif %}
-                    {% if response.ai_score %}
-                    <p class="text-xs text-slate-500">Score: {{ response.ai_score }} · {{ response.analysis.focus|default:"Focus data pending" }}</p>
-                    <p class="text-sm text-slate-600">{{ response.ai_feedback }}</p>
-                    {% endif %}
-                    <p class="text-xs text-slate-400">Submitted {{ response.submitted_at|naturaltime }}</p>
-                </div>
-                {% endfor %}
+                <p class="text-xs text-slate-400">Your video analysis is processing in the background.</p>
             </div>
         </div>
-        {% endif %}
+    </div>
+
+    <!-- Answer Modal -->
+    <div x-show="showAnswerModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div @click="showAnswerModal = false"
+            class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"></div>
+
+        <div
+            class="relative bg-white dark:bg-slate-800 w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-zoom-in">
+            <div class="p-10">
+                <div class="flex items-center justify-between mb-8">
+                    <h3 class="font-display text-2xl font-bold text-gray-900 dark:text-white">Submit Your Answer</h3>
+                    <button @click="showAnswerModal = false" class="text-gray-400 hover:text-gray-500 transition">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <form id="responseForm" method="post" class="space-y-6">
+                    {% csrf_token %}
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-3 ml-1">Your Written
+                            Response</label>
+                        <textarea name="text_response" rows="8"
+                            class="w-full px-6 py-4 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-3xl focus:ring-4 focus:ring-primary/20 focus:border-primary transition outline-none dark:text-white text-lg leading-relaxed shadow-inner"
+                            placeholder="Type your answer here based on what you said in the video..."></textarea>
+                    </div>
+
+                    <input type="hidden" id="videoAnalyticsInput" name="video_analysis_metrics" value="">
+
+                    <div class="flex gap-4 pt-4">
+                        <button type="button" @click="showAnswerModal = false"
+                            class="flex-1 px-8 py-4 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-white rounded-2xl font-bold transition">
+                            Wait, go back
+                        </button>
+                        <button type="submit"
+                            class="flex-1 px-8 py-4 bg-primary text-white rounded-2xl font-bold shadow-lg hover:bg-primary-dark transition">
+                            Submit Response
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 </div>
 
-<!-- MediaPipe and Video Analyzer Scripts -->
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14"></script>
-<script src="{% static 'js/video_analyzer.js' %}"></script>
+<script type="module" src="{% static 'js/video_analyzer.js' %}"></script>
+<script type="module">
+    document.addEventListener('DOMContentLoaded', async function () {
+        let videoAnalyzer = null;
+        let recordingActive = false;
+        let recordingStartTime = null;
+        let mediaRecorder = null;
+        let recordedChunks = [];
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
-<script>
-document.addEventListener('DOMContentLoaded', async function() {
-    let videoAnalyzer = null;
-    let recordingActive = false;
-    let recordingStartTime = null;
-    let mediaRecorder = null;
-    let recordedChunks = [];
-    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-    
-    const videoPreview = document.getElementById('videoPreview');
-    const startBtn = document.getElementById('startRecordingBtn');
-    const stopBtn = document.getElementById('stopRecordingBtn');
-    const responseForm = document.getElementById('responseForm');
-    const gazeIndicator = document.getElementById('gazeIndicator');
-    const postureIndicator = document.getElementById('postureIndicator');
-    const recordingTimer = document.getElementById('recordingTimer');
-    
-    // Initialize video analyzer
-    async function initAnalyzer() {
-        videoAnalyzer = new VideoAnalyzer({
-            videoElement: videoPreview,
-            canvasElement: document.getElementById('analysisCanvas'),
-            updateInterval: 1000,
-            onMetricsUpdate: updateMetricsDisplay,
-            onError: handleAnalyzerError
-        });
-        
-        const success = await videoAnalyzer.init();
-        if (!success) {
-            startBtn.disabled = true;
-            alert('Failed to initialize video analyzer. Check camera permissions.');
-        }
-    }
-    
-    // Start recording
-    startBtn.addEventListener('click', async function() {
-        if (!videoAnalyzer) {
-            await initAnalyzer();
-        }
-        
-        // Start MediaRecorder for the same stream to capture video
-        const stream = videoPreview.srcObject;
-        recordedChunks = [];
-        try {
-            mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp8', bitsPerSecond: 400000 });
-        } catch (e) {
-            mediaRecorder = new MediaRecorder(stream);
-        }
+        const videoPreview = document.getElementById('videoPreview');
+        const startBtn = document.getElementById('startRecordingBtn');
+        const stopBtn = document.getElementById('stopRecordingBtn');
+        const responseForm = document.getElementById('responseForm');
+        const gazeIndicator = document.getElementById('gazeIndicator');
+        const postureIndicator = document.getElementById('postureIndicator');
+        const globalTimer = document.getElementById('globalTimer');
+        const recordingTimerHUD = document.getElementById('recordingTimerHUD');
 
-        mediaRecorder.ondataavailable = function(e) {
-            if (e.data && e.data.size > 0) recordedChunks.push(e.data);
-        };
+        // Global session timer logic
+        let sessionSeconds = 0;
+        setInterval(() => {
+            sessionSeconds++;
+            const m = Math.floor(sessionSeconds / 60);
+            const s = sessionSeconds % 60;
+            globalTimer.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        }, 1000);
 
-        mediaRecorder.start(1000);
-
-        recordingActive = true;
-        recordingStartTime = Date.now();
-        startBtn.disabled = true;
-        stopBtn.disabled = false;
-        updateTimer();
-    });
-    
-    // Stop recording
-    stopBtn.addEventListener('click', function() {
-        recordingActive = false;
-        stopBtn.disabled = true;
-        startBtn.disabled = false;
-        
-        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-            mediaRecorder.stop();
-        }
-
-        const metrics = videoAnalyzer ? videoAnalyzer.stop() : [];
-        const summary = videoAnalyzer ? videoAnalyzer.getSummary() : null;
-
-        // Store metrics for form submission
-        const analyticsData = {
-            summary: summary,
-            detailed_metrics: metrics
-        };
-        document.getElementById('videoAnalyticsInput').value = JSON.stringify(analyticsData);
-
-        // If recorded video exists, compress/upload in chunks
-        if (recordedChunks.length > 0) {
-            const blob = new Blob(recordedChunks, { type: 'video/webm' });
-            uploadInChunks(blob).catch(err => console.error('Upload failed', err));
-        }
-        alert('Video analysis complete. ' + metrics.length + ' metrics captured.');
-    });
-
-    async function uploadInChunks(blob) {
-        const chunkSize = 5 * 1024 * 1024; // 5MB
-        const totalChunks = Math.ceil(blob.size / chunkSize);
-        const uploadId = localStorage.getItem('upload_in_progress') || (Date.now().toString(36) + Math.random().toString(36).slice(2));
-        localStorage.setItem('upload_in_progress', uploadId);
-
-        for (let i = 0; i < totalChunks; i++) {
-            const start = i * chunkSize;
-            const end = Math.min(blob.size, start + chunkSize);
-            const chunk = blob.slice(start, end);
-
-            const form = new FormData();
-            form.append('chunk', chunk, `chunk_${i}`);
-            form.append('upload_id', uploadId);
-            form.append('chunk_index', i);
-            form.append('total_chunks', totalChunks);
-            form.append('filename', 'response.webm');
-            form.append('session_id', '{{ session.id }}');
-            form.append('question_id', '{{ question.id }}');
-
-            // Try to resume if server already has this chunk
-            const resp = await fetch('{% url "interviews:practice_upload_video" %}', {
-                method: 'POST',
-                headers: {'X-CSRFToken': csrfToken},
-                body: form
+        async function initAnalyzer() {
+            videoAnalyzer = new VideoAnalyzer({
+                videoElement: videoPreview,
+                canvasElement: document.getElementById('analysisCanvas'),
+                updateInterval: 1000,
+                onMetricsUpdate: updateMetricsDisplay,
+                onFrameUpdate: updateRealTimeIndicators,
+                onError: handleAnalyzerError
             });
 
-            if (!resp.ok) {
-                // Retry logic: try up to 3 times
-                let ok = false;
-                for (let attempt = 0; attempt < 3 && !ok; attempt++) {
-                    await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
-                    const r2 = await fetch('{% url "interviews:practice_upload_video" %}', {
-                        method: 'POST',
-                        headers: {'X-CSRFToken': csrfToken},
-                        body: form
-                    });
-                    ok = r2.ok;
-                }
-                if (!ok) throw new Error('Failed to upload chunk ' + i);
+            const success = await videoAnalyzer.init();
+            if (!success) {
+                alert('Failed to access camera. Please ensure permissions are granted.');
+            }
+        }
+
+        startBtn.addEventListener('click', async function () {
+            if (!videoAnalyzer) await initAnalyzer();
+
+            const stream = videoPreview.srcObject;
+            if (!stream) return alert("Camera stream not available.");
+
+            recordedChunks = [];
+            const mimeTypes = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm', 'video/mp4'];
+            let type = mimeTypes.find(t => MediaRecorder.isTypeSupported(t)) || '';
+
+            try {
+                mediaRecorder = new MediaRecorder(stream, type ? { mimeType: type, bitsPerSecond: 600000 } : {});
+            } catch (e) {
+                mediaRecorder = new MediaRecorder(stream);
             }
 
-            // Update progress if desired
-            const progress = Math.round(((i + 1) / totalChunks) * 100);
-            // show progress UI if implemented
+            mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
+            mediaRecorder.start(1000);
+
+            recordingActive = true;
+            recordingStartTime = Date.now();
+            updateRecordingTimer();
+        });
+
+        stopBtn.addEventListener('click', function () {
+            recordingActive = false;
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+
+            const metrics = videoAnalyzer ? videoAnalyzer.stop() : [];
+            const summary = videoAnalyzer ? videoAnalyzer.getSummary() : null;
+
+            document.getElementById('videoAnalyticsInput').value = JSON.stringify({ summary, detailed_metrics: metrics });
+
+            if (recordedChunks.length > 0) {
+                const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                uploadInChunks(blob).catch(err => console.error('Upload failed', err));
+            }
+        });
+
+        async function uploadInChunks(blob) {
+            const chunkSize = 5 * 1024 * 1024;
+            const totalChunks = Math.ceil(blob.size / chunkSize);
+            const uploadId = Date.now().toString(36) + Math.random().toString(36).slice(2);
+
+            for (let i = 0; i < totalChunks; i++) {
+                const chunk = blob.slice(i * chunkSize, Math.min(blob.size, (i + 1) * chunkSize));
+                const form = new FormData();
+                form.append('chunk', chunk);
+                form.append('upload_id', uploadId);
+                form.append('chunk_index', i);
+                form.append('total_chunks', totalChunks);
+                form.append('session_id', '{{ session.id }}');
+                form.append('question_id', '{{ question.id }}');
+
+                await fetch('{% url "interviews:practice_upload_video" %}', {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': csrfToken },
+                    body: form
+                });
+            }
         }
 
-        // All chunks uploaded; request finalization from server is handled there
-        localStorage.removeItem('upload_in_progress');
-    }
-    });
-    
-    // Update timer
-    function updateTimer() {
-        if (!recordingActive) return;
-        
-        const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
-        const minutes = Math.floor(elapsed / 60);
-        const seconds = elapsed % 60;
-        recordingTimer.textContent = 
-            `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-        
-        setTimeout(updateTimer, 1000);
-    }
-    
-    // Update metrics display
-    function updateMetricsDisplay(metric) {
-        document.getElementById('gazeMetric').textContent = 
-            metric.gazeAtCameraPercent.toFixed(0) + '%';
-        document.getElementById('gazeBar').style.width = 
-            metric.gazeAtCameraPercent + '%';
-        
-        document.getElementById('blinkMetric').textContent = 
-            metric.blinkRatePerMinute.toFixed(1) + '/min';
-        
-        document.getElementById('speakingMetric').textContent = 
-            metric.speakingDetected ? 'Yes' : 'No';
-        
-        document.getElementById('pitchMetric').textContent = 
-            metric.headPose.pitch.toFixed(1) + '°';
-        document.getElementById('yawMetric').textContent = 
-            metric.headPose.yaw.toFixed(1) + '°';
-        document.getElementById('rollMetric').textContent = 
-            metric.headPose.roll.toFixed(1) + '°';
-        
-        // Update gaze indicator color
-        const gazeColor = metric.gazeAtCameraPercent > 70 
-            ? 'border-green-400 bg-green-500' 
-            : metric.gazeAtCameraPercent > 40 
-            ? 'border-yellow-400 bg-yellow-500' 
-            : 'border-red-400 bg-red-500';
-        gazeIndicator.className = 'w-6 h-6 rounded-full border-2 bg-opacity-50 transition-colors ' + gazeColor;
-        
-        // Update posture indicator based on head tilt
-        const tilt = Math.abs(metric.headPose.roll);
-        const postureColor = tilt < 15 
-            ? 'border-green-400 bg-green-500' 
-            : tilt < 30 
-            ? 'border-yellow-400 bg-yellow-500' 
-            : 'border-red-400 bg-red-500';
-        postureIndicator.className = 'w-6 h-6 rounded-full border-2 bg-opacity-50 transition-colors ' + postureColor;
-    }
-    
-    // Handle analyzer errors
-    function handleAnalyzerError(error) {
-        console.error('Video analyzer error:', error);
-        alert('Error during video analysis: ' + error.message);
-    }
-    
-    // Form submission
-    responseForm.addEventListener('submit', async function(e) {
-        e.preventDefault();
-        
-        // Stop recording if still active
-        if (recordingActive) {
-            stopBtn.click();
+        function updateRecordingTimer() {
+            if (!recordingActive) return;
+            const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
+            const m = Math.floor(elapsed / 60);
+            const s = elapsed % 60;
+            recordingTimerHUD.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+            setTimeout(updateRecordingTimer, 1000);
         }
-        
-        // Submit form
-        const formData = new FormData(responseForm);
-        
-        // Additional submission of analytics if available
-        const analyticsInput = document.getElementById('videoAnalyticsInput').value;
-        if (analyticsInput) {
-            formData.append('video_analysis_metrics', analyticsInput);
+
+        function updateMetricsDisplay(metric) {
+            if (!metric) return;
+            if (metric.gazeAtCameraPercent !== undefined) {
+                document.getElementById('gazeMetric').textContent = metric.gazeAtCameraPercent.toFixed(0) + '%';
+                document.getElementById('gazeBar').style.width = metric.gazeAtCameraPercent + '%';
+            }
+            if (metric.blinkRatePerMinute !== undefined) {
+                document.getElementById('blinkMetric').textContent = metric.blinkRatePerMinute.toFixed(1);
+            }
+            const sm = document.getElementById('speakingMetric');
+            sm.textContent = metric.speakingDetected ? 'Yes' : 'No';
+            sm.className = metric.speakingDetected
+                ? 'px-3 py-1 bg-green-100 text-green-700 rounded-full text-[10px] font-bold uppercase ring-1 ring-green-200'
+                : 'px-3 py-1 bg-gray-100 text-gray-500 rounded-full text-[10px] font-bold uppercase';
+
+            if (metric.headPose) {
+                document.getElementById('pitchMetric').textContent = metric.headPose.pitch.toFixed(0) + '°';
+                document.getElementById('yawMetric').textContent = metric.headPose.yaw.toFixed(0) + '°';
+                document.getElementById('rollMetric').textContent = metric.headPose.roll.toFixed(0) + '°';
+            }
         }
-        
-        // You can submit the form normally or via AJAX
-        responseForm.submit();
+
+        function updateRealTimeIndicators(frame) {
+            if (!frame) return;
+            const gazeScore = (frame.gaze.score || 0) * 100;
+            const gazeColor = gazeScore > 70 ? 'bg-green-500' : gazeScore > 40 ? 'bg-yellow-500' : 'bg-red-500';
+            gazeIndicator.className = 'w-3 h-3 rounded-full transition-colors shadow-[0_0_10px_rgba(255,255,255,0.5)] ' + gazeColor;
+
+            const tilt = Math.abs(frame.headPose.roll);
+            const postureColor = tilt < 15 ? 'bg-green-500' : tilt < 30 ? 'bg-yellow-500' : 'bg-red-500';
+            postureIndicator.className = 'w-3 h-3 rounded-full transition-colors shadow-[0_0_10px_rgba(255,255,255,0.5)] ' + postureColor;
+
+            const bars = document.getElementById('speakingBars').children;
+            if (frame.mouthOpen > 0.1) {
+                for (let i = 0; i < bars.length; i++) {
+                    bars[i].style.height = `${4 + Math.random() * 20}px`;
+                    bars[i].className = 'w-1 bg-green-400 rounded-full transition-all duration-75';
+                }
+            } else {
+                for (let i = 0; i < bars.length; i++) {
+                    bars[i].style.height = '4px';
+                    bars[i].className = 'w-1 bg-white/30 rounded-full transition-all duration-75';
+                }
+            }
+        }
+
+        function handleAnalyzerError(error) {
+            console.error('Analyzer error:', error);
+        }
+
+        responseForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+            responseForm.submit();
+        });
+
+        // Initial setup
+        initAnalyzer();
     });
-    
-    // Initialize on page load
-    await initAnalyzer();
-});
 </script>
 
 <style>
-    #videoPreview {
-        background-color: #000;
-        display: block;
+    [x-cloak] {
+        display: none !important;
     }
-    
-    #analysisCanvas {
-        display: block;
+
+    @keyframes zoom-in {
+        from {
+            opacity: 0;
+            transform: scale(0.95);
+        }
+
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
     }
-    
-    textarea[name="text_response"] {
-        @apply w-full p-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary;
+
+    .animate-zoom-in {
+        animation: zoom-in 0.3s ease-out forwards;
+    }
+
+    /* Override for specific UI consistency */
+    .bg-primary {
+        box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.39);
     }
 </style>
 {% endblock %}
-

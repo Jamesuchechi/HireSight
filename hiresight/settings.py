@@ -7,8 +7,8 @@ For more information on this file, see
 https://docs.djangoproject.com/en/4.2/topics/settings/
 
 For the full list of settings and their values, see
-https://docs.djangoproject.com/en/4.2/ref/settings/
-"""
+https://docs.djangoproject.com/en/4.2/ref/settings/"""
+
 
 from pathlib import Path
 import os
@@ -87,6 +87,7 @@ MIDDLEWARE = [
     'apps.accounts.middleware.CleanupExpiredSessionsMiddleware', 
     'apps.notifications.middleware.NotificationMiddleware',
     'apps.following.middleware.FollowCountMiddleware',
+    'apps.accounts.middleware.EmailVerificationMiddleware',
     'apps.analytics.middleware.AnalyticsTrackingMiddleware',
     'axes.middleware.AxesMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -212,9 +213,9 @@ CONTENT_SECURITY_POLICY = {
         'default-src': ("'self'",),
         'style-src': ("'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdn.tailwindcss.com"),
         'font-src': ("'self'", "https://fonts.gstatic.com"),
-        'script-src': ("'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com", "https://cdn.jsdelivr.net", "https://unpkg.com"),
+        'script-src': ("'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com", "https://cdn.jsdelivr.net", "https://unpkg.com", "'wasm-unsafe-eval'"),
         'img-src': ("'self'", "data:", "https:"),
-        'connect-src': ("'self'",),
+        'connect-src': ("'self'", "https://cdn.jsdelivr.net", "https://storage.googleapis.com"),
     }
 }
 
@@ -377,12 +378,10 @@ MISTRAL_AI_BASE_URL = config('MISTRAL_AI_BASE_URL', default='https://api.mistral
 MISTRAL_AI_MODEL = config('MISTRAL_AI_MODEL', default='mistral-small-latest')
 MISTRAL_AI_TIMEOUT = config('MISTRAL_AI_TIMEOUT', default=30, cast=int)
 
-GEMINI_API_KEY_PRIMARY = config('GEMINI_API_KEY_PRIMARY', default='')
-GEMINI_API_KEY_SECONDARY = config('GEMINI_API_KEY_SECONDARY', default='')
-GEMINI_KEYS = [key for key in [GEMINI_API_KEY_PRIMARY, GEMINI_API_KEY_SECONDARY] if key]
-GEMINI_API_URL = config('GEMINI_API_URL', default='https://gemini.labs.ai/api/v1/generate')
-GEMINI_MODELS = config('GEMINI_MODEL', default='gemini-2.0-flash,gemini-1.5-flash', cast=lambda v: [s.strip() for s in v.split(',')])
-GEMINI_AI_TIMEOUT = config('GEMINI_AI_TIMEOUT', default=30, cast=int)
+GROQ_API_KEY = config('GROQ_API_KEY', default='')
+GROQ_API_URL = config('GROQ_API_URL', default='https://api.groq.com/openai/v1')
+GROQ_MODEL = config('GROQ_MODEL', default='llama-3.3-70b-versatile')
+GROQ_TIMEOUT = config('GROQ_TIMEOUT', default=30, cast=int)
 
 
 # Session Settings
@@ -499,7 +498,7 @@ PRACTICE_SESSIONS_PER_DAY_LIMIT = int(os.environ.get('PRACTICE_SESSIONS_PER_DAY_
 
 # AI model pricing (per 1K tokens)
 AI_MODEL_PRICING = {
-    'gemini': 0.001,      # $0.001 per 1K tokens
+    'groq': 0.00015,      # $0.00015 per 1K tokens
     'mistral': 0.0002,    # $0.0002 per 1K tokens
     'openai': 0.0015,     # $0.0015 per 1K tokens
 }

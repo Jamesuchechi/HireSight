@@ -7,5 +7,8 @@ class AssessmentsConfig(AppConfig):
     verbose_name = 'Skill Assessments'
 
     def ready(self):
-        from . import achievements  # noqa: F401
-        achievements.ensure_default_achievements()
+        from django.db.models.signals import post_migrate
+
+        from . import achievements
+        post_migrate.connect(achievements.ensure_default_achievements, sender=self)
+

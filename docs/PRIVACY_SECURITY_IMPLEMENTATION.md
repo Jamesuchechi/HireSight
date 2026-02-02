@@ -280,7 +280,7 @@ Comprehensive logging of all AI API calls for auditing, cost tracking, and perfo
   - `REPORT_GENERATION`: Creating performance reports
   - `FEEDBACK`: Generating feedback
 - `model_used` (CharField): Which AI model
-  - `GEMINI`: Google Gemini
+  - `GROQ`: Groq AI
   - `MISTRAL`: Mistral AI
   - `OPENAI`: OpenAI GPT
 - `input_tokens` (PositiveIntegerField): Request token count
@@ -322,27 +322,27 @@ from apps.interviews.models import AIUsageLog
 
 # In your AI service handler
 try:
-    response = gemini_model.generate_content(prompt, generation_config={...})
-    input_tokens = response.usage_metadata.prompt_token_count
-    output_tokens = response.usage_metadata.candidates_token_count
+    response = groq_client.chat.completions.create(messages=messages, ...)
+    input_tokens = response.usage.prompt_tokens
+    output_tokens = response.usage.completion_tokens
     
     AIUsageLog.log_request(
         user=request.user,
         session=practice_session,
         request_type=AIUsageLog.RequestType.QUESTION_GENERATION,
-        model_used=AIUsageLog.ModelChoice.GEMINI,
+        model_used=AIUsageLog.ModelChoice.GROQ,
         input_tokens=input_tokens,
         output_tokens=output_tokens,
         response_time_ms=duration_ms,
         status=AIUsageLog.Status.SUCCESS,
-        request_id=response.response_id
+        request_id=response.id
     )
 except Exception as e:
     AIUsageLog.log_request(
         user=request.user,
         session=practice_session,
         request_type=AIUsageLog.RequestType.QUESTION_GENERATION,
-        model_used=AIUsageLog.ModelChoice.GEMINI,
+        model_used=AIUsageLog.ModelChoice.GROQ,
         status=AIUsageLog.Status.FAILED,
         error_message=str(e)
     )
@@ -354,7 +354,7 @@ except Exception as e:
 
 | Model | Input Cost | Output Cost | Notes |
 |-------|-----------|------------|-------|
-| Gemini | $0.001 | $0.001 | Combined rate |
+| Groq | $0.00015 | $0.00015 | High-speed Option |
 | Mistral | $0.0002 | $0.0002 | Economical option |
 | OpenAI | $0.0015 | $0.002 | Premium option |
 
@@ -365,7 +365,7 @@ estimated_cost_usd = (total_tokens / 1000) * cost_per_1k_tokens
 
 **Example:**
 - 1000 input tokens + 500 output tokens = 1500 total
-- Using Gemini: (1500 / 1000) * $0.001 = $0.0015
+- Using Groq: (1500 / 1000) * $0.00015 = $0.000225
 
 ### Admin Dashboard
 
@@ -606,7 +606,7 @@ PRACTICE_SESSIONS_PER_DAY_LIMIT = int(os.environ.get('PRACTICE_SESSIONS_PER_DAY_
 
 # AI model pricing (per 1K tokens)
 AI_MODEL_PRICING = {
-    'gemini': 0.001,      # $0.001 per 1K tokens
+    'groq': 0.00015,      # $0.00015 per 1K tokens
     'mistral': 0.0002,    # $0.0002 per 1K tokens
     'openai': 0.0015,     # $0.0015 per 1K tokens
 }
@@ -715,7 +715,7 @@ def test_api_logging(self):
         user=self.user,
         session=self.session,
         request_type='question_gen',
-        model_used='gemini',
+        model_used='groq',
         input_tokens=1000,
         output_tokens=500,
         response_time_ms=1234,
@@ -725,7 +725,7 @@ def test_api_logging(self):
     
     log = AIUsageLog.objects.latest('created_at')
     self.assertEqual(log.total_tokens, 1500)
-    self.assertEqual(float(log.estimated_cost_usd), 0.0015)
+    self.assertEqual(float(log.estimated_cost_usd), 0.000225)
 ```
 
 ---

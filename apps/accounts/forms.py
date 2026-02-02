@@ -142,14 +142,23 @@ class EmailVerificationForm(forms.Form):
     """Form for email verification token."""
     
     token = forms.CharField(
-        max_length=255,
+        max_length=6,
+        min_length=6,
         required=True,
         widget=forms.TextInput(attrs={
-            'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl text-center font-mono tracking-wider focus:ring-2 focus:ring-blue focus:border-blue transition uppercase',
-            'placeholder': 'ENTER-TOKEN-HERE',
-            'autocomplete': 'off'
+            'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl text-center font-mono tracking-widest focus:ring-2 focus:ring-blue focus:border-blue transition',
+            'placeholder': '000000',
+            'autocomplete': 'one-time-code',
+            'pattern': '[0-9]*',
+            'inputmode': 'numeric'
         })
     )
+
+    def clean_token(self):
+        token = self.cleaned_data.get('token')
+        if not token.isdigit():
+            raise ValidationError('Verification code must contain only numbers.')
+        return token
 
 
 class ForgotPasswordForm(PasswordResetForm):

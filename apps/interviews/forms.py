@@ -456,6 +456,10 @@ class PracticeResponseForm(forms.Form):
         required=False,
         widget=forms.TextInput(attrs={'class': 'mt-1 block w-full rounded-md border-gray-300'})
     )
+    video_analysis_metrics = forms.CharField(
+        required=False,
+        widget=forms.HiddenInput()
+    )
 
     def clean(self):
         cleaned = super().clean()

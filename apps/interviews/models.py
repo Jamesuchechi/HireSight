@@ -1008,7 +1008,7 @@ class AIUsageLog(models.Model):
     """
     
     class ModelType(models.TextChoices):
-        GEMINI = 'gemini', 'Google Gemini'
+        GROQ = 'groq', 'Groq AI'
         MISTRAL = 'mistral', 'Mistral AI'
         OPENAI = 'openai', 'OpenAI GPT'
     
@@ -1106,7 +1106,7 @@ class AIUsageLog(models.Model):
         
         # Calculate estimated costs (these are example rates)
         cost_per_1k_tokens = {
-            'gemini': 0.001,      # $0.001 per 1k tokens
+            'groq': 0.0001,       # $0.0001 per 1k tokens (Groq is very cheap)
             'mistral': 0.0002,    # $0.0002 per 1k tokens
             'openai': 0.0015,     # $0.0015 per 1k tokens
         }

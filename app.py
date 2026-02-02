@@ -1,24 +1,23 @@
-from google import genai
+from groq import Groq
 from dotenv import load_dotenv
 import os
 
 load_dotenv()  
 
-# Fetch them individually
-primary = os.getenv("GEMINI_API_KEY_PRIMARY")
-secondary = os.getenv("GEMINI_API_KEY_SECONDARY")
-
-# Use primary if it exists, otherwise use secondary
-api_key = primary or secondary
+# Fetch Groq API key
+api_key = os.getenv("GROQ_API_KEY")
 
 if not api_key:
-    raise ValueError("No Gemini API keys found in .env file.")
+    raise ValueError("No Groq API key found in .env file.")
 
-client = genai.Client(api_key=api_key)
+client = Groq(api_key=api_key)
 
-response = client.models.generate_content(
-    model="gemini-2.5-flash",
-    contents="Tell me what you think will happen between chelsea and Napoli today."
+response = client.chat.completions.create(
+    model="llama-3.3-70b-versatile",
+    messages=[
+        {"role": "user", "content": "Tell me what you think will happen between chelsea and Napoli today."}
+    ],
+    temperature=0.7
 )
 
-print(response.text)
+print(response.choices[0].message.content)

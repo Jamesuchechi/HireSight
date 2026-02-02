@@ -98,7 +98,7 @@ def generate_questions(session):
     """
     Generate practice interview questions using AIConnector.
     
-    Attempts Gemini first with full fallback, then Mistral as final fallback.
+    Attempts Mistral first, then falls back to Groq.
     Never returns fake/hardcoded questions.
     
     Args:
@@ -108,7 +108,8 @@ def generate_questions(session):
         tuple: (questions_list, raw_response, model_used) where:
                - questions_list: list of validated questions or empty list if generation fails
                - raw_response: str with the raw AI response or error message
-               - model_used: str with 'gemini', 'mistral', or None if failed
+               - model_used: str with 'groq', 'mistral', or None if failed
+
     """
     # Cache questions for identical session settings for 1 hour
     try:
