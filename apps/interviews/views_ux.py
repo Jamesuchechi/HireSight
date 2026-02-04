@@ -5,9 +5,12 @@ Handles session setup, warmup flow, progress tracking, and history dashboard.
 import json
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views import View
+from django.views.generic import DetailView
 from django.views.decorators.http import require_http_methods
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
+from .views import CandidateRequiredMixin
 from django.utils.decorators import method_decorator
 from django.db.models import Avg, Q, Count
 from datetime import timedelta
@@ -217,11 +220,79 @@ class PracticeHistoryDashboardView(View):
         # Calculate statistics
         stats = self._calculate_stats(user, sessions)
         
+        # Prepare chart data
+        chart_data = self._prepare_chart_data(user)
+        
+        # Generate AI tips
+        ai_tips = self._generate_ai_tips(user, stats)
+        
         context = {
             'sessions': sessions,
             'stats': stats,
+            'chart_data': chart_data,
+            'ai_tips': ai_tips
         }
         return render(request, 'interviews/practice/practice_history_dashboard.html', context)
+    
+    def _prepare_chart_data(self, user):
+        """Prepare data for the progress chart."""
+        sessions = InterviewPracticeSession.objects.filter(
+            candidate=user,
+            status=InterviewPracticeSession.Status.COMPLETED
+        ).order_by('completed_at')
+        
+        labels = [f"Session {i+1}" for i, session in enumerate(sessions)]
+        scores = [float(session.overall_score or 0) for session in sessions]
+        
+        return {
+            'labels': json.dumps(labels),
+            'scores': json.dumps(scores)
+        }
+    
+    def _generate_ai_tips(self, user, stats):
+        """Generate personalized AI tips based on user's practice history."""
+        # This would ideally call an AI service to generate tips
+        # For now, we'll generate mock tips based on stats
+        tips = []
+        
+        # Analyze performance
+        if stats['average_score'] < 70:
+            tips.append({
+                'title': 'Focus on Fundamentals',
+                'content': 'Your average score is below 70%. Consider practicing more with basic interview questions to build a strong foundation.',
+                'color': 'blue'
+            })
+        
+        if stats['score_trend'] < 0:
+            tips.append({
+                'title': 'Score Decline',
+                'content': 'Your scores have been decreasing recently. Try to identify patterns in the questions you\'re struggling with.',
+                'color': 'amber'
+            })
+        
+        if stats['categories_practiced'] < 3:
+            tips.append({
+                'title': 'Diversify Practice',
+                'content': 'You\'ve only practiced in a few categories. Try exploring different question types to improve your versatility.',
+                'color': 'purple'
+            })
+        
+        if stats['current_streak'] >= 5:
+            tips.append({
+                'title': 'Consistent Practice',
+                'content': 'Great job maintaining a streak of {stats.current_streak} days! Keep up the consistent practice to see continuous improvement.',
+                'color': 'green'
+            })
+        
+        # If no specific tips, add general ones
+        if not tips:
+            tips.append({
+                'title': 'Keep Up the Good Work',
+                'content': 'Your practice is going well! Continue challenging yourself with new questions and difficulty levels.',
+                'color': 'green'
+            })
+        
+        return tips
     
     def _calculate_stats(self, user, sessions):
         """Calculate performance statistics for dashboard."""
@@ -336,6 +407,9 @@ class PracticeHistoryDashboardView(View):
                     continue
                     
                 category = response.question.category or 'General'
+                if isinstance(category, dict):
+                    category = category.get('name', 'General')
+            
                 score = float(response.overall_score or 0)
                 
                 if category not in category_scores:
@@ -347,7 +421,7 @@ class PracticeHistoryDashboardView(View):
         for category, scores in category_scores.items():
             avg = sum(scores) / len(scores) if scores else 0
             performance.append({
-                'name': category.title(),
+                'name': str(category).title(),
                 'score': round(avg, 1)
             })
         
@@ -485,3 +559,32 @@ class SessionControlsView(View):
             'message': 'Session exited and progress saved',
             'redirect_url': f'/interviews/session/{session.id}/report/'
         })
+
+
+class PracticeResponseDetailView(LoginRequiredMixin, CandidateRequiredMixin, DetailView):
+    """Detailed analysis view for a single practice response."""
+    model = PracticeResponse
+    template_name = 'interviews/practice/response_detail.html'
+    context_object_name = 'response'
+    pk_url_kwarg = 'response_id'
+    
+    def get_queryset(self):
+        return PracticeResponse.objects.filter(
+            session__candidate=self.request.user
+        ).select_related('question', 'session')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        response = self.object
+        
+        # Calculate percentile ranking
+        all_scores = PracticeResponse.objects.filter(
+            question__category=response.question.category
+        ).values_list('ai_score', flat=True)
+        
+        if response.ai_score and all_scores:
+            better_than = sum(1 for score in all_scores if score < response.ai_score)
+            percentile = (better_than / len(all_scores)) * 100
+            context['percentile'] = round(percentile, 1)
+        
+        return context

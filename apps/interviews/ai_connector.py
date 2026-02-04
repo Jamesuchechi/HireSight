@@ -599,7 +599,7 @@ class AIConnector:
         
         return "Error: All Groq attempts exhausted after retries"
 
-def score_response(self, question_prompt, answer_text, evaluation_criteria, video_metrics=None):
+    def score_response(self, question_prompt, answer_text, evaluation_criteria, video_metrics=None):
         """Score a candidate response using AI."""
         prompt = self._build_scoring_prompt(
             question_prompt,
@@ -693,7 +693,7 @@ def score_response(self, question_prompt, answer_text, evaluation_criteria, vide
         logger.error(error_msg)
         return {'success': False, 'error': error_msg}, error_msg, None
 
-def _build_scoring_prompt(self, question_prompt, answer_text, evaluation_criteria, video_metrics=None):
+    def _build_scoring_prompt(self, question_prompt, answer_text, evaluation_criteria, video_metrics=None):
         """Build a comprehensive scoring prompt."""
         prompt_parts = [
             "You are an expert interview evaluator. Score the following candidate response:",

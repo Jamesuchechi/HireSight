@@ -100,6 +100,13 @@ urlpatterns = [
         views.PracticeFeedbackView.as_view(),
         name='practice_feedback'
     ),
+
+    path(
+        'practice/response/<int:response_id>/detail/',
+        views_ux.PracticeResponseDetailView.as_view(),
+        name='practice_response_detail'
+    ),
+
     path(
         'practice/session/<int:session_id>/report/',
         views.CachedPracticeReportView.as_view(),

@@ -832,23 +832,31 @@ class PracticeQuestionView(LoginRequiredMixin, CandidateRequiredMixin, FormView)
         )
         analyze_practice_response.delay(response.id)
         self.update_session_progress()
+
         messages.success(self.request, "Response submitted. AI scoring is in progress.")
+
         next_question = self.session.questions.filter(order__gt=self.question.order).order_by('order').first()
+
         if next_question:
             return redirect('interviews:practice_question', question_id=next_question.id)
+
         generate_practice_report.delay(self.session.id)
         return redirect('interviews:practice_feedback', session_id=self.session.id)
 
     def update_session_progress(self):
         total = self.session.questions.count()
-        answered = PracticeResponse.objects.filter(session=self.session).values('question').distinct().count()
+        answered = PracticeResponse.objects.filter(
+            session=self.session
+        ).values('question').distinct().count()
+        
         progress = min(100, (answered / total) * 100) if total else 0
         self.session.progress = progress
-        self.session.status = (
-            InterviewPracticeSession.Status.REVIEW_PENDING
-            if answered >= total and total > 0
-            else InterviewPracticeSession.Status.IN_PROGRESS
-        )
+        
+        if answered >= total and total > 0:
+            self.session.status = InterviewPracticeSession.Status.REVIEW_PENDING
+        else:
+            self.session.status = InterviewPracticeSession.Status.IN_PROGRESS
+            
         self.session.save(update_fields=['progress', 'status'])
 
 

@@ -54,4 +54,5 @@ $RECYCLE.BIN/
 *.log.*swp
 *.swo   
 logs/
-media/
+media/tailwindcss-linux-x64
+tailwindcss-linux-x64

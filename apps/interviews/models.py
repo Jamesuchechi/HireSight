@@ -717,7 +717,7 @@ class PracticeQuestion(models.Model):
     category = models.CharField(max_length=80, blank=True)
     difficulty = models.CharField(max_length=50, blank=True)
     evaluation_criteria = models.JSONField(
-        default=dict,
+        default=list,
         blank=True,
         help_text='Guidance for scoring (clarity, structure, tone, etc.)'
     )

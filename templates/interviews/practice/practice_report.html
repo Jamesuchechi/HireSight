@@ -1,86 +1,283 @@
 {% extends 'base.html' %}
+{% load humanize static %}
 
 {% block title %}Practice Report{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-slate-50 py-10">
-    <div class="max-w-4xl mx-auto">
-        <div class="bg-white rounded-3xl border border-slate-100 shadow-lg p-8 space-y-6">
-            <div>
-                <p class="text-xs uppercase tracking-[0.4em] text-slate-500">Performance Report</p>
-                <h1 class="text-3xl font-semibold text-slate-900">{{ session.focus_area|default:"Practice Session" }}</h1>
-                <p class="text-sm text-slate-500">Generated {{ report.generated_at|date:"M d, Y" }}</p>
+<style>
+    [x-cloak] {
+        display: none !important;
+    }
+</style>
+
+<div class="min-h-screen bg-gray-50 dark:bg-slate-900 pb-20" x-data="{ showFullReport: false }">
+    <!-- Top Navigation -->
+    <div class="bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <a href="{% url 'interviews:practice_feedback' session_id=session.id %}"
+                    class="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full transition">
+                    <svg class="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                    </svg>
+                </a>
+                <div>
+                    <h1 class="font-display text-xl font-bold text-gray-900 dark:text-white">Performance Report</h1>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">
+                        {{ session.focus_areas|first|default:"Interview Readiness" }}
+                    </p>
+                </div>
             </div>
-            {% if report %}
-            <div class="space-y-4">
-                <div class="rounded-2xl border border-slate-100 p-4 bg-slate-50">
-                    <p class="text-xs text-slate-500">Overall Score</p>
-                    <p class="text-4xl font-bold text-slate-900">{{ report.overall_score|floatformat:1 }}/100</p>
-                </div>
-                <div class="grid gap-4 md:grid-cols-2">
-                    <div>
-                        <h3 class="text-xs uppercase tracking-[0.3em] text-slate-500">Question generation</h3>
-                        <p class="text-sm text-slate-600">{{ session.get_question_generation_state_display }}</p>
-                    </div>
-                    <div>
-                        <h3 class="text-xs uppercase tracking-[0.3em] text-slate-500">Report status</h3>
-                        <p class="text-sm text-slate-600">
-                            {{ session.get_report_generation_state_display }}
-                        </p>
-                    </div>
-                </div>
-                <div>
-                    <h2 class="text-lg font-semibold text-slate-900">Strengths</h2>
-                    <ul class="list-disc list-inside text-sm text-slate-600 space-y-1">
-                        {% for strength in report.strengths %}
-                        <li>{{ strength }}</li>
-                        {% empty %}
-                        <li>AI will highlight strengths once available.</li>
-                        {% endfor %}
-                    </ul>
-                </div>
-                <div>
-                    <h2 class="text-lg font-semibold text-slate-900">Areas to Improve</h2>
-                    <ul class="list-disc list-inside text-sm text-slate-600 space-y-1">
-                        {% for weakness in report.weaknesses %}
-                        <li>{{ weakness }}</li>
-                        {% empty %}
-                        <li>No recommendations yet. Practice more questions.</li>
-                        {% endfor %}
-                    </ul>
-                </div>
-                <div>
-                    <h2 class="text-lg font-semibold text-slate-900">Recommendations</h2>
-                    <p class="text-sm text-slate-600">{{ report.recommendations|default:"Our AI coach will suggest next steps soon." }}</p>
-                </div>
-                <div class="bg-white rounded-2xl border border-slate-100 p-4">
-                    <canvas id="practiceChart" height="150"></canvas>
-                </div>
-                {% if session.next_question %}
-                <div class="rounded-2xl border border-slate-200 p-4 text-sm text-slate-600 bg-slate-50">
-                    Next question: <strong class="text-slate-900">{{ session.next_question.prompt|truncatechars:80 }}</strong>
-                </div>
-                {% endif %}
+
+            <div class="flex items-center gap-3">
+                <span class="text-xs text-gray-500 dark:text-gray-400">
+                    Generated {{ report.generated_at|date:"M d, Y" }}
+                </span>
             </div>
-            {% else %}
-            <div class="space-y-4">
-                <div class="h-8 bg-slate-200 rounded animate-pulse w-1/3"></div>
-                <div class="h-24 bg-slate-200 rounded animate-pulse"></div>
-                <div class="grid gap-4 md:grid-cols-2">
-                    <div class="h-12 bg-slate-200 rounded animate-pulse"></div>
-                    <div class="h-12 bg-slate-200 rounded animate-pulse"></div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {% if report %}
+        <div class="space-y-8">
+            <!-- Overall Score Card -->
+            <div class="bg-white dark:bg-slate-800 rounded-[3rem] border border-gray-100 dark:border-slate-700 shadow-2xl overflow-hidden">
+                <div class="p-12">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <!-- Main Score -->
+                        <div class="lg:col-span-2">
+                            <div class="space-y-4">
+                                <span class="px-5 py-2 bg-primary/10 text-primary rounded-full text-xs font-black uppercase tracking-widest inline-block">
+                                    Overall Performance
+                                </span>
+                                <div class="flex items-end gap-6">
+                                    <div class="text-8xl font-black text-gray-900 dark:text-white">
+                                        {{ report.overall_score|floatformat:0 }}
+                                    </div>
+                                    <div class="pb-4">
+                                        <div class="text-3xl font-bold text-gray-400">/100</div>
+                                        <div class="text-sm text-gray-500 mt-1">
+                                            {% if report.overall_score >= 90 %}
+                                            Exceptional Performance
+                                            {% elif report.overall_score >= 75 %}
+                                            Strong Performance
+                                            {% elif report.overall_score >= 60 %}
+                                            Good Performance
+                                            {% else %}
+                                            Needs Improvement
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Score Breakdown -->
+                                <div class="grid grid-cols-2 gap-4 pt-4">
+                                    <div class="p-4 bg-gray-50 dark:bg-slate-900/50 rounded-2xl">
+                                        <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Video Analysis</p>
+                                        <p class="text-2xl font-bold text-gray-900 dark:text-white">
+                                            {{ report.video_score|default:0|floatformat:0 }}%
+                                        </p>
+                                    </div>
+                                    <div class="p-4 bg-gray-50 dark:bg-slate-900/50 rounded-2xl">
+                                        <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Content Quality</p>
+                                        <p class="text-2xl font-bold text-gray-900 dark:text-white">
+                                            {{ report.content_score|default:0|floatformat:0 }}%
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Session Info -->
+                        <div class="space-y-6">
+                            <div class="p-6 bg-gradient-to-br from-primary to-indigo-600 rounded-3xl text-white">
+                                <h3 class="text-sm font-bold opacity-80 mb-4">Session Details</h3>
+                                <div class="space-y-3">
+                                    <div>
+                                        <p class="text-xs opacity-70">Total Questions</p>
+                                        <p class="text-2xl font-black">{{ session.number_of_questions }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs opacity-70">Questions Answered</p>
+                                        <p class="text-2xl font-black">{{ session.questions.count }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs opacity-70">Time per Question</p>
+                                        <p class="text-xl font-bold">{{ session.time_limit_per_question }} min</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="p-6 bg-gray-50 dark:bg-slate-900/50 rounded-3xl border border-gray-100 dark:border-slate-700">
+                                <h4 class="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3">Generation Status</h4>
+                                <div class="space-y-2">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm text-gray-700 dark:text-gray-300">Questions</span>
+                                        <span class="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full text-xs font-bold">
+                                            {{ session.get_question_generation_state_display }}
+                                        </span>
+                                    </div>
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm text-gray-700 dark:text-gray-300">Report</span>
+                                        <span class="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full text-xs font-bold">
+                                            {{ session.get_report_generation_state_display }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="h-40 bg-slate-200 rounded animate-pulse"></div>
+            </div>
+
+            <!-- Strengths & Weaknesses Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Strengths -->
+                <div class="bg-white dark:bg-slate-800 rounded-[2.5rem] border border-gray-100 dark:border-slate-700 shadow-xl overflow-hidden">
+                    <div class="p-8">
+                        <div class="flex items-center gap-3 mb-6">
+                            <div class="w-12 h-12 rounded-2xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                                <svg class="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                            </div>
+                            <h2 class="font-display text-2xl font-bold text-gray-900 dark:text-white">Strengths</h2>
+                        </div>
+                        <div class="space-y-3">
+                            {% for strength in report.strengths %}
+                            <div class="p-4 bg-green-50 dark:bg-green-900/20 rounded-2xl border border-green-100 dark:border-green-900/30">
+                                <p class="text-sm text-gray-700 dark:text-gray-300">{{ strength }}</p>
+                            </div>
+                            {% empty %}
+                            <div class="p-6 text-center text-gray-400 dark:text-gray-500">
+                                <svg class="w-12 h-12 mx-auto mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                </svg>
+                                <p class="text-sm">AI will highlight strengths once available.</p>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Areas to Improve -->
+                <div class="bg-white dark:bg-slate-800 rounded-[2.5rem] border border-gray-100 dark:border-slate-700 shadow-xl overflow-hidden">
+                    <div class="p-8">
+                        <div class="flex items-center gap-3 mb-6">
+                            <div class="w-12 h-12 rounded-2xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
+                                <svg class="w-6 h-6 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                                </svg>
+                            </div>
+                            <h2 class="font-display text-2xl font-bold text-gray-900 dark:text-white">Areas to Improve</h2>
+                        </div>
+                        <div class="space-y-3">
+                            {% for weakness in report.weaknesses %}
+                            <div class="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-2xl border border-orange-100 dark:border-orange-900/30">
+                                <p class="text-sm text-gray-700 dark:text-gray-300">{{ weakness }}</p>
+                            </div>
+                            {% empty %}
+                            <div class="p-6 text-center text-gray-400 dark:text-gray-500">
+                                <svg class="w-12 h-12 mx-auto mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <p class="text-sm">No recommendations yet. Practice more questions.</p>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recommendations -->
+            <div class="bg-white dark:bg-slate-800 rounded-[2.5rem] border border-gray-100 dark:border-slate-700 shadow-xl overflow-hidden">
+                <div class="p-10">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="w-12 h-12 rounded-2xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
+                            <svg class="w-6 h-6 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                            </svg>
+                        </div>
+                        <h2 class="font-display text-2xl font-bold text-gray-900 dark:text-white">AI Recommendations</h2>
+                    </div>
+                    {% if report.recommendations %}
+                    <div class="prose prose-lg dark:prose-invert max-w-none">
+                        <p class="text-gray-700 dark:text-gray-300 leading-relaxed">{{ report.recommendations }}</p>
+                    </div>
+                    {% else %}
+                    <div class="p-8 text-center bg-gray-50 dark:bg-slate-900/50 rounded-2xl">
+                        <svg class="w-16 h-16 mx-auto mb-4 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                        <p class="text-gray-500 dark:text-gray-400">Our AI coach will suggest next steps soon.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Performance Chart -->
+            <div class="bg-white dark:bg-slate-800 rounded-[2.5rem] border border-gray-100 dark:border-slate-700 shadow-xl overflow-hidden">
+                <div class="p-10">
+                    <h2 class="font-display text-2xl font-bold text-gray-900 dark:text-white mb-6">Performance Breakdown</h2>
+                    <div class="h-64">
+                        <canvas id="practiceChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Next Question Preview -->
+            {% if session.next_question %}
+            <div class="bg-gradient-to-br from-primary to-indigo-600 rounded-[2.5rem] shadow-xl overflow-hidden">
+                <div class="p-10 text-white">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-display text-2xl font-bold">Continue Your Practice</h3>
+                        <svg class="w-8 h-8 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                        </svg>
+                    </div>
+                    <p class="text-white/80 mb-6 text-lg">
+                        Next question: <strong>{{ session.next_question.prompt|truncatechars:100 }}</strong>
+                    </p>
+                    <a href="{% url 'interviews:practice_question' question_id=session.next_question.id %}"
+                        class="inline-flex items-center gap-3 px-8 py-4 bg-white text-primary rounded-2xl font-bold shadow-lg hover:shadow-xl transition-all hover:scale-105">
+                        Start Next Question
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                        </svg>
+                    </a>
+                </div>
             </div>
             {% endif %}
-            <div class="flex gap-3">
-                <a href="{% url 'interviews:practice_feedback' session_id=session.id %}" class="px-5 py-2 rounded-2xl border border-slate-300 text-sm text-slate-600 hover:bg-slate-100 transition">
-                    Back to Feedback
-                </a>
-                <a href="{% url 'interviews:practice_dashboard' %}" class="px-5 py-2 rounded-2xl bg-primary text-white text-sm font-semibold hover:bg-primary-dark transition">
-                    Dashboard
-                </a>
+        </div>
+
+        {% else %}
+        <!-- Loading State -->
+        <div class="space-y-8">
+            <div class="bg-white dark:bg-slate-800 rounded-[3rem] border border-gray-100 dark:border-slate-700 shadow-2xl overflow-hidden p-12">
+                <div class="animate-pulse space-y-6">
+                    <div class="h-8 bg-slate-200 dark:bg-slate-700 rounded-full w-1/3"></div>
+                    <div class="h-32 bg-slate-200 dark:bg-slate-700 rounded-3xl"></div>
+                    <div class="grid gap-6 md:grid-cols-2">
+                        <div class="h-24 bg-slate-200 dark:bg-slate-700 rounded-2xl"></div>
+                        <div class="h-24 bg-slate-200 dark:bg-slate-700 rounded-2xl"></div>
+                    </div>
+                    <div class="h-48 bg-slate-200 dark:bg-slate-700 rounded-3xl"></div>
+                </div>
             </div>
+        </div>
+        {% endif %}
+
+        <!-- Action Buttons -->
+        <div class="flex flex-wrap gap-4 justify-center mt-8">
+            <a href="{% url 'interviews:practice_feedback' session_id=session.id %}"
+                class="px-8 py-4 rounded-2xl border-2 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 font-bold hover:bg-gray-100 dark:hover:bg-slate-700 transition">
+                Back to Feedback
+            </a>
+            <a href="{% url 'interviews:practice_dashboard' %}"
+                class="px-8 py-4 rounded-2xl bg-primary text-white font-bold shadow-lg hover:shadow-xl transition-all hover:scale-105">
+                Back to Dashboard
+            </a>
         </div>
     </div>
 </div>
@@ -93,20 +290,34 @@
     const strengths = {{ report.strengths|length }};
     const weaknesses = {{ report.weaknesses|length }};
     const ctx = document.getElementById('practiceChart').getContext('2d');
+    
     new Chart(ctx, {
         type: 'doughnut',
         data: {
-            labels: ['Strengths', 'Weaknesses'],
+            labels: ['Strengths', 'Areas to Improve'],
             datasets: [{
                 data: [strengths, weaknesses],
-                backgroundColor: ['#10b981', '#ef4444']
+                backgroundColor: [
+                    'rgba(16, 185, 129, 0.8)',  // Green
+                    'rgba(251, 146, 60, 0.8)'   // Orange
+                ],
+                borderWidth: 0
             }]
         },
         options: {
+            responsive: true,
+            maintainAspectRatio: false,
             plugins: {
                 legend: {
                     position: 'bottom',
-                    labels: { color: '#475569' }
+                    labels: {
+                        color: document.documentElement.classList.contains('dark') ? '#94a3b8' : '#475569',
+                        padding: 20,
+                        font: {
+                            size: 14,
+                            weight: 'bold'
+                        }
+                    }
                 }
             }
         }

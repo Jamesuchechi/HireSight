@@ -1,0 +1,318 @@
+{% extends 'base.html' %}
+{% load humanize static practice_filters %}
+
+{% block title %}Response Analysis - {{ response.question.prompt|truncatechars:50 }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-slate-800 py-12">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <a href="{% url 'interviews:practice_feedback' session_id=response.session.id %}" 
+                class="inline-flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-primary transition mb-4">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                </svg>
+                Back to Session Feedback
+            </a>
+            
+            <div class="bg-white dark:bg-slate-800 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-xl p-8">
+                <div class="flex items-start justify-between mb-6">
+                    <div>
+                        <span class="inline-block px-4 py-1.5 bg-primary/10 text-primary rounded-full text-xs font-bold uppercase tracking-wider mb-3">
+                            {{ response.question.category|title }} Question
+                        </span>
+                        <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                            Response Analysis
+                        </h1>
+                        <p class="text-gray-600 dark:text-gray-400">
+                            Submitted {{ response.submitted_at|naturaltime }}
+                        </p>
+                    </div>
+                    
+                    {% if response.ai_score %}
+                    <div class="text-right">
+                        <div class="text-5xl font-black text-primary mb-1">
+                            {{ response.ai_score|floatformat:0 }}
+                        </div>
+                        <div class="text-sm text-gray-600 dark:text-gray-400">out of 100</div>
+                        {% if percentile %}
+                        <div class="mt-2 text-xs text-gray-500">
+                            Better than {{ percentile }}% of responses
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Question -->
+                <div class="p-6 bg-gray-50 dark:bg-slate-900/50 rounded-2xl border border-gray-100 dark:border-slate-700">
+                    <p class="text-xs font-bold text-primary uppercase tracking-wider mb-2">Question</p>
+                    <p class="text-xl text-gray-800 dark:text-gray-200 italic leading-relaxed">
+                        "{{ response.question.prompt }}"
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Score Breakdown -->
+        {% if response.content_score or response.delivery_score or response.presence_score %}
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <!-- Content Score -->
+            <div class="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-lg p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                            <svg class="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-gray-900 dark:text-white">Content</h3>
+                            <p class="text-xs text-gray-500">Relevance & Completeness</p>
+                        </div>
+                    </div>
+                    <div class="text-3xl font-black text-blue-600">
+                        {{ response.content_score|floatformat:0 }}
+                    </div>
+                </div>
+                <div class="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-2">
+                    <div class="bg-blue-600 h-2 rounded-full transition-all" style="width: {{ response.content_score }}%"></div>
+                </div>
+            </div>
+
+            <!-- Delivery Score -->
+            <div class="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-lg p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                            <svg class="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-gray-900 dark:text-white">Delivery</h3>
+                            <p class="text-xs text-gray-500">Structure & Clarity</p>
+                        </div>
+                    </div>
+                    <div class="text-3xl font-black text-green-600">
+                        {{ response.delivery_score|floatformat:0 }}
+                    </div>
+                </div>
+                <div class="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-2">
+                    <div class="bg-green-600 h-2 rounded-full transition-all" style="width: {{ response.delivery_score }}%"></div>
+                </div>
+            </div>
+
+            <!-- Presence Score -->
+            <div class="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-lg p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                            <svg class="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-gray-900 dark:text-white">Presence</h3>
+                            <p class="text-xs text-gray-500">Engagement & Eye Contact</p>
+                        </div>
+                    </div>
+                    <div class="text-3xl font-black text-purple-600">
+                        {{ response.presence_score|floatformat:0 }}
+                    </div>
+                </div>
+                <div class="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-2">
+                    <div class="bg-purple-600 h-2 rounded-full transition-all" style="width: {{ response.presence_score }}%"></div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Left Column: Response & Video -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Your Response -->
+                <div class="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-lg p-8">
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">Your Response</h2>
+                    
+                    {% if response.text_response %}
+                    <div class="prose dark:prose-invert max-w-none">
+                        <p class="text-gray-700 dark:text-gray-300 leading-relaxed">
+                            {{ response.text_response }}
+                        </p>
+                    </div>
+                    {% else %}
+                    <p class="text-gray-500 dark:text-gray-400 italic">Video response only</p>
+                    {% endif %}
+
+                    {% if response.video_url %}
+                    <div class="mt-6">
+                        <h3 class="text-sm font-bold text-gray-700 dark:text-gray-300 mb-3">Video Recording</h3>
+                        <div class="aspect-video bg-black rounded-xl overflow-hidden">
+                            <video src="{{ response.video_url }}" controls class="w-full h-full"></video>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- AI Feedback -->
+                {% if response.ai_feedback %}
+                <div class="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-lg p-8">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                            </svg>
+                        </div>
+                        <h2 class="text-xl font-bold text-gray-900 dark:text-white">AI Feedback</h2>
+                    </div>
+                    
+                    <div class="prose dark:prose-invert max-w-none">
+                        <p class="text-gray-700 dark:text-gray-300 leading-relaxed">
+                            {{ response.ai_feedback }}
+                        </p>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Video Analytics -->
+                {% if response.video_analysis_metrics %}
+                <div class="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-lg p-8">
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-6">Video Analytics</h2>
+                    
+                    <div class="grid grid-cols-2 gap-6">
+                        {% with metrics=response.video_analysis_metrics.summary %}
+                        <div class="text-center p-4 bg-gray-50 dark:bg-slate-900/50 rounded-xl">
+                            <div class="text-3xl font-bold text-primary mb-1">
+                                {{ metrics.averageGazeAtCamera|floatformat:0 }}%
+                            </div>
+                            <div class="text-xs text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                                Eye Contact
+                            </div>
+                        </div>
+                        
+                        <div class="text-center p-4 bg-gray-50 dark:bg-slate-900/50 rounded-xl">
+                            <div class="text-3xl font-bold text-green-600 mb-1">
+                                {{ metrics.speakingPercentage|floatformat:0 }}%
+                            </div>
+                            <div class="text-xs text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                                Speaking Time
+                            </div>
+                        </div>
+                        
+                        <div class="text-center p-4 bg-gray-50 dark:bg-slate-900/50 rounded-xl">
+                            <div class="text-3xl font-bold text-orange-600 mb-1">
+                                {{ metrics.averageBlinkRate|floatformat:1 }}
+                            </div>
+                            <div class="text-xs text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                                Blinks/Min
+                            </div>
+                        </div>
+                        
+                        <div class="text-center p-4 bg-gray-50 dark:bg-slate-900/50 rounded-xl">
+                            <div class="text-3xl font-bold text-blue-600 mb-1">
+                                {{ metrics.totalDuration|floatformat:1 }}s
+                            </div>
+                            <div class="text-xs text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                                Duration
+                            </div>
+                        </div>
+                        {% endwith %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Right Column: Strengths & Improvements -->
+            <div class="space-y-6">
+                <!-- Strengths -->
+                {% if response.strengths %}
+                <div class="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-2xl border border-green-100 dark:border-green-800 shadow-lg p-6">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-8 h-8 rounded-lg bg-green-500 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                        </div>
+                        <h3 class="font-bold text-green-900 dark:text-green-100">Strengths</h3>
+                    </div>
+                    
+                    <ul class="space-y-3">
+                        {% for strength in response.strengths %}
+                        <li class="flex items-start gap-3">
+                            <span class="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-green-500 mt-2"></span>
+                            <span class="text-sm text-green-800 dark:text-green-200">{{ strength }}</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                <!-- Improvements -->
+                {% if response.improvements %}
+                <div class="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-2xl border border-amber-100 dark:border-amber-800 shadow-lg p-6">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                            </svg>
+                        </div>
+                        <h3 class="font-bold text-amber-900 dark:text-amber-100">Areas to Improve</h3>
+                    </div>
+                    
+                    <ul class="space-y-3">
+                        {% for improvement in response.improvements %}
+                        <li class="flex items-start gap-3">
+                            <span class="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-amber-500 mt-2"></span>
+                            <span class="text-sm text-amber-800 dark:text-amber-200">{{ improvement }}</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                <!-- Scoring Model Info -->
+                <div class="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-lg p-6">
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-4 text-sm">Analysis Details</h3>
+                    <div class="space-y-3 text-xs text-gray-600 dark:text-gray-400">
+                        <div class="flex justify-between">
+                            <span>AI Model:</span>
+                            <span class="font-semibold text-gray-900 dark:text-white">
+                                {{ response.ai_scoring_model|default:"Claude Sonnet" }}
+                            </span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Analyzed:</span>
+                            <span class="font-semibold text-gray-900 dark:text-white">
+                                {{ response.submitted_at|date:"M d, Y" }}
+                            </span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Status:</span>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase
+                                {% if response.analysis_status == 'COMPLETED' %}bg-green-100 text-green-700
+                                {% elif response.analysis_status == 'IN_PROGRESS' %}bg-blue-100 text-blue-700
+                                {% else %}bg-gray-100 text-gray-700{% endif %}">
+                                {{ response.get_analysis_status_display }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Practice Again -->
+                <div class="bg-gradient-to-br from-primary to-secondary rounded-2xl shadow-lg p-6 text-white">
+                    <h3 class="font-bold mb-2">Ready for More?</h3>
+                    <p class="text-sm opacity-90 mb-4">
+                        Continue practicing to improve your interview skills.
+                    </p>
+                    <a href="{% url 'interviews:start_practice' %}" 
+                        class="block w-full px-4 py-3 bg-white text-primary rounded-xl font-bold text-center hover:bg-gray-50 transition">
+                        Start New Session
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
