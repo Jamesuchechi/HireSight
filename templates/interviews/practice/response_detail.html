@@ -8,18 +8,21 @@
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <!-- Header -->
         <div class="mb-8">
-            <a href="{% url 'interviews:practice_feedback' session_id=response.session.id %}" 
+            <a href="{% url 'interviews:practice_feedback' session_id=response.session.id %}"
                 class="inline-flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-primary transition mb-4">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
                 </svg>
                 Back to Session Feedback
             </a>
-            
-            <div class="bg-white dark:bg-slate-800 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-xl p-8">
+
+            <div
+                class="bg-white dark:bg-slate-800 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-xl p-8">
                 <div class="flex items-start justify-between mb-6">
                     <div>
-                        <span class="inline-block px-4 py-1.5 bg-primary/10 text-primary rounded-full text-xs font-bold uppercase tracking-wider mb-3">
+                        <span
+                            class="inline-block px-4 py-1.5 bg-primary/10 text-primary rounded-full text-xs font-bold uppercase tracking-wider mb-3">
                             {{ response.question.category|title }} Question
                         </span>
                         <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">
@@ -29,7 +32,7 @@
                             Submitted {{ response.submitted_at|naturaltime }}
                         </p>
                     </div>
-                    
+
                     {% if response.ai_score %}
                     <div class="text-right">
                         <div class="text-5xl font-black text-primary mb-1">
@@ -46,7 +49,8 @@
                 </div>
 
                 <!-- Question -->
-                <div class="p-6 bg-gray-50 dark:bg-slate-900/50 rounded-2xl border border-gray-100 dark:border-slate-700">
+                <div
+                    class="p-6 bg-gray-50 dark:bg-slate-900/50 rounded-2xl border border-gray-100 dark:border-slate-700">
                     <p class="text-xs font-bold text-primary uppercase tracking-wider mb-2">Question</p>
                     <p class="text-xl text-gray-800 dark:text-gray-200 italic leading-relaxed">
                         "{{ response.question.prompt }}"
@@ -59,12 +63,17 @@
         {% if response.content_score or response.delivery_score or response.presence_score %}
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <!-- Content Score -->
-            <div class="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-lg p-6">
+            <div
+                class="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-lg p-6">
                 <div class="flex items-center justify-between mb-4">
                     <div class="flex items-center gap-3">
-                        <div class="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                            <svg class="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        <div
+                            class="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                            <svg class="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                                </path>
                             </svg>
                         </div>
                         <div>
@@ -77,17 +86,23 @@
                     </div>
                 </div>
                 <div class="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-2">
-                    <div class="bg-blue-600 h-2 rounded-full transition-all" style="width: {{ response.content_score }}%"></div>
+                    <div class="bg-blue-600 h-2 rounded-full transition-all"
+                        style="width: {{ response.content_score }}%"></div>
                 </div>
             </div>
 
             <!-- Delivery Score -->
-            <div class="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-lg p-6">
+            <div
+                class="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-lg p-6">
                 <div class="flex items-center justify-between mb-4">
                     <div class="flex items-center gap-3">
-                        <div class="w-12 h-12 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                            <svg class="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path>
+                        <div
+                            class="w-12 h-12 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                            <svg class="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z">
+                                </path>
                             </svg>
                         </div>
                         <div>
@@ -100,17 +115,23 @@
                     </div>
                 </div>
                 <div class="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-2">
-                    <div class="bg-green-600 h-2 rounded-full transition-all" style="width: {{ response.delivery_score }}%"></div>
+                    <div class="bg-green-600 h-2 rounded-full transition-all"
+                        style="width: {{ response.delivery_score }}%"></div>
                 </div>
             </div>
 
             <!-- Presence Score -->
-            <div class="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-lg p-6">
+            <div
+                class="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-lg p-6">
                 <div class="flex items-center justify-between mb-4">
                     <div class="flex items-center gap-3">
-                        <div class="w-12 h-12 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-                            <svg class="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                        <div
+                            class="w-12 h-12 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                            <svg class="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z">
+                                </path>
                             </svg>
                         </div>
                         <div>
@@ -123,7 +144,8 @@
                     </div>
                 </div>
                 <div class="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-2">
-                    <div class="bg-purple-600 h-2 rounded-full transition-all" style="width: {{ response.presence_score }}%"></div>
+                    <div class="bg-purple-600 h-2 rounded-full transition-all"
+                        style="width: {{ response.presence_score }}%"></div>
                 </div>
             </div>
         </div>
@@ -133,41 +155,63 @@
             <!-- Left Column: Response & Video -->
             <div class="lg:col-span-2 space-y-6">
                 <!-- Your Response -->
-                <div class="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-lg p-8">
+                <div
+                    class="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-lg p-8">
                     <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">Your Response</h2>
-                    
+
+                    {% if response.video_url %}
+                    <div class="mb-6">
+                        <h3 class="text-sm font-bold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z">
+                                </path>
+                            </svg>
+                            Video Recording
+                        </h3>
+                        <div class="aspect-video bg-black rounded-xl overflow-hidden">
+                            <video src="{{ response.video_url }}" controls class="w-full h-full">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                    {% endif %}
+
                     {% if response.text_response %}
                     <div class="prose dark:prose-invert max-w-none">
+                        <h3 class="text-sm font-bold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                                </path>
+                            </svg>
+                            Text Response
+                        </h3>
                         <p class="text-gray-700 dark:text-gray-300 leading-relaxed">
                             {{ response.text_response }}
                         </p>
                     </div>
-                    {% else %}
-                    <p class="text-gray-500 dark:text-gray-400 italic">Video response only</p>
-                    {% endif %}
-
-                    {% if response.video_url %}
-                    <div class="mt-6">
-                        <h3 class="text-sm font-bold text-gray-700 dark:text-gray-300 mb-3">Video Recording</h3>
-                        <div class="aspect-video bg-black rounded-xl overflow-hidden">
-                            <video src="{{ response.video_url }}" controls class="w-full h-full"></video>
-                        </div>
-                    </div>
+                    {% elif not response.video_url %}
+                    <p class="text-gray-500 dark:text-gray-400 italic">No response recorded</p>
                     {% endif %}
                 </div>
 
                 <!-- AI Feedback -->
                 {% if response.ai_feedback %}
-                <div class="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-lg p-8">
+                <div
+                    class="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-lg p-8">
                     <div class="flex items-center gap-3 mb-6">
-                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+                        <div
+                            class="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
                             <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z">
+                                </path>
                             </svg>
                         </div>
                         <h2 class="text-xl font-bold text-gray-900 dark:text-white">AI Feedback</h2>
                     </div>
-                    
+
                     <div class="prose dark:prose-invert max-w-none">
                         <p class="text-gray-700 dark:text-gray-300 leading-relaxed">
                             {{ response.ai_feedback }}
@@ -178,9 +222,10 @@
 
                 <!-- Video Analytics -->
                 {% if response.video_analysis_metrics %}
-                <div class="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-lg p-8">
+                <div
+                    class="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-lg p-8">
                     <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-6">Video Analytics</h2>
-                    
+
                     <div class="grid grid-cols-2 gap-6">
                         {% with metrics=response.video_analysis_metrics.summary %}
                         <div class="text-center p-4 bg-gray-50 dark:bg-slate-900/50 rounded-xl">
@@ -191,7 +236,7 @@
                                 Eye Contact
                             </div>
                         </div>
-                        
+
                         <div class="text-center p-4 bg-gray-50 dark:bg-slate-900/50 rounded-xl">
                             <div class="text-3xl font-bold text-green-600 mb-1">
                                 {{ metrics.speakingPercentage|floatformat:0 }}%
@@ -200,7 +245,7 @@
                                 Speaking Time
                             </div>
                         </div>
-                        
+
                         <div class="text-center p-4 bg-gray-50 dark:bg-slate-900/50 rounded-xl">
                             <div class="text-3xl font-bold text-orange-600 mb-1">
                                 {{ metrics.averageBlinkRate|floatformat:1 }}
@@ -209,7 +254,7 @@
                                 Blinks/Min
                             </div>
                         </div>
-                        
+
                         <div class="text-center p-4 bg-gray-50 dark:bg-slate-900/50 rounded-xl">
                             <div class="text-3xl font-bold text-blue-600 mb-1">
                                 {{ metrics.totalDuration|floatformat:1 }}s
@@ -228,16 +273,18 @@
             <div class="space-y-6">
                 <!-- Strengths -->
                 {% if response.strengths %}
-                <div class="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-2xl border border-green-100 dark:border-green-800 shadow-lg p-6">
+                <div
+                    class="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-2xl border border-green-100 dark:border-green-800 shadow-lg p-6">
                     <div class="flex items-center gap-3 mb-4">
                         <div class="w-8 h-8 rounded-lg bg-green-500 flex items-center justify-center">
                             <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M5 13l4 4L19 7"></path>
                             </svg>
                         </div>
                         <h3 class="font-bold text-green-900 dark:text-green-100">Strengths</h3>
                     </div>
-                    
+
                     <ul class="space-y-3">
                         {% for strength in response.strengths %}
                         <li class="flex items-start gap-3">
@@ -251,16 +298,18 @@
 
                 <!-- Improvements -->
                 {% if response.improvements %}
-                <div class="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-2xl border border-amber-100 dark:border-amber-800 shadow-lg p-6">
+                <div
+                    class="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-2xl border border-amber-100 dark:border-amber-800 shadow-lg p-6">
                     <div class="flex items-center gap-3 mb-4">
                         <div class="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center">
                             <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                             </svg>
                         </div>
                         <h3 class="font-bold text-amber-900 dark:text-amber-100">Areas to Improve</h3>
                     </div>
-                    
+
                     <ul class="space-y-3">
                         {% for improvement in response.improvements %}
                         <li class="flex items-start gap-3">
@@ -272,14 +321,79 @@
                 </div>
                 {% endif %}
 
+                <!-- Error Message -->
+                {% if response.analysis_status == 'FAILED' %}
+                <div
+                    class="bg-red-50 dark:bg-red-900/20 rounded-2xl border border-red-100 dark:border-red-800 shadow-lg p-6">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-8 h-8 rounded-lg bg-red-500 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
+                                </path>
+                            </svg>
+                        </div>
+                        <h3 class="font-bold text-red-900 dark:text-red-100">Analysis Failed</h3>
+                    </div>
+
+                    {% with error_info=response.analysis.error %}
+                    {% if error_info %}
+                    <p class="text-sm text-red-800 dark:text-red-200 mb-3">{{ error_info }}</p>
+                    {% else %}
+                    <p class="text-sm text-red-800 dark:text-red-200 mb-3">
+                        The AI analysis failed to complete. This may be due to API issues or an invalid response
+                        format.
+                    </p>
+                    {% endif %}
+                    {% endwith %}
+
+                    <form action="{% url 'interviews:practice_response_retry' response_id=response.id %}" method="post">
+                        {% csrf_token %}
+                        <button type="submit"
+                            class="inline-flex items-center gap-2 px-4 py-2 bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 rounded-lg text-sm font-bold hover:bg-red-200 dark:hover:bg-red-900 transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                                </path>
+                            </svg>
+                            Retry Analysis
+                        </button>
+                    </form>
+                </div>
+                {% endif %}
+
+                <!-- Processing Message -->
+                {% if response.analysis_status == 'IN_PROGRESS' %}
+                <div
+                    class="bg-blue-50 dark:bg-blue-900/20 rounded-2xl border border-blue-100 dark:border-blue-800 shadow-lg p-6">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center animate-pulse">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                            </svg>
+                        </div>
+                        <h3 class="font-bold text-blue-900 dark:text-blue-100">Analysis In Progress</h3>
+                    </div>
+                    <p class="text-sm text-blue-800 dark:text-blue-200 mb-3">
+                        The AI is currently analyzing your response. This usually takes a few seconds.
+                    </p>
+                    <p class="text-xs text-blue-600 dark:text-blue-400">
+                        Please refresh the page in a few moments.
+                    </p>
+                </div>
+                {% endif %}
+
                 <!-- Scoring Model Info -->
-                <div class="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-lg p-6">
+                <div
+                    class="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-lg p-6">
                     <h3 class="font-bold text-gray-900 dark:text-white mb-4 text-sm">Analysis Details</h3>
                     <div class="space-y-3 text-xs text-gray-600 dark:text-gray-400">
                         <div class="flex justify-between">
                             <span>AI Model:</span>
                             <span class="font-semibold text-gray-900 dark:text-white">
-                                {{ response.ai_scoring_model|default:"Claude Sonnet" }}
+                                {% if response.ai_scoring_model %}{{ response.ai_scoring_model|title }}{% else
+                                %}Mistral/Groq{% endif %}
                             </span>
                         </div>
                         <div class="flex justify-between">
@@ -306,7 +420,7 @@
                     <p class="text-sm opacity-90 mb-4">
                         Continue practicing to improve your interview skills.
                     </p>
-                    <a href="{% url 'interviews:start_practice' %}" 
+                    <a href="{% url 'interviews:start_practice' %}"
                         class="block w-full px-4 py-3 bg-white text-primary rounded-xl font-bold text-center hover:bg-gray-50 transition">
                         Start New Session
                     </a>

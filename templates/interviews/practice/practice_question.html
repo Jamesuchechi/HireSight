@@ -387,7 +387,7 @@
 <!-- Practice Question App Script - MUST come after VideoAnalyzer -->
 <script>
     // Define the function globally BEFORE Alpine initializes
-    window.practiceQuestionApp = function() {
+    window.practiceQuestionApp = function () {
         return {
             step: 'prep',
             isRecording: false,
@@ -402,6 +402,8 @@
             recordingStartTime: null,
             sessionSeconds: 0,
             videoMetrics: null,
+            uploadedResponseId: null,
+            uploadedVideoUrl: null,
 
             init() {
                 this.startGlobalTimer();
@@ -530,11 +532,17 @@
                     form.append('session_id', '{{ session.id }}');
                     form.append('question_id', '{{ question.id }}');
 
-                    await fetch('{% url "interviews:practice_upload_video" %}', {
+                    const response = await fetch('{% url "interviews:practice_upload_video" %}', {
                         method: 'POST',
                         headers: { 'X-CSRFToken': csrfToken },
                         body: form
                     });
+                    
+                    const data = await response.json();
+                    if (data.response_id) {
+                        this.uploadedResponseId = data.response_id;
+                        this.uploadedVideoUrl = data.video_url;
+                    }
                 }
             },
 
@@ -551,7 +559,12 @@
 
                 formData.append('text_response', this.textAnswer || '');
                 formData.append('video_analysis_metrics', JSON.stringify(this.videoMetrics || {}));
-
+                
+                // Use the uploaded video URL if video was recorded
+                if (this.uploadedVideoUrl) {
+                    formData.append('video_url', this.uploadedVideoUrl);
+                }
+                
                 try {
                     const response = await fetch(window.location.href, {
                         method: 'POST',
@@ -559,9 +572,39 @@
                         body: formData
                     });
 
-                    if (response.ok) {
-                        // Redirect to next question or feedback
+                    // Check for redirect
+                    if (response.redirected) {
                         window.location.href = response.url;
+                        return;
+                    }
+                    
+                    // Also check Location header
+                    const location = response.headers.get('Location') || response.headers.get('location');
+                    if (location) {
+                        window.location.href = location;
+                        return;
+                    }
+
+                    if (response.ok) {
+                        // Try to get redirect URL from response
+                        const text = await response.text();
+                        // Check if response contains redirect info
+                        try {
+                            const data = JSON.parse(text);
+                            if (data.redirect) {
+                                window.location.href = data.redirect;
+                                return;
+                            }
+                        } catch(e) {
+                            // Not JSON, might be HTML redirect page
+                        }
+                        // If we got here, the response might have succeeded but no redirect
+                        // Check if we need to go to next question
+                        const urlParams = new URLSearchParams(window.location.search);
+                        const currentQuestionId = urlParams.get('question_id') || '{{ question.id }}';
+                        
+                        // Trigger a page reload to check for next question
+                        window.location.reload();
                     } else {
                         alert('Failed to submit response. Please try again.');
                     }

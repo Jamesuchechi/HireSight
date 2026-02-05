@@ -460,9 +460,3 @@ class PracticeResponseForm(forms.Form):
         required=False,
         widget=forms.HiddenInput()
     )
-
-    def clean(self):
-        cleaned = super().clean()
-        if not cleaned.get('text_response') and not cleaned.get('video_url'):
-            raise ValidationError('Provide a text answer or a video URL.')
-        return cleaned

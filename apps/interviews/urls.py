@@ -106,6 +106,11 @@ urlpatterns = [
         views_ux.PracticeResponseDetailView.as_view(),
         name='practice_response_detail'
     ),
+    path(
+        'practice/response/<int:response_id>/retry/',
+        views_ux.RetryResponseAnalysisView.as_view(),
+        name='practice_response_retry'
+    ),
 
     path(
         'practice/session/<int:session_id>/report/',

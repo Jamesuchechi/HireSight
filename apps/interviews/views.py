@@ -804,7 +804,29 @@ class PracticeQuestionView(LoginRequiredMixin, CandidateRequiredMixin, FormView)
         if self.question.session.candidate != request.user:
             raise PermissionDenied("You can only answer your own practice questions.")
         self.session = self.question.session
+        
+        # Handle AJAX request to check for existing response
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' and request.GET.get('check_response') == '1':
+            return self.check_existing_response()
+        
         return super().dispatch(request, *args, **kwargs)
+    
+    def check_existing_response(self):
+        """Check if there's an existing response with video URL from chunk upload."""
+        from django.http import JsonResponse
+        # Find existing response with video_url for this question
+        existing = PracticeResponse.objects.filter(
+            question=self.question,
+            video_url__isnull=False
+        ).order_by('-submitted_at').first()
+        
+        if existing and existing.video_url:
+            return JsonResponse({
+                'exists': True,
+                'video_url': existing.video_url,
+                'response_id': existing.id
+            })
+        return JsonResponse({'exists': False})
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -823,17 +845,43 @@ class PracticeQuestionView(LoginRequiredMixin, CandidateRequiredMixin, FormView)
             except (ValueError, TypeError):
                 pass
 
-        response = PracticeResponse.objects.create(
-            question=self.question,
-            session=self.session,
-            text_response=form.cleaned_data['text_response'],
-            video_url=form.cleaned_data['video_url'],
-            video_metrics=video_metrics
-        )
+        video_url = form.cleaned_data.get('video_url')
+        
+        # Check if there's an existing response to update
+        existing_response = None
+        if video_url:
+            # Video URL provided from chunk upload
+            existing_response = PracticeResponse.objects.filter(
+                question=self.question,
+                video_url=video_url
+            ).first()
+        else:
+            # Check for any existing response with video_url
+            existing_response = PracticeResponse.objects.filter(
+                question=self.question,
+                video_url__isnull=False
+            ).order_by('-submitted_at').first()
+        
+        if existing_response:
+            # Update existing response with text and metrics
+            existing_response.text_response = form.cleaned_data['text_response']
+            existing_response.video_analysis_metrics = video_metrics
+            existing_response.save(update_fields=['text_response', 'video_analysis_metrics'])
+            response = existing_response
+            messages.success(self.request, "Response updated successfully!")
+        else:
+            # Create new response
+            response = PracticeResponse.objects.create(
+                question=self.question,
+                session=self.session,
+                text_response=form.cleaned_data['text_response'],
+                video_url=video_url or '',
+                video_metrics=video_metrics
+            )
+            messages.success(self.request, "Response submitted. AI scoring is in progress.")
+        
         analyze_practice_response.delay(response.id)
         self.update_session_progress()
-
-        messages.success(self.request, "Response submitted. AI scoring is in progress.")
 
         next_question = self.session.questions.filter(order__gt=self.question.order).order_by('order').first()
 
@@ -866,7 +914,9 @@ class PracticeFeedbackView(PracticeSessionMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['session'] = self.session
-        context['questions'] = self.session.questions.prefetch_related('responses')
+        context['questions'] = self.session.questions.prefetch_related(
+            Prefetch('responses', queryset=PracticeResponse.objects.order_by('-submitted_at'))
+        )
         context['report'] = getattr(self.session, 'performance_report', None)
         responses = PracticeResponse.objects.filter(session=self.session, ai_score__isnull=False)
         context['best_responses'] = responses.order_by('-ai_score')[:2]
@@ -899,6 +949,10 @@ class PracticeReportRefreshView(PracticeSessionMixin, View):
 
 class PracticeResponseAnalysisView(LoginRequiredMixin, CandidateRequiredMixin, View):
     """Accept gaze/head metrics and detailed video analysis from the client and store them."""
+
+    def get(self, request, response_id):
+        """Redirect to the detail page for HTML rendering."""
+        return redirect('interviews:practice_response_detail', response_id=response_id)
 
     def post(self, request, response_id):
         try:
