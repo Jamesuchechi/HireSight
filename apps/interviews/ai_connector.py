@@ -734,7 +734,88 @@ class AIConnector:
         
         return ''.join(prompt_parts)
 
+        return ''.join(prompt_parts)
 
+    def summarize_interview(self, interview_transcript):
+        """Summarize interview transcript and identify key moments."""
+        prompt = self._build_summary_prompt(interview_transcript)
+        
+        # Try Mistral first
+        if self.mistral_client:
+            try:
+                response = self.mistral_client.chat.complete(
+                    model=self.mistral_model,
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": "You are an expert interviewer assistant. Summarize the interview and identify key insights."
+                        },
+                        {
+                            "role": "user",
+                            "content": prompt
+                        }
+                    ],
+                    temperature=0.5,
+                    max_tokens=2000
+                )
+                
+                content = getattr(response.choices[0].message, 'content', '')
+                if content:
+                    # Remove markdown
+                    content = content.replace('```json', '').replace('```', '').strip()
+                    try:
+                        parsed = json.loads(content)
+                        return parsed, content, 'mistral'
+                    except json.JSONDecodeError:
+                        pass
+            except Exception as e:
+                logger.warning(f"Mistral summary failed: {e}")
+
+        # Fallback to Groq
+        if self.groq_client:
+            try:
+                response = self.groq_client.chat.completions.create(
+                    model=self.groq_model,
+                    messages=[
+                         {
+                            "role": "system",
+                            "content": "You are an expert interviewer assistant. Summarize the interview and identify key insights."
+                        },
+                        {
+                            "role": "user",
+                            "content": prompt
+                        }
+                    ],
+                    temperature=0.5,
+                    max_tokens=2000,
+                    response_format={"type": "json_object"}
+                )
+                content = response.choices[0].message.content
+                parsed = json.loads(content)
+                return parsed, content, 'groq'
+            except Exception as e:
+                logger.error(f"Groq summary failed: {e}")
+
+        return None, "Error: AI unavailable", None
+
+    def _build_summary_prompt(self, transcript):
+        return f"""
+Analyze the following interview transcript and provide a structured summary.
+
+TRANSCRIPT:
+{transcript[:50000]}  # Limit context window
+
+Respond ONLY in JSON format:
+{{
+  "summary": "High-level summary of the interview...",
+  "key_moments": [
+    {{"timestamp": "HH:MM:SS", "description": "Moment description", "type": "strength|weakness|insight"}}
+  ],
+  "strengths": ["..."],
+  "areas_for_improvement": ["..."],
+  "recommendation": "Strong Hire / Hire / No Hire"
+}}
+"""
 class ReportGenerator:
     """Generates comprehensive practice session reports."""
     

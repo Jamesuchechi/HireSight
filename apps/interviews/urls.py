@@ -64,6 +64,28 @@ urlpatterns = [
         name='bulk_schedule'
     ),
     
+    # Video Interview
+    path(
+        'room/<uuid:interview_id>/',
+        views.InterviewRoomView.as_view(),
+        name='room'
+    ),
+    path(
+        'recording/<uuid:interview_id>/upload/',
+        views.InterviewRecordingUploadView.as_view(),
+        name='upload_recording'
+    ),
+    path(
+        'execute-code/',
+        views.execute_code,
+        name='execute_code'
+    ),
+    path(
+        'coding-session/<uuid:interview_id>/save/',
+        views.save_coding_session,
+        name='save_coding_session'
+    ),
+
     # Export and utilities
     path(
         '<uuid:interview_id>/export/',

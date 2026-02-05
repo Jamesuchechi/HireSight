@@ -22,6 +22,7 @@ from .models import (
     Interview,
     ArchivedInterview,
     InterviewPracticeSession,
+    InterviewVideoSession,
     PracticeQuestion,
     PracticeResponse,
     PracticePerformanceReport,
@@ -980,3 +981,37 @@ def generate_practice_report(session_id):
         except Exception:
             logger.debug('Failed to create failure notification for report %s', session_id)
         return
+
+
+@shared_task
+def generate_interview_summary(session_id):
+    """
+    Generate AI summary and key moments for a completed interview video session.
+    """
+    try:
+        session = InterviewVideoSession.objects.get(id=session_id)
+    except InterviewVideoSession.DoesNotExist:
+        logger.error(f"Video session {session_id} not found for summarization")
+        return
+
+    # Check if transcript exists
+    if not session.transcript:
+        logger.warning(f"No transcript found for session {session_id}. Skipping summary.")
+        return
+
+    logger.info(f"Generating summary for session {session_id} using AI...")
+    
+    try:
+        ai_connector = AIConnector()
+        summary_data, raw_response, model = ai_connector.summarize_interview(session.transcript)
+        
+        if summary_data:
+            session.ai_notes = summary_data
+            session.save(update_fields=['ai_notes'])
+            logger.info(f"Successfully generated summary for session {session_id} using {model}")
+        else:
+            logger.error(f"Failed to generate summary: {raw_response}")
+            
+    except Exception as e:
+        logger.error(f"Error generating interview summary: {e}", exc_info=True)
+

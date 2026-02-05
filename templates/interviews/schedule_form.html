@@ -8,14 +8,16 @@
     .duration-pill {
         transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease;
     }
+
     .duration-pill.active {
         transform: translateY(-2px);
     }
+
     .field-divider::after {
         content: '';
         display: block;
         height: 1px;
-        background: linear-gradient(90deg, rgba(15,23,42,0), rgba(79,70,229,0.6), rgba(15,23,42,0));
+        background: linear-gradient(90deg, rgba(15, 23, 42, 0), rgba(79, 70, 229, 0.6), rgba(15, 23, 42, 0));
         margin: 2.5rem auto 0;
         max-width: 240px;
     }
@@ -31,7 +33,8 @@
                     <div>
                         <p class="text-sm uppercase tracking-[0.3em]">Interview</p>
                         <h1 class="text-4xl font-bold">Schedule an Interview</h1>
-                        <p class="mt-1 text-base text-white/80">Complete the details and invite the candidate instantly.</p>
+                        <p class="mt-1 text-base text-white/80">Complete the details and invite the candidate instantly.
+                        </p>
                     </div>
                     <div class="text-sm text-white/80 leading-relaxed">
                         <p class="font-semibold">Tip</p>
@@ -40,7 +43,8 @@
                 </div>
             </div>
 
-            {% include 'components/back_button.html' with fallback_url=application|default:'/' label='Back to Application' %}
+            {% include 'components/back_button.html' with fallback_url=application|default:'/' label='Back to
+            Application' %}
             <form method="post" class="space-y-8 px-6 py-10">
                 {% csrf_token %}
                 {{ form.non_field_errors }}
@@ -52,7 +56,8 @@
                             <h2 class="text-xl font-semibold text-slate-900">Interview Type</h2>
                             <p class="text-sm text-slate-500">Choose the appropriate slate to match the hiring step.</p>
                         </div>
-                        <div id="type-chip" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-slate-300 bg-slate-50 text-sm font-semibold text-slate-600">
+                        <div id="type-chip"
+                            class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-slate-300 bg-slate-50 text-sm font-semibold text-slate-600">
                             <span class="type-icon w-4 h-4"></span>
                             <span class="type-label">Select type</span>
                         </div>
@@ -69,7 +74,8 @@
                         <label class="font-semibold text-slate-700">Date &amp; Time</label>
                         {{ form.scheduled_date }}
                         {{ form.scheduled_date.errors }}
-                        <p class="text-xs text-slate-500">Pick a local datetime. We&apos;ll attach the timezone below.</p>
+                        <p class="text-xs text-slate-500">Pick a local datetime. We&apos;ll attach the timezone below.
+                        </p>
                     </div>
                     <div class="space-y-2">
                         <label class="font-semibold text-slate-700">Timezone</label>
@@ -87,7 +93,9 @@
                     </div>
                     <div class="flex flex-wrap gap-3">
                         {% for minutes in durations %}
-                        <button type="button" class="duration-pill rounded-xl px-4 py-2 border border-slate-200 bg-white text-sm font-semibold text-slate-700 shadow-sm hover:bg-primary hover:text-white" data-duration="{{ minutes }}">
+                        <button type="button"
+                            class="duration-pill rounded-xl px-4 py-2 border border-slate-200 bg-white text-sm font-semibold text-slate-700 shadow-sm hover:bg-primary hover:text-white"
+                            data-duration="{{ minutes }}">
                             {{ minutes }} min
                         </button>
                         {% endfor %}
@@ -123,6 +131,27 @@
                     </div>
                 </section>
 
+                <!-- In-App Video + Live Coding Options -->
+                <section class="space-y-4" id="video-options-section">
+                    <h3 class="text-lg font-semibold text-slate-900">HireSight Video & Coding</h3>
+                    <div class="flex flex-col gap-3 bg-slate-50 rounded-xl p-4 border border-slate-200">
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            {{ form.use_inapp_video }}
+                            <span class="text-sm font-medium text-slate-700">Use HireSight Built-in Video
+                                Conferencing</span>
+                        </label>
+                        <p class="text-xs text-slate-500 ml-7">Enables live transcription, AI notes, and in-app join.
+                        </p>
+
+                        <label id="live-coding-option" class="flex items-center gap-3 cursor-pointer ml-4 hidden">
+                            {{ form.enable_live_coding }}
+                            <span class="text-sm font-medium text-slate-700">Enable Live Coding Environment</span>
+                        </label>
+                        <p id="live-coding-help" class="text-xs text-slate-500 ml-11 hidden">Include a shared code
+                            editor for technical interviews.</p>
+                    </div>
+                </section>
+
                 <!-- Interviewer Details -->
                 <section class="space-y-4">
                     <div class="flex items-center justify-between">
@@ -130,7 +159,8 @@
                             <h3 class="text-lg font-semibold text-slate-900">Interviewer Details</h3>
                             <p class="text-sm text-slate-500">Primary interviewer that candidates will reply to.</p>
                         </div>
-                        <div class="text-xs font-semibold px-3 py-1 rounded-full bg-slate-100 text-slate-600 uppercase tracking-wider">
+                        <div
+                            class="text-xs font-semibold px-3 py-1 rounded-full bg-slate-100 text-slate-600 uppercase tracking-wider">
                             Internal use only
                         </div>
                     </div>
@@ -166,10 +196,12 @@
 
                 <!-- Actions -->
                 <div class="flex flex-col sm:flex-row items-center gap-4">
-                    <button type="submit" class="inline-flex items-center justify-center px-8 py-3 bg-primary text-white rounded-2xl shadow-lg hover:bg-primary-dark transition-all">
+                    <button type="submit"
+                        class="inline-flex items-center justify-center px-8 py-3 bg-primary text-white rounded-2xl shadow-lg hover:bg-primary-dark transition-all">
                         Schedule Interview
                     </button>
-                    <a href="{% url 'applications:detail' application.id %}" class="text-sm font-semibold text-slate-500 hover:text-slate-900">
+                    <a href="{% url 'applications:detail' application.id %}"
+                        class="text-sm font-semibold text-slate-500 hover:text-slate-900">
                         Cancel
                     </a>
                 </div>
@@ -233,5 +265,21 @@
     });
 
     highlightDuration();
+
+    // In-App Video / Live Coding toggle
+    const inappCheckbox = document.querySelector('[name="use_inapp_video"]');
+    const liveCodingOption = document.getElementById('live-coding-option');
+    const liveCodingHelp = document.getElementById('live-coding-help');
+
+    const toggleLiveCoding = () => {
+        const show = inappCheckbox && inappCheckbox.checked;
+        liveCodingOption.classList.toggle('hidden', !show);
+        liveCodingHelp.classList.toggle('hidden', !show);
+    };
+
+    if (inappCheckbox) {
+        inappCheckbox.addEventListener('change', toggleLiveCoding);
+        toggleLiveCoding();
+    }
 </script>
 {% endblock %}

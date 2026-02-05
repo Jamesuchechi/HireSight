@@ -17,6 +17,13 @@ websocket_urlpatterns = [
         name='ws_session_progress'
     ),
     
+    # Real-time Video Interview Room
+    re_path(
+        r'ws/interview/room/(?P<interview_id>[0-9a-f-]+)/$',
+        interviews_consumers.VideoInterviewConsumer.as_asgi(),
+        name='ws_interview_room'
+    ),
+    
     # Screening progress updates
     re_path(
         r'ws/screening/(?P<screening_id>\w+)/$',

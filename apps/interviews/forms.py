@@ -15,10 +15,18 @@ class InterviewScheduleForm(forms.ModelForm):
     Includes validation for date/time, required fields based on interview type
     """
     
+    enable_live_coding = forms.BooleanField(
+        required=False,
+        label="Enable Live Coding Environment",
+        help_text="Include a shared code editor for technical interviews."
+    )
+
     class Meta:
         model = Interview
         fields = [
             'interview_type',
+            'use_inapp_video',
+            'enable_live_coding',  # Virtual field handled in view
             'scheduled_date',
             'duration_minutes',
             'timezone_name',
@@ -34,6 +42,12 @@ class InterviewScheduleForm(forms.ModelForm):
             'interview_type': forms.Select(attrs={
                 'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500',
                 'required': True
+            }),
+            'use_inapp_video': forms.CheckboxInput(attrs={
+                'class': 'h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500',
+            }),
+            'enable_live_coding': forms.CheckboxInput(attrs={
+                'class': 'h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500',
             }),
             'scheduled_date': forms.DateTimeInput(attrs={
                 'type': 'datetime-local',
@@ -129,10 +143,10 @@ class InterviewScheduleForm(forms.ModelForm):
         video_link = cleaned_data.get('video_link')
         location = cleaned_data.get('location')
         
-        # Require video link for video interviews
         if interview_type == Interview.InterviewType.VIDEO:
-            if not video_link:
-                self.add_error('video_link', 'Video link is required for video interviews.')
+            use_inapp = cleaned_data.get('use_inapp_video')
+            if not video_link and not use_inapp:
+                self.add_error('video_link', 'Please provide a video link OR select "Use HireSight built-in video conferencing".')
         
         # Require location for on-site interviews
         if interview_type == Interview.InterviewType.ONSITE:

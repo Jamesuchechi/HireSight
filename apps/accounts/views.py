@@ -39,7 +39,7 @@ class RegisterView(FormView):
     """User registration view."""
     template_name = 'accounts/register.html'
     form_class = RegisterForm
-    success_url = reverse_lazy('accounts:verify_email_notice')
+    success_url = reverse_lazy('accounts:verify_email_form')
 
     def dispatch(self, request, *args, **kwargs):
         """Redirect authenticated users to dashboard."""
@@ -55,7 +55,10 @@ class RegisterView(FormView):
         return super().dispatch(request, *args, **kwargs)
     
     def form_valid(self, form):
-        """Save user and send verification email."""
+        """Save user, auto-login, and send verification email."""
+        import logging
+        logger = logging.getLogger(__name__)
+        
         user = form.save()
         
         # Create verification token (6-digit code)
@@ -69,9 +72,10 @@ class RegisterView(FormView):
             expires_at=expires_at
         )
         
+        # Auto-login the new user so they can access the verification page
+        login(self.request, user, backend='django.contrib.auth.backends.ModelBackend')
+        
         # Send verification email
-        # No longer using the link for automatic verification, but still providing it for convenience
-        # if the user prefers, but the primary method is the code.
         verification_url = self.request.build_absolute_uri(
             reverse_lazy('accounts:verify_email_form')
         )
@@ -88,10 +92,18 @@ class RegisterView(FormView):
             'verification_url': verification_url,
         })
         
-        # Create email message
-        email = EmailMultiAlternatives(subject, '', from_email, to_email)
-        email.attach_alternative(html_content, "text/html")
-        email.send(fail_silently=True)
+        # Create email message and send with error logging
+        try:
+            email_msg = EmailMultiAlternatives(subject, '', from_email, to_email)
+            email_msg.attach_alternative(html_content, "text/html")
+            email_msg.send(fail_silently=False)
+            logger.info(f'Verification email sent successfully to {user.email}')
+        except Exception as e:
+            logger.error(f'Failed to send verification email to {user.email}: {e}')
+            messages.warning(
+                self.request,
+                'Account created but we could not send the verification email. Please try resending.'
+            )
         
         messages.success(
             self.request,
@@ -135,6 +147,9 @@ class LoginView(FormView):
     
     def form_valid(self, form):
         """Log user in with 2FA check."""
+        import logging
+        logger = logging.getLogger(__name__)
+        
         email = form.cleaned_data.get('username')  # 'username' field contains email
         password = form.cleaned_data.get('password')
         remember_me = form.cleaned_data.get('remember_me', False)
@@ -143,6 +158,9 @@ class LoginView(FormView):
         user = authenticate(self.request, username=email, password=password)
         
         if user is not None:
+            # DEBUG: Log email_verified value
+            logger.warning(f"DEBUG LOGIN - User: {user.email}, email_verified field: {user.__dict__.get('email_verified')}, email_verified attr: {user.email_verified}")
+            
             # Check if user is allowed to login (for Axes)
             from django.contrib.auth.forms import AuthenticationForm
             temp_form = AuthenticationForm()
@@ -154,10 +172,13 @@ class LoginView(FormView):
                 return self.form_invalid(form)
             
             # Check if email is verified
-            if not user.is_verified:
+            if not user.email_verified:
+                logger.warning(f"DEBUG LOGIN - User {user.email} is NOT verified, redirecting to verification")
                 messages.warning(self.request, 'Please verify your email address to access the dashboard.')
                 login(self.request, user)  # Login so they can access the verification page
                 return redirect('accounts:verify_email_form')
+            else:
+                logger.warning(f"DEBUG LOGIN - User {user.email} IS verified, proceeding to dashboard")
 
             # Check if 2FA is enabled
             if user.has_2fa_enabled():
@@ -245,9 +266,17 @@ class VerifyEmailFormView(LoginRequiredMixin, FormView):
     
     def dispatch(self, request, *args, **kwargs):
         """Redirect if already verified."""
-        if request.user.is_verified:
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        logger.warning(f"DEBUG VERIFY PAGE - User: {request.user.email}, email_verified field: {request.user.__dict__.get('email_verified')}, email_verified attr: {request.user.email_verified}")
+        
+        if request.user.email_verified:
+            logger.warning(f"DEBUG VERIFY PAGE - User {request.user.email} IS verified, redirecting to dashboard")
             messages.info(request, 'Your email is already verified.')
             return redirect('dashboard:dashboard_home')
+        
+        logger.warning(f"DEBUG VERIFY PAGE - User {request.user.email} is NOT verified, showing verification form")
         return super().dispatch(request, *args, **kwargs)
     
     def form_valid(self, form):
@@ -265,7 +294,7 @@ class VerifyEmailFormView(LoginRequiredMixin, FormView):
                 return self.form_invalid(form)
             
             # Mark user as verified
-            self.request.user.is_verified = True
+            self.request.user.email_verified = True
             self.request.user.save()
             
             # Delete token
@@ -284,7 +313,10 @@ class ResendVerificationView(LoginRequiredMixin, View):
     
     def post(self, request):
         """Send new verification email."""
-        if request.user.is_verified:
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        if request.user.email_verified:
             messages.info(request, 'Your email is already verified.')
             return redirect('dashboard:dashboard_home')
         
@@ -302,11 +334,6 @@ class ResendVerificationView(LoginRequiredMixin, View):
             expires_at=expires_at
         )
         
-        # Send email
-        verification_url = request.build_absolute_uri(
-            reverse_lazy('accounts:verify_email', kwargs={'token': token})
-        )
-        
         # Send HTML email
         subject = 'Verify your HireSight email'
         from_email = settings.DEFAULT_FROM_EMAIL
@@ -319,12 +346,17 @@ class ResendVerificationView(LoginRequiredMixin, View):
             'verification_url': request.build_absolute_uri(reverse_lazy('accounts:verify_email_form')),
         })
         
-        # Create email message
-        email = EmailMultiAlternatives(subject, '', from_email, to_email)
-        email.attach_alternative(html_content, "text/html")
-        email.send(fail_silently=True)
+        # Create email message and send with error logging
+        try:
+            email_msg = EmailMultiAlternatives(subject, '', from_email, to_email)
+            email_msg.attach_alternative(html_content, "text/html")
+            email_msg.send(fail_silently=False)
+            logger.info(f'Verification email resent successfully to {request.user.email}')
+            messages.success(request, 'Verification code sent! Please check your inbox.')
+        except Exception as e:
+            logger.error(f'Failed to resend verification email to {request.user.email}: {e}')
+            messages.error(request, f'Could not send verification email. Please try again later. Error: {e}')
         
-        messages.success(request, 'Verification code sent! Please check your inbox.')
         return redirect('accounts:verify_email_form')
 
 

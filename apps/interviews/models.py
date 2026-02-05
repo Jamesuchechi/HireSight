@@ -145,6 +145,16 @@ class Interview(models.Model):
         default=InterviewStatus.SCHEDULED
     )
     
+    # Video Configuration
+    use_inapp_video = models.BooleanField(
+        default=False,
+        help_text='Use HireSight built-in video conferencing'
+    )
+    allow_recording = models.BooleanField(
+        default=True,
+        help_text='Allow recording of the interview session'
+    )
+    
     # Scheduling details
     scheduled_date = models.DateTimeField(
         help_text='Date and time of the interview'
@@ -170,7 +180,7 @@ class Interview(models.Model):
     video_link = models.URLField(
         blank=True, 
         validators=[URLValidator()],
-        help_text='Video call link (Zoom, Google Meet, etc.)'
+        help_text='Video call link (Zoom, Google Meet, etc.). Leave empty for inbuilt video.'
     )
     dial_in_number = models.CharField(
         max_length=50, 
@@ -316,10 +326,10 @@ class Interview(models.Model):
                 })
         
         # Validate video link for video interviews
-        if self.interview_type == self.InterviewType.VIDEO and not self.video_link:
-            raise ValidationError({
-                'video_link': 'Video link is required for video interviews'
-            })
+        if self.interview_type == self.InterviewType.VIDEO:
+             # If it's a video interview, we don't strictly enforce an external link anymore
+             # as we support internal video calls.
+             pass
         
         # Validate location for on-site interviews
         if self.interview_type == self.InterviewType.ONSITE and not self.location:
@@ -450,7 +460,86 @@ class Interview(models.Model):
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
             'no_show_contacted_candidate': self.no_show_contacted_candidate,
+            'use_inapp_video': self.use_inapp_video,
         }
+
+
+class InterviewVideoSession(models.Model):
+    """
+    Session data for in-app video interviews.
+    Stores recording links, transcripts, and session metadata.
+    """
+    interview = models.OneToOneField(
+        Interview,
+        on_delete=models.CASCADE,
+        related_name='video_session'
+    )
+    room_name = models.CharField(max_length=255, unique=True)
+    provider = models.CharField(max_length=20, default='webrtc')
+    
+    # Participant tracking
+    company_joined_at = models.DateTimeField(null=True, blank=True)
+    candidate_joined_at = models.DateTimeField(null=True, blank=True)
+    started_at = models.DateTimeField(null=True, blank=True)
+    ended_at = models.DateTimeField(null=True, blank=True)
+    
+    live_coding_enabled = models.BooleanField(default=False)
+    coding_language = models.CharField(max_length=50, blank=True)
+    
+    # Recording
+    recording_url = models.URLField(blank=True)
+    recording_chunks = models.JSONField(default=list, blank=True)
+    
+    # Live transcription & Notes
+    transcript = models.TextField(blank=True)
+    ai_notes = models.TextField(blank=True, help_text='AI-generated summary/notes')
+    internal_notes = models.TextField(blank=True, help_text='Private notes taken during the live session')
+    
+    # Live Rating/Score
+    candidate_engagement_score = models.DecimalField(
+        max_digits=5, 
+        decimal_places=2, 
+        null=True, 
+        blank=True
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Video Session for {self.interview}"
+
+
+class InterviewCodingSession(models.Model):
+    video_session = models.OneToOneField(
+        InterviewVideoSession, 
+        on_delete=models.CASCADE,
+        related_name='coding_session'
+    )
+    language = models.CharField(max_length=50, default='python')
+    problem_statement = models.TextField(blank=True)
+    starter_code = models.TextField(blank=True)
+    
+    # Real-time code snapshots
+    code_history = models.JSONField(default=list, blank=True)
+    final_code = models.TextField(blank=True)
+    
+    # Test execution
+    test_cases = models.JSONField(default=list, blank=True)
+    test_results = models.JSONField(default=dict, blank=True)
+    
+    # AI code review
+    ai_code_review = models.TextField(blank=True)
+    code_quality_score = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return f"Coding Session for {self.video_session.interview}"
+
+
+
 
 
 class InterviewFeedbackTemplate(models.Model):

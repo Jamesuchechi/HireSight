@@ -27,7 +27,7 @@ class UserManager(BaseUserManager):
         """Create and return a superuser."""
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
-        extra_fields.setdefault('is_verified', True)
+        extra_fields.setdefault('email_verified', True)
         extra_fields.setdefault('account_type', 'personal')
         
         if extra_fields.get('is_staff') is not True:
@@ -68,7 +68,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     # Account status
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
-    is_verified = models.BooleanField(
+    email_verified = models.BooleanField(
         default=False,
         help_text='Email verification status'
     )
@@ -91,7 +91,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         indexes = [
             models.Index(fields=['email']),
             models.Index(fields=['account_type']),
-            models.Index(fields=['is_verified']),
+            models.Index(fields=['email_verified']),
         ]
     
     def __str__(self):

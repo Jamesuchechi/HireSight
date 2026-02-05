@@ -28,7 +28,7 @@
                             <p class="text-sm text-gray-900">{{ user.email }}</p>
                         </div>
                         <a href="{% url 'accounts:change_email' %}"
-                           class="text-primary hover:text-primary-dark text-sm font-semibold underline-animate">
+                            class="text-primary hover:text-primary-dark text-sm font-semibold underline-animate">
                             Change
                         </a>
                     </div>
@@ -36,13 +36,14 @@
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-sm font-medium text-gray-500">Email Verification</p>
-                            <p class="text-sm {% if user.is_verified %}text-green-600{% else %}text-red-600{% endif %}">
-                                {% if user.is_verified %}Verified{% else %}Not Verified{% endif %}
+                            <p
+                                class="text-sm {% if user.email_verified %}text-green-600{% else %}text-red-600{% endif %}">
+                                {% if user.email_verified %}Verified{% else %}Not Verified{% endif %}
                             </p>
                         </div>
-                        {% if not user.is_verified %}
+                        {% if not user.email_verified %}
                         <a href="{% url 'accounts:verify_email_form' %}"
-                           class="text-primary hover:text-primary-dark text-sm font-semibold underline-animate">
+                            class="text-primary hover:text-primary-dark text-sm font-semibold underline-animate">
                             Verify
                         </a>
                         {% endif %}
@@ -70,7 +71,7 @@
                             <p class="text-sm text-gray-900">Update your job seeker profile</p>
                         </div>
                         <a href="{% url 'accounts:edit_personal_profile' %}"
-                           class="text-primary hover:text-primary-dark text-sm font-semibold underline-animate">
+                            class="text-primary hover:text-primary-dark text-sm font-semibold underline-animate">
                             Edit
                         </a>
                     </div>
@@ -81,7 +82,7 @@
                             <p class="text-sm text-gray-900">Update your company profile</p>
                         </div>
                         <a href="{% url 'accounts:edit_company_profile' %}"
-                           class="text-primary hover:text-primary-dark text-sm font-semibold underline-animate">
+                            class="text-primary hover:text-primary-dark text-sm font-semibold underline-animate">
                             Edit
                         </a>
                     </div>
@@ -94,24 +95,24 @@
                         </div>
                         {% if user.account_type == 'personal' %}
                         <a href="{% url 'accounts:personal_profile_view' user.id %}"
-                           class="text-primary hover:text-primary-dark text-sm font-semibold underline-animate">
+                            class="text-primary hover:text-primary-dark text-sm font-semibold underline-animate">
                             View
                         </a>
                         {% else %}
                         <a href="{% url 'accounts:company_profile_view' user.id %}"
-                           class="text-primary hover:text-primary-dark text-sm font-semibold underline-animate">
+                            class="text-primary hover:text-primary-dark text-sm font-semibold underline-animate">
                             View
                         </a>
                         {% endif %}
                     </div>
-                    
+
                     <div class="flex items-center justify-between pt-4 border-t border-gray-200">
                         <div>
                             <p class="text-sm font-medium text-gray-500">Profile Analytics</p>
                             <p class="text-sm text-gray-900">See who's viewing your profile</p>
                         </div>
                         <a href="{% url 'accounts:profile_analytics' %}"
-                           class="text-primary hover:text-primary-dark text-sm font-semibold underline-animate">
+                            class="text-primary hover:text-primary-dark text-sm font-semibold underline-animate">
                             View
                         </a>
                     </div>
@@ -130,7 +131,7 @@
                             <p class="text-sm text-gray-900">Manage notification settings</p>
                         </div>
                         <a href="{% url 'accounts:email_preferences' %}"
-                           class="text-primary hover:text-primary-dark text-sm font-semibold underline-animate">
+                            class="text-primary hover:text-primary-dark text-sm font-semibold underline-animate">
                             Configure
                         </a>
                     </div>
@@ -149,50 +150,52 @@
                             <p class="text-sm text-gray-900">Change your account password</p>
                         </div>
                         <a href="{% url 'accounts:change_password' %}"
-                           class="text-primary hover:text-primary-dark text-sm font-semibold underline-animate">
+                            class="text-primary hover:text-primary-dark text-sm font-semibold underline-animate">
                             Change
                         </a>
                     </div>
-                    
+
                     <div class="flex items-center justify-between pt-4 border-t border-gray-200">
                         <div>
                             <p class="text-sm font-medium text-gray-500">Two-Factor Authentication</p>
                             <p class="text-sm text-gray-900">
                                 {% if user.two_factor_enabled %}
-                                    <span class="text-green-600">✓ Enabled</span>
+                                <span class="text-green-600">✓ Enabled</span>
                                 {% else %}
-                                    Add extra security to your account
+                                Add extra security to your account
                                 {% endif %}
                             </p>
                         </div>
                         {% if user.two_factor_enabled %}
-                        <form method="post" action="{% url 'accounts:disable_2fa' %}" class="inline" onsubmit="return confirm('Are you sure you want to disable 2FA?');">
+                        <form method="post" action="{% url 'accounts:disable_2fa' %}" class="inline"
+                            onsubmit="return confirm('Are you sure you want to disable 2FA?');">
                             {% csrf_token %}
-                            <button type="submit" class="text-red-600 hover:text-red-700 text-sm font-semibold underline-animate">
+                            <button type="submit"
+                                class="text-red-600 hover:text-red-700 text-sm font-semibold underline-animate">
                                 Disable
                             </button>
                         </form>
                         {% else %}
                         <a href="{% url 'accounts:enable_2fa' %}"
-                           class="text-primary hover:text-primary-dark text-sm font-semibold underline-animate">
+                            class="text-primary hover:text-primary-dark text-sm font-semibold underline-animate">
                             Enable
                         </a>
                         {% endif %}
                     </div>
-                    
+
                     <div class="flex items-center justify-between pt-4 border-t border-gray-200">
                         <div>
                             <p class="text-sm font-medium text-gray-500">Active Sessions</p>
                             <p class="text-sm text-gray-900">Manage logged-in devices</p>
                         </div>
                         <a href="{% url 'accounts:active_sessions' %}"
-                           class="text-primary hover:text-primary-dark text-sm font-semibold underline-animate">
+                            class="text-primary hover:text-primary-dark text-sm font-semibold underline-animate">
                             Manage
                         </a>
                     </div>
                 </div>
             </div>
-            
+
             <!-- Developer Settings -->
             <div class="bg-white rounded-lg shadow">
                 <div class="px-6 py-4 border-b border-gray-200">
@@ -205,13 +208,13 @@
                             <p class="text-sm text-gray-900">Manage programmatic access</p>
                         </div>
                         <a href="{% url 'accounts:api_keys' %}"
-                           class="text-primary hover:text-primary-dark text-sm font-semibold underline-animate">
+                            class="text-primary hover:text-primary-dark text-sm font-semibold underline-animate">
                             Manage
                         </a>
                     </div>
                 </div>
             </div>
-            
+
             <!-- Data & Privacy -->
             <div class="bg-white rounded-lg shadow">
                 <div class="px-6 py-4 border-b border-gray-200">
@@ -224,7 +227,7 @@
                             <p class="text-sm text-gray-900">Download all your data</p>
                         </div>
                         <a href="{% url 'accounts:export_data' %}"
-                           class="text-primary hover:text-primary-dark text-sm font-semibold underline-animate">
+                            class="text-primary hover:text-primary-dark text-sm font-semibold underline-animate">
                             Export
                         </a>
                     </div>
@@ -244,7 +247,7 @@
                         <p class="text-sm text-gray-600">Permanently delete your account and all associated data</p>
                     </div>
                     <a href="{% url 'accounts:delete_account' %}"
-                       class="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors">
+                        class="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors">
                         Delete Account
                     </a>
                 </div>
@@ -253,7 +256,7 @@
 
         <!-- Navigation -->
         <div class="mt-8 text-center">
-                    <a href="{% url 'dashboard:dashboard_home' %}" class="text-gray-500 hover:text-gray-700 underline-animate">
+            <a href="{% url 'dashboard:dashboard_home' %}" class="text-gray-500 hover:text-gray-700 underline-animate">
                 ← Back to dashboard
             </a>
         </div>

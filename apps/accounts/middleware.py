@@ -132,25 +132,35 @@ class EmailVerificationMiddleware:
         self.get_response = get_response
         
     def __call__(self, request):
-        if request.user.is_authenticated and not request.user.is_verified:
+        # Check BEFORE processing the request
+        if request.user.is_authenticated and not request.user.email_verified:
             # List of paths that unverified users ARE allowed to access
             allowed_paths = [
                 '/accounts/verify-email/',
                 '/accounts/resend-verification/',
                 '/accounts/logout/',
                 '/accounts/verify-email/notice/',
+                '/accounts/setup-2fa-optional/',
             ]
             
-            # Check if current path is allowed
+            # Get the path and strip language prefix if present (e.g., /en/, /es/, etc.)
+            import re
             path = request.path
-            is_allowed = any(path.startswith(allowed) for allowed in allowed_paths)
+            clean_path = re.sub(r'^/[a-z]{2}(-[a-z]{2})?/', '/', path)  # Remove /en/, /es/, /zh-cn/, etc.
             
-            # If not allowed, redirect to verification notice or form
+            # Check if current path is allowed (check both original and cleaned paths)
+            is_allowed = any(
+                path.startswith(allowed) or clean_path.startswith(allowed) 
+                for allowed in allowed_paths
+            )
+            
+            # If not allowed, redirect to verification form BEFORE processing the view
             if not is_allowed and not path.startswith('/static/') and not path.startswith('/media/'):
                 from django.shortcuts import redirect
                 from django.contrib import messages
                 messages.warning(request, 'Please verify your email address to continue.')
                 return redirect('accounts:verify_email_form')
-                
+        
+        # Only process the request if verification passed or not required        
         response = self.get_response(request)
         return response

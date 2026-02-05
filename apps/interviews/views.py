@@ -20,14 +20,25 @@ from django.conf import settings
 import os
 import uuid
 
+from django.views.generic import (
+    ListView, DetailView, CreateView, UpdateView, DeleteView, View
+)
+from django.views.decorators.http import require_POST
+from django.utils.decorators import method_decorator
+from django.http import JsonResponse
+import docker
+import json
+
 from .models import (
-    Interview, InterviewPracticeSession, PracticeQuestion,
-    PracticeResponse, PracticePerformanceReport
+    Interview, InterviewFeedbackTemplate, InterviewPracticeSession,
+    InterviewActivityLog, InterviewVideoSession, InterviewCodingSession
 )
 from .forms import (
-    InterviewScheduleForm, InterviewRescheduleForm, InterviewCancelForm,
-    InterviewCompleteForm, InterviewNoShowForm, BulkInterviewActionForm,
-    InterviewResponseForm, PracticeSessionForm, PracticeResponseForm
+    InterviewScheduleForm, InterviewRescheduleForm,
+    InterviewCancelForm, InterviewCompleteForm,
+    InterviewNoShowForm, BulkInterviewActionForm,
+    InterviewResponseForm, PracticeSessionForm,
+    PracticeResponseForm
 )
 from .tasks import (
     send_interview_invitation,
@@ -152,6 +163,22 @@ class InterviewScheduleView(LoginRequiredMixin, CompanyRequiredMixin, CreateView
         
         response = super().form_valid(form)
         
+        # Handle In-App Video and Live Coding setup
+        if self.object.use_inapp_video:
+            video_session = InterviewVideoSession.objects.create(
+                interview=self.object,
+                room_name=str(uuid.uuid4()),
+                live_coding_enabled=form.cleaned_data.get('enable_live_coding', False)
+            )
+            
+            # If live coding enabled, init the coding session
+            if video_session.live_coding_enabled:
+                 InterviewCodingSession.objects.create(
+                     video_session=video_session,
+                     language='python', # default
+                     code_history=[]
+                 )
+
         # Update application status to interview
         if self.application.status != ApplicationStatus.INTERVIEW:
             self.application.status = ApplicationStatus.INTERVIEW
@@ -1219,3 +1246,348 @@ class PracticeVideoUploadView(LoginRequiredMixin, CandidateRequiredMixin, View):
                 return JsonResponse({'error': 'Session not found'}, status=404)
 
         return JsonResponse({'upload_id': upload_id, 'video_url': assembled_url})
+
+
+class InterviewRoomView(LoginRequiredMixin, InterviewAccessMixin, DetailView):
+    """
+    Main Video Interview Room.
+    Serves the immersive video interface for both Recruiter and Candidate.
+    """
+    model = Interview
+    template_name = 'interviews/interview_room.html'
+    pk_url_kwarg = 'interview_id'
+
+    def dispatch(self, request, *args, **kwargs):
+        # Validate that in-app video is enabled
+        self.object = self.get_object()
+        if not self.object.use_inapp_video:
+            messages.warning(request, "This interview is set to use an external video link.")
+            return redirect('interviews:detail', interview_id=self.object.id)
+            
+        # Ensure session object exists
+        InterviewVideoSession.objects.get_or_create(
+            interview=self.object,
+            defaults={'room_name': f'room_{self.object.id}'}
+        )
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        
+        is_interviewer = (user.account_type == 'company')
+        context['is_interviewer'] = is_interviewer
+        context['video_session'] = self.object.video_session
+        
+        # Turn/Stun server config (Mock for now, would come from settings in prod)
+        context['ice_servers'] = settings.ICE_SERVERS if hasattr(settings, 'ICE_SERVERS') else [
+            {'urls': 'stun:stun.l.google.com:19302'}
+        ]
+        
+        return context
+
+
+class InterviewRecordingUploadView(LoginRequiredMixin, InterviewAccessMixin, View):
+    """
+    Handle recording chunk uploads from the client.
+    """
+    def post(self, request, interview_id):
+        interview = get_object_or_404(Interview, id=interview_id)
+        
+        # Verify permissions (re-using Mixin logic manually or rely on decorator if View was different)
+        # Using simple check here for brevity, matching InterviewAccessMixin logic
+        if request.user.account_type == 'company':
+            if interview.application.job.company.user != request.user:
+                 return JsonResponse({'error': 'Unauthorized'}, status=403)
+        elif request.user.account_type == 'personal':
+             # Usually only host records, but if we allow candidate recording:
+             if interview.application.applicant != request.user:
+                 return JsonResponse({'error': 'Unauthorized'}, status=403)
+
+        if not interview.allow_recording:
+             return JsonResponse({'error': 'Recording not allowed'}, status=403)
+
+        try:
+            video_file = request.FILES.get('video_chunk')
+            if not video_file:
+                return JsonResponse({'error': 'No file provided'}, status=400)
+            
+            # Identify chunk index
+            chunk_index = request.POST.get('chunk_index', 0)
+            
+            # Save chunk to storage
+            # Path: interviews/recordings/<interview_id>/<chunk_index>.webm
+            file_path = f"interviews/recordings/{interview.id}/{chunk_index}_{uuid.uuid4().hex[:8]}.webm"
+            saved_path = default_storage.save(file_path, video_file)
+            file_url = default_storage.url(saved_path)
+            
+            # Update session record
+            session = interview.video_session
+            chunk_data = {
+                'index': int(chunk_index),
+                'url': file_url,
+                'path': saved_path,
+                'uploaded_at': timezone.now().isoformat()
+            }
+            
+            # Simple list append (in production might want more robust handling)
+            session.recording_chunks.append(chunk_data)
+            session.save(update_fields=['recording_chunks'])
+            
+            return JsonResponse({'status': 'success', 'url': file_url})
+            
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+
+@require_POST
+def execute_code(request):
+    """Execute candidate code in sandboxed Docker container"""
+    data = json.loads(request.body)
+    code = data.get('code')
+    language = data.get('language', 'python')
+    interview_id = data.get('interview_id')
+    
+    # Security: Verify access
+    interview = get_object_or_404(Interview, id=interview_id)
+    if request.user != interview.application.applicant and request.user != interview.application.job.company.user:
+         return JsonResponse({'error': 'Unauthorized'}, status=403)
+    
+    # Execute in Docker
+    if language == 'python':
+        result = execute_python_code(code)
+    elif language == 'javascript':
+        result = execute_javascript_code(code)
+    elif language == 'rust':
+        result = execute_rust_code(code)
+    elif language == 'go':
+        result = execute_go_code(code)
+    elif language == 'cpp':
+        result = execute_cpp_code(code)
+    elif language == 'php':
+        result = execute_php_code(code)
+    elif language == 'ruby':
+        result = execute_ruby_code(code)
+    else:
+        return JsonResponse({'error': 'Unsupported language'}, status=400)
+    
+    # Save execution result if successful or failed attempt
+    if 'success' in result:
+         # Find or create session (should exist from websocket)
+        coding_session = InterviewCodingSession.objects.filter(
+            video_session__interview=interview
+        ).first()
+        
+        if coding_session:
+            coding_session.final_code = code
+            coding_session.test_results = result
+            coding_session.save()
+    
+    return JsonResponse(result)
+
+
+def execute_python_code(code):
+    """Run Python code in isolated Docker container"""
+    try:
+        client = docker.from_env()
+        # Create temporary file with code
+        container = client.containers.run(
+            'python:3.11-slim',
+            command=f'python -c "{code}"',
+            mem_limit='128m',
+            cpu_quota=50000,
+            network_disabled=True,
+            remove=True,
+            stdout=True,
+            stderr=True,
+            # timeout=5 # Timeout is handled by client in some versions or need wrapper
+        )
+        
+        return {
+            'success': True,
+            'output': container.decode('utf-8')
+        }
+    except docker.errors.ContainerError as e:
+        return {'success': False, 'error': e.stderr.decode('utf-8')}
+    except Exception as e:
+        return {'success': False, 'error': str(e)}
+
+def execute_javascript_code(code):
+    """Run JavaScript code in isolated Docker container (Node.js)"""
+    try:
+        client = docker.from_env()
+        container = client.containers.run(
+            'node:18-slim',
+            command=['node', '-e', code],
+            mem_limit='128m',
+            cpu_quota=50000,
+            network_disabled=True,
+            remove=True,
+            stdout=True,
+            stderr=True,
+        )
+        
+        return {
+            'success': True,
+            'output': container.decode('utf-8')
+        }
+    except docker.errors.ContainerError as e:
+        return {'success': False, 'error': e.stderr.decode('utf-8')}
+    except Exception as e:
+        return {'success': False, 'error': str(e)}
+
+def execute_rust_code(code):
+    """Run Rust code in isolated Docker container"""
+    # Rust requires compilation. We'll wrap it in main if not present, but for now expect full program suitable for main.rs
+    # A simple approach: echo code to main.rs, compile, and run.
+    command = f'/bin/sh -c "echo \'{code}\' > main.rs && rustc main.rs && ./main"'
+    
+    try:
+        client = docker.from_env()
+        container = client.containers.run(
+            'rust:slim',
+            command=command,
+            mem_limit='256m', # Rust compilation needs more memory
+            cpu_quota=80000,
+            network_disabled=True,
+            remove=True,
+            stdout=True,
+            stderr=True,
+        )
+        
+        return {
+            'success': True,
+            'output': container.decode('utf-8')
+        }
+    except docker.errors.ContainerError as e:
+        return {'success': False, 'error': e.stderr.decode('utf-8')}
+    except Exception as e:
+        return {'success': False, 'error': str(e)}
+
+def execute_go_code(code):
+    """Run Go code in isolated Docker container"""
+    command = f'/bin/sh -c "echo \'{code}\' > main.go && go run main.go"'
+    try:
+        client = docker.from_env()
+        container = client.containers.run(
+            'golang:1.20-alpine',
+            command=command,
+            mem_limit='128m',
+            cpu_quota=50000,
+            network_disabled=True,
+            remove=True,
+            stdout=True,
+            stderr=True,
+        )
+        return {'success': True, 'output': container.decode('utf-8')}
+    except docker.errors.ContainerError as e:
+        return {'success': False, 'error': e.stderr.decode('utf-8')}
+    except Exception as e:
+        return {'success': False, 'error': str(e)}
+
+def execute_cpp_code(code):
+    """Run C++ code in isolated Docker container"""
+    command = f'/bin/sh -c "echo \'{code}\' > main.cpp && g++ -o main main.cpp && ./main"'
+    try:
+        client = docker.from_env()
+        container = client.containers.run(
+            'gcc:latest',
+            command=command,
+            mem_limit='128m',
+            cpu_quota=50000,
+            network_disabled=True,
+            remove=True,
+            stdout=True,
+            stderr=True,
+        )
+        return {'success': True, 'output': container.decode('utf-8')}
+    except docker.errors.ContainerError as e:
+        return {'success': False, 'error': e.stderr.decode('utf-8')}
+    except Exception as e:
+        return {'success': False, 'error': str(e)}
+
+def execute_php_code(code):
+    """Run PHP code in isolated Docker container"""
+    try:
+        client = docker.from_env()
+        container = client.containers.run(
+            'php:8.2-cli-alpine',
+            command=['php', '-r', code],
+            mem_limit='128m',
+            cpu_quota=50000,
+            network_disabled=True,
+            remove=True,
+            stdout=True,
+            stderr=True,
+        )
+        return {'success': True, 'output': container.decode('utf-8')}
+    except docker.errors.ContainerError as e:
+        return {'success': False, 'error': e.stderr.decode('utf-8')}
+    except Exception as e:
+        return {'success': False, 'error': str(e)}
+
+def execute_ruby_code(code):
+    """Run Ruby code in isolated Docker container"""
+    try:
+        client = docker.from_env()
+        container = client.containers.run(
+            'ruby:3.2-alpine',
+            command=['ruby', '-e', code],
+            mem_limit='128m',
+            cpu_quota=50000,
+            network_disabled=True,
+            remove=True,
+            stdout=True,
+            stderr=True,
+        )
+        return {'success': True, 'output': container.decode('utf-8')}
+    except docker.errors.ContainerError as e:
+        return {'success': False, 'error': e.stderr.decode('utf-8')}
+    except Exception as e:
+        return {'success': False, 'error': str(e)}
+
+
+
+@require_POST
+def save_coding_session(request, interview_id):
+    """Save periodic snapshot of coding session"""
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Unauthorized'}, status=401)
+        
+    try:
+        data = json.loads(request.body)
+        code = data.get('code')
+        language = data.get('language')
+        
+        # Verify access
+        interview = get_object_or_404(Interview, id=interview_id)
+        if request.user != interview.application.applicant and request.user != interview.application.job.company.user:
+             return JsonResponse({'error': 'Unauthorized'}, status=403)
+             
+        coding_session = InterviewCodingSession.objects.filter(
+            video_session__interview_id=interview_id
+        ).first()
+        
+        if coding_session:
+            # Update current state
+            coding_session.language = language
+            coding_session.final_code = code
+            
+            # Append to history (for playback)
+            # Limit history size if needed, e.g. last 100 snapshots
+            coding_session.code_history.append({
+                'code': code,
+                'timestamp': timezone.now().isoformat(),
+                'user_id': str(request.user.id)
+            })
+            
+            # Keep only the last 100 snapshots
+            if len(coding_session.code_history) > 100:
+                coding_session.code_history = coding_session.code_history[-100:]
+            coding_session.save()
+            return JsonResponse({'status': 'saved'})
+        else:
+            return JsonResponse({'error': 'Session not found'}, status=404)
+            
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)

@@ -54,9 +54,9 @@ def verified_required(view_func):
             messages.warning(request, 'Please log in to access this page.')
             return redirect('accounts:login')
         
-        if not request.user.is_verified:
-            messages.warning(request, 'Please verify your email address to access this page.')
-            return redirect('accounts:verify_email_notice')
+        if not request.user.email_verified:
+            messages.warning(request, 'Please verify your email address to continue.')
+            return redirect('accounts:verify_email_form')
         
         return view_func(request, *args, **kwargs)
     

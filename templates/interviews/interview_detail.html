@@ -10,14 +10,16 @@ Interview Detail · {{ interview.application.job.title }}
     .spark-bar {
         height: 4px;
         border-radius: 999px;
-        background: linear-gradient(90deg, rgba(0,102,255,0.9), rgba(0,212,255,0.8));
+        background: linear-gradient(90deg, rgba(0, 102, 255, 0.9), rgba(0, 212, 255, 0.8));
     }
+
     .glass-card {
         background: rgba(255, 255, 255, 0.95);
         border-radius: 32px;
         border: 1px solid rgba(15, 23, 42, 0.08);
         box-shadow: 0 20px 60px rgba(15, 23, 42, 0.18);
     }
+
     .hero-gradient {
         background: linear-gradient(145deg, #0066FF, #1493FF 40%, #00D4FF);
     }
@@ -46,12 +48,15 @@ Interview Detail · {{ interview.application.job.title }}
                     </div>
                     <div class="space-y-1 text-right">
                         <p class="text-xs uppercase tracking-[0.4em] text-slate-200">Status</p>
-                        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold bg-white/10 border border-white/20">
-                            <span class="h-2 w-2 rounded-full {% if interview.status == 'SCHEDULED' or interview.status == 'RESCHEDULED' %}bg-emerald-400{% elif interview.status == 'CANCELLED' %}bg-rose-500{% else %}bg-amber-400{% endif %}"></span>
+                        <div
+                            class="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold bg-white/10 border border-white/20">
+                            <span
+                                class="h-2 w-2 rounded-full {% if interview.status == 'SCHEDULED' or interview.status == 'RESCHEDULED' %}bg-emerald-400{% elif interview.status == 'CANCELLED' %}bg-rose-500{% else %}bg-amber-400{% endif %}"></span>
                             {{ interview.get_status_display }}
                         </div>
                         <div class="text-xs text-slate-200">
-                            {{ interview.scheduled_date|date:"F j, Y" }} at {{ interview.scheduled_date|time:"g:i A" }} ·
+                            {{ interview.scheduled_date|date:"F j, Y" }} at {{ interview.scheduled_date|time:"g:i A" }}
+                            ·
                             {{ interview.timezone_name }}
                         </div>
                     </div>
@@ -62,7 +67,8 @@ Interview Detail · {{ interview.application.job.title }}
                         <p class="text-xs uppercase tracking-[0.4em] text-slate-200">App status</p>
                         <p class="text-lg font-semibold">{{ interview.application.get_status_display }}</p>
                         <p class="text-xs text-slate-200">
-                            Last updated {{ interview.application.updated_at|default:interview.application.applied_at|date:"M j, Y" }}
+                            Last updated {{
+                            interview.application.updated_at|default:interview.application.applied_at|date:"M j, Y" }}
                         </p>
                     </div>
                     <div class="space-y-1">
@@ -90,21 +96,40 @@ Interview Detail · {{ interview.application.job.title }}
                         <span class="text-xs text-primary font-semibold">Live</span>
                         {% endif %}
                     </div>
-                    {% if interview.video_link %}
-                    <a href="{{ interview.video_link }}" target="_blank" rel="noreferrer" class="block bg-white shadow-sm border border-slate-200 p-4 rounded-2xl text-sm text-slate-900 hover:bg-slate-50 transition">
+                    {% if interview.use_inapp_video %}
+                    <a href="{% url 'interviews:room' interview.id %}"
+                        class="block bg-gradient-to-r from-blue-600 to-indigo-600 shadow-md border border-blue-500 p-4 rounded-2xl text-sm text-white hover:from-blue-500 hover:to-indigo-500 transition group">
+                        <div class="flex items-center justify-between gap-3">
+                            <div>
+                                <p class="font-bold flex items-center gap-2">
+                                    <span class="w-2 h-2 rounded-full bg-red-400 animate-pulse"></span>
+                                    Join Interview Room
+                                </p>
+                                <p class="text-xs text-blue-100 truncate">Internal Video Conference</p>
+                            </div>
+                            <div
+                                class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center group-hover:bg-white/30 transition">
+                                <i class="fas fa-video"></i>
+                            </div>
+                        </div>
+                    </a>
+                    {% elif interview.video_link %}
+                    <a href="{{ interview.video_link }}" target="_blank" rel="noreferrer"
+                        class="block bg-white shadow-sm border border-slate-200 p-4 rounded-2xl text-sm text-slate-900 hover:bg-slate-50 transition">
                         <div class="flex items-center justify-between gap-3">
                             <div>
                                 <p class="font-semibold">Video link</p>
                                 <p class="text-xs text-slate-500 truncate">{{ interview.video_link }}</p>
                             </div>
                             <svg class="w-6 h-6 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h8m-4-4l4 4-4 4" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M8 12h8m-4-4l4 4-4 4" />
                             </svg>
                         </div>
                     </a>
                     {% endif %}
                     {% if interview.location %}
-                        <div class="text-sm text-slate-600 space-y-1">
+                    <div class="text-sm text-slate-600 space-y-1">
                         <p class="font-semibold text-slate-900">Location</p>
                         <p class="text-slate-500">{{ interview.location }}</p>
                     </div>
@@ -163,7 +188,8 @@ Interview Detail · {{ interview.application.job.title }}
                         <span>{{ interview.reschedule_count }} / 5</span>
                     </div>
                     <div class="h-2 bg-slate-200 rounded-full">
-                        <div class="h-full bg-gradient-to-r from-primary to-secondary rounded-full" style="width: {{ interview.reschedule_count|add:1|floatformat:0 }}0%;"></div>
+                        <div class="h-full bg-gradient-to-r from-primary to-secondary rounded-full"
+                            style="width: {{ interview.reschedule_count|add:1|floatformat:0 }}0%;"></div>
                     </div>
                 </article>
             </div>
@@ -251,7 +277,8 @@ Interview Detail · {{ interview.application.job.title }}
                     {% endfor %}
                 </div>
                 <p class="text-xs text-slate-500">
-                    Candidates can propose a new slot from their interview response form; review each card before confirming.
+                    Candidates can propose a new slot from their interview response form; review each card before
+                    confirming.
                 </p>
             </article>
             {% endif %}
@@ -264,20 +291,25 @@ Interview Detail · {{ interview.application.job.title }}
                     </div>
                     <div class="flex flex-wrap gap-3">
                         {% if request.user.account_type == 'company' %}
-                        <a href="{% url 'interviews:reschedule' interview.id %}" class="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-primary to-secondary text-sm font-semibold shadow-lg hover:shadow-2xl transition">
+                        <a href="{% url 'interviews:reschedule' interview.id %}"
+                            class="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-primary to-secondary text-sm font-semibold shadow-lg hover:shadow-2xl transition">
                             Reschedule
                         </a>
-                        <a href="{% url 'interviews:cancel' interview.id %}" class="inline-flex items-center px-4 py-3 rounded-2xl bg-white text-slate-900 font-semibold text-sm border border-white/30">
+                        <a href="{% url 'interviews:cancel' interview.id %}"
+                            class="inline-flex items-center px-4 py-3 rounded-2xl bg-white text-slate-900 font-semibold text-sm border border-white/30">
                             Cancel
                         </a>
-                        <a href="{% url 'interviews:complete' interview.id %}" class="inline-flex items-center px-4 py-3 rounded-2xl border border-slate-200 text-sm font-semibold text-slate-700">
+                        <a href="{% url 'interviews:complete' interview.id %}"
+                            class="inline-flex items-center px-4 py-3 rounded-2xl border border-slate-200 text-sm font-semibold text-slate-700">
                             Mark Complete
                         </a>
-                        <a href="{% url 'interviews:no_show' interview.id %}" class="inline-flex items-center px-4 py-3 rounded-2xl border border-rose-500 text-rose-500 text-sm font-semibold">
+                        <a href="{% url 'interviews:no_show' interview.id %}"
+                            class="inline-flex items-center px-4 py-3 rounded-2xl border border-rose-500 text-rose-500 text-sm font-semibold">
                             Mark No-Show
                         </a>
                         {% else %}
-                        <a href="{% url 'interviews:respond' interview.id %}" class="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-white text-slate-900 font-semibold text-sm shadow-lg hover:shadow-2xl transition">
+                        <a href="{% url 'interviews:respond' interview.id %}"
+                            class="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-white text-slate-900 font-semibold text-sm shadow-lg hover:shadow-2xl transition">
                             Respond
                         </a>
                         <span class="text-xs text-slate-400">Need to reschedule? Use the reschedule request flow.</span>
@@ -323,7 +355,8 @@ Interview Detail · {{ interview.application.job.title }}
                     <p class="text-xs uppercase tracking-[0.4em] text-slate-500">Candidate insights</p>
                     <div class="text-sm text-slate-600">
                         <p class="font-semibold text-slate-900">{{ interview.application.applicant.get_full_name }}</p>
-                        <p class="text-xs text-slate-500">Member since {{ interview.application.applicant.date_joined|date:"M Y" }}</p>
+                        <p class="text-xs text-slate-500">Member since {{
+                            interview.application.applicant.date_joined|date:"M Y" }}</p>
                         <p class="mt-2 text-slate-500">Current resume score: 88</p>
                         <p class="text-slate-500">Talent match: High</p>
                     </div>
@@ -334,11 +367,15 @@ Interview Detail · {{ interview.application.job.title }}
                     <div class="space-y-3 text-sm text-slate-600">
                         <div class="flex items-center justify-between">
                             <span>24h reminder</span>
-                            <span class="{% if interview.reminder_24h_sent %}text-emerald-400{% else %}text-slate-400{% endif %}">{{ interview.reminder_24h_sent|yesno:"Sent,Pending" }}</span>
+                            <span
+                                class="{% if interview.reminder_24h_sent %}text-emerald-400{% else %}text-slate-400{% endif %}">{{
+                                interview.reminder_24h_sent|yesno:"Sent,Pending" }}</span>
                         </div>
                         <div class="flex items-center justify-between">
                             <span>1h reminder</span>
-                            <span class="{% if interview.reminder_1h_sent %}text-emerald-400{% else %}text-slate-400{% endif %}">{{ interview.reminder_1h_sent|yesno:"Sent,Pending" }}</span>
+                            <span
+                                class="{% if interview.reminder_1h_sent %}text-emerald-400{% else %}text-slate-400{% endif %}">{{
+                                interview.reminder_1h_sent|yesno:"Sent,Pending" }}</span>
                         </div>
                         <p class="text-xs text-slate-500">Automations run via Celery tasks.</p>
                     </div>

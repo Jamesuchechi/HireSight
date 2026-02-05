@@ -19,14 +19,14 @@ from .models import (
 class UserAdmin(BaseUserAdmin):
     """Custom admin interface for User model."""
     
-    list_display = ['email', 'account_type', 'is_verified', 'is_active', 'is_staff', 'created_at']
-    list_filter = ['account_type', 'is_verified', 'is_active', 'is_staff', 'created_at']
+    list_display = ['email', 'account_type', 'email_verified', 'is_active', 'is_staff', 'created_at']
+    list_filter = ['account_type', 'email_verified', 'is_active', 'is_staff', 'created_at']
     search_fields = ['email']
     ordering = ['-created_at']
     
     fieldsets = (
         (None, {'fields': ('email', 'password')}),
-        ('Account Info', {'fields': ('account_type', 'is_verified')}),
+        ('Account Info', {'fields': ('account_type', 'email_verified')}),
         ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
         ('Important dates', {'fields': ('last_login', 'created_at', 'updated_at')}),
     )

@@ -76,10 +76,10 @@ MIDDLEWARE = [
     'apps.accounts.middleware.CleanupExpiredSessionsMiddleware', 
     'apps.notifications.middleware.NotificationMiddleware',
     'apps.following.middleware.FollowCountMiddleware',
-    'apps.accounts.middleware.EmailVerificationMiddleware',
     'apps.analytics.middleware.AnalyticsTrackingMiddleware',
     'axes.middleware.AxesMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'apps.accounts.middleware.EmailVerificationMiddleware',  # Moved after MessageMiddleware
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     
 ]
