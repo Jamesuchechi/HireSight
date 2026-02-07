@@ -53,18 +53,57 @@ document.addEventListener('DOMContentLoaded', () => {
 
         joinBtn.addEventListener('click', joinRoom);
 
+        // Lobby controls
+        const lobbyToggleMic = document.getElementById('lobby-toggle-mic');
+        const lobbyToggleCamera = document.getElementById('lobby-toggle-camera');
+
+        if (lobbyToggleMic) {
+            lobbyToggleMic.addEventListener('click', () => {
+                if (localStream) {
+                    const audioTrack = localStream.getAudioTracks()[0];
+                    audioTrack.enabled = !audioTrack.enabled;
+                    lobbyToggleMic.innerHTML = audioTrack.enabled
+                        ? '<i class="fas fa-microphone"></i>'
+                        : '<i class="fas fa-microphone-slash"></i>';
+                    lobbyToggleMic.classList.toggle('bg-red-500', !audioTrack.enabled);
+                }
+            });
+        }
+
+        if (lobbyToggleCamera) {
+            lobbyToggleCamera.addEventListener('click', () => {
+                if (localStream) {
+                    const videoTrack = localStream.getVideoTracks()[0];
+                    videoTrack.enabled = !videoTrack.enabled;
+                    lobbyToggleCamera.innerHTML = videoTrack.enabled
+                        ? '<i class="fas fa-video"></i>'
+                        : '<i class="fas fa-video-slash"></i>';
+                    lobbyToggleCamera.classList.toggle('bg-red-500', !videoTrack.enabled);
+                    document.getElementById('lobby-camera-off-indicator').classList.toggle('hidden', videoTrack.enabled);
+                }
+            });
+        }
+
+        // Device selection handlers
+        audioSelect.addEventListener('change', async (e) => {
+            await changeDevice('audio', e.target.value);
+        });
+
+        videoSelect.addEventListener('change', async (e) => {
+            await changeDevice('video', e.target.value);
+        });
+
         // Setup control listeners
         toggleMicBtn.addEventListener('click', toggleMic);
         toggleCameraBtn.addEventListener('click', toggleCamera);
         shareScreenBtn.addEventListener('click', startScreenShare);
-        leaveBtn.addEventListener('click', () => window.location.href = '/interviews/');
+        leaveBtn.addEventListener('click', leaveRoom);
 
         // Sidebar logic
         if (toggleSidebarBtn) {
             toggleSidebarBtn.addEventListener('click', () => {
                 roomSidebar.classList.toggle('translate-x-full');
-                roomSidebar.classList.toggle('w-0');
-                roomSidebar.classList.toggle('hidden'); // simple toggle
+                roomSidebar.classList.toggle('hidden');
             });
         }
 
@@ -121,6 +160,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Transcript Tools
         setupTranscriptTools();
+
+        // Keyboard shortcuts
+        setupKeyboardShortcuts();
     }
 
     function setupTranscriptTools() {
@@ -177,6 +219,47 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    async function changeDevice(type, deviceId) {
+        if (!localStream) return;
+
+        try {
+            const constraints = type === 'audio'
+                ? { audio: { deviceId: { exact: deviceId } }, video: false }
+                : { audio: false, video: { deviceId: { exact: deviceId } } };
+
+            const newStream = await navigator.mediaDevices.getUserMedia(constraints);
+            const newTrack = type === 'audio' ? newStream.getAudioTracks()[0] : newStream.getVideoTracks()[0];
+            const oldTrack = type === 'audio' ? localStream.getAudioTracks()[0] : localStream.getVideoTracks()[0];
+
+            // Replace track in local stream
+            localStream.removeTrack(oldTrack);
+            localStream.addTrack(newTrack);
+            oldTrack.stop();
+
+            // Update video elements
+            lobbyLocalVideo.srcObject = localStream;
+            if (localVideo.srcObject) {
+                localVideo.srcObject = localStream;
+            }
+
+            // Replace track in peer connection if exists
+            if (peerConnection) {
+                const sender = peerConnection.getSenders().find(s => s.track && s.track.kind === type);
+                if (sender) {
+                    await sender.replaceTrack(newTrack);
+                }
+            }
+
+            // Restart audio visualizer if changing audio
+            if (type === 'audio') {
+                setupAudioVisualizer(localStream);
+            }
+        } catch (e) {
+            console.error(`Error changing ${type} device:`, e);
+            alert(`Could not change ${type} device. Please try again.`);
+        }
+    }
+
     async function startLobbyStream() {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
@@ -192,6 +275,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    let audioVisualizerActive = false;
     function setupAudioVisualizer(stream) {
         const audioContext = new AudioContext();
         const src = audioContext.createMediaStreamSource(stream);
@@ -201,14 +285,21 @@ document.addEventListener('DOMContentLoaded', () => {
         const bufferLength = analyser.frequencyBinCount;
         const dataArray = new Uint8Array(bufferLength);
 
+        audioVisualizerActive = true;
+
         function draw() {
-            if (!localStream) return;
+            if (!audioVisualizerActive || !localStream) {
+                audioContext.close();
+                return;
+            }
             requestAnimationFrame(draw);
             analyser.getByteFrequencyData(dataArray);
             let sum = 0;
             for (let i = 0; i < bufferLength; i++) sum += dataArray[i];
             const average = sum / bufferLength;
-            micLevelBar.style.width = `${Math.min(100, average * 2)}%`; // Amplify a bit
+            if (micLevelBar) {
+                micLevelBar.style.width = `${Math.min(100, average * 2)}%`; // Amplify a bit
+            }
         }
         draw();
     }
@@ -223,10 +314,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Move stream to main room
         localVideo.srcObject = localStream;
 
-        // Only start recording if configured (e.g. Host/Interviewer or if allowed)
-        // For simplicity, we start recording for whoever joins first or both, 
-        // but backend policy prevents unauthorized uploads.
-        if (isInterviewer || true) { // Defaulting to true for verifying feature
+        // Only start recording if interviewer
+        if (isInterviewer) {
             startRecording();
         }
 
@@ -437,9 +526,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function appendTranscript(text, sender) {
         const container = document.getElementById('transcript-container');
+
+        // Remove placeholder on first transcript
+        const placeholder = container.querySelector('.text-center');
+        if (placeholder) {
+            placeholder.remove();
+        }
+
         const div = document.createElement('div');
         div.className = 'transcript-item bg-gray-800/50 p-3 rounded-lg border border-gray-700 text-sm';
-        div.innerHTML = `<span class="font-bold text-blue-400">${sender}:</span> <span class="text-gray-300 transcript-text">${text}</span>`;
+
+        // Create elements safely to prevent XSS
+        const senderSpan = document.createElement('span');
+        senderSpan.className = 'font-bold text-blue-400';
+        senderSpan.textContent = sender + ': ';
+
+        const textSpan = document.createElement('span');
+        textSpan.className = 'text-gray-300 transcript-text';
+        textSpan.textContent = text;
+
+        div.appendChild(senderSpan);
+        div.appendChild(textSpan);
         container.appendChild(div);
 
         // Respect search filter immediately if active
@@ -455,7 +562,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // === UI HELPERS ===
     function updateConnectionStatus(status, color) {
         connectionStatusText.textContent = status;
-        connectionStatusDot.className = `w-2 h-2 rounded-full bg-${color}-500`;
+        // Use full class names for Tailwind
+        const colorClasses = {
+            'green': 'bg-green-500',
+            'red': 'bg-red-500',
+            'yellow': 'bg-yellow-500',
+            'blue': 'bg-blue-500'
+        };
+        connectionStatusDot.className = `w-2 h-2 rounded-full ${colorClasses[color] || 'bg-gray-500'}`;
     }
 
     function toggleMic() {
@@ -495,6 +609,50 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (e) {
             console.error("Screen share failed", e);
         }
+    }
+
+    function leaveRoom() {
+        // Stop all tracks
+        if (localStream) {
+            localStream.getTracks().forEach(track => track.stop());
+        }
+
+        // Stop recording
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+            mediaRecorder.stop();
+        }
+        if (audioRecorder && audioRecorder.state !== 'inactive') {
+            audioRecorder.stop();
+        }
+
+        // Stop audio visualizer
+        audioVisualizerActive = false;
+
+        // Close peer connection
+        closePeerConnection();
+
+        // Close WebSocket
+        if (socket) {
+            socket.close();
+        }
+
+        // Redirect
+        window.location.href = '/interviews/';
+    }
+
+    function setupKeyboardShortcuts() {
+        document.addEventListener('keydown', (e) => {
+            // Ctrl+D: Toggle Mic
+            if (e.ctrlKey && e.key === 'd') {
+                e.preventDefault();
+                toggleMic();
+            }
+            // Ctrl+E: Toggle Camera
+            if (e.ctrlKey && e.key === 'e') {
+                e.preventDefault();
+                toggleCamera();
+            }
+        });
     }
 
     init();

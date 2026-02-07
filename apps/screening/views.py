@@ -2707,7 +2707,7 @@ class SessionResultsAPIView(LoginRequiredMixin, CompanyOnlyMixin, View):
                 if result.resume:
                     candidate_email = result.resume.user.email
                 elif result.application:
-                    candidate_email = result.application.user.email
+                    candidate_email = result.application.applicant.email
                 
                 results_data.append({
                     'id': str(result.id),

@@ -117,8 +117,9 @@ class ScreeningProgressConsumer(AsyncWebsocketConsumer):
     def user_has_screening_access(self, screening_id):
         """Verify user has access to this screening"""
         try:
-            screening = ScreeningSession.objects.get(id=screening_id)
-            return screening.job.recruiter == self.user or self.user.is_staff
+            screening = ScreeningSession.objects.select_related('company', 'job').get(id=screening_id)
+            # Check if user owns the company or is staff
+            return screening.company.user == self.user or self.user.is_staff
         except ScreeningSession.DoesNotExist:
             return False
     
@@ -241,8 +242,9 @@ class AIInsightConsumer(AsyncWebsocketConsumer):
     def user_has_application_access(self, application_id):
         """Verify user access to application"""
         try:
-            app = Application.objects.select_related('job').get(id=application_id)
-            return app.job.recruiter == self.user or self.user.is_staff
+            app = Application.objects.select_related('job', 'job__company').get(id=application_id)
+            # Check if user owns the company that posted the job
+            return app.job.company.user == self.user or self.user.is_staff
         except Application.DoesNotExist:
             return False
     
@@ -372,8 +374,9 @@ class ApplicationStatusConsumer(AsyncWebsocketConsumer):
     def user_has_access(self, application_id):
         """Verify user access"""
         try:
-            app = Application.objects.select_related('job').get(id=application_id)
-            return app.job.recruiter == self.user or self.user.is_staff
+            app = Application.objects.select_related('job', 'job__company').get(id=application_id)
+            # Check if user owns the company that posted the job
+            return app.job.company.user == self.user or self.user.is_staff
         except Application.DoesNotExist:
             return False
     

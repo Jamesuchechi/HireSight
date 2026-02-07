@@ -44,7 +44,7 @@
                         class="block w-full rounded-xl border-slate-300 shadow-sm focus:border-primary focus:ring-primary text-sm">
                         <option value="">All Statuses</option>
                         {% for value, label in status_choices %}
-                        <option value="{{ value }}" {% if current_status==value %}selected{% endif %}>{{ label }}
+                        <option value="{{ value }}" {% if current_status == value %}selected{% endif %}>{{ label }}
                         </option>
                         {% endfor %}
                     </select>
@@ -55,8 +55,8 @@
                     <select name="time" id="time"
                         class="block w-full rounded-xl border-slate-300 shadow-sm focus:border-primary focus:ring-primary text-sm">
                         <option value="">All Time</option>
-                        <option value="upcoming" {% if current_time=='upcoming' %}selected{% endif %}>Upcoming</option>
-                        <option value="past" {% if current_time=='past' %}selected{% endif %}>Past</option>
+                        <option value="upcoming" {% if current_time == 'upcoming' %}selected{% endif %}>Upcoming</option>
+                        <option value="past" {% if current_time == 'past' %}selected{% endif %}>Past</option>
                     </select>
                 </div>
 
@@ -167,7 +167,7 @@
                     <div class="mt-5 pt-5 border-t border-slate-200">
                         <div class="flex flex-wrap items-center text-sm text-slate-600 gap-4">
                             {% if interview.use_inapp_video %}
-                            <a href="{% url 'interviews:video_room' interview.id %}"
+                            <a href="{% url 'interviews:room' interview.id %}"
                                 class="inline-flex items-center gap-1.5 text-primary hover:text-primary-dark font-medium transition-colors">
                                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

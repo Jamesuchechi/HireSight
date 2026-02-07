@@ -3,31 +3,98 @@
 
 {% block title %}Interview Room | HireSight{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* CSS Custom Properties for HireSight Brand Colors */
+    :root {
+        --primary: #0066FF;
+        --primary-light: #00D4FF;
+        --secondary: #00D4FF;
+    }
+
+    /* Interview room styles - aligned with HireSight design system */
+    /* Keep base layout visible - sidebar, navbar, and footer */
+    #main-content {
+        margin-left: 0 !important;
+    }
+
+    /* Custom scrollbar - aligned with brand colors */
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #0066FF;
+        border-radius: 4px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #00D4FF;
+    }
+
+    /* Interview room container - flows within base layout */
+    .interview-container {
+        min-height: 100vh;
+    }
+
+    /* Brand gradient text */
+    .brand-gradient {
+        background: linear-gradient(135deg, #0066FF, #00D4FF);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    /* Brand button gradient */
+    .btn-brand {
+        background: linear-gradient(135deg, #0066FF, #00D4FF);
+    }
+
+    .btn-brand:hover {
+        background: linear-gradient(135deg, #0052CC, #00B8E6);
+    }
+
+    /* Brand border colors */
+    .border-brand {
+        border-color: #0066FF;
+    }
+
+    /* Ring brand */
+    .ring-brand:focus {
+        --tw-ring-color: #0066FF;
+    }
+</style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+{% endblock %}
+
 {% block content %}
-<div class="h-screen w-full bg-gray-900 text-white overflow-hidden relative font-sans">
-    <!-- Background Elements -->
-    <div class="absolute inset-0 z-0">
+<div class="interview-container h-screen w-full bg-gray-50 text-gray-900 overflow-hidden relative font-sans">
+    <!-- Background Elements - subtle for light theme -->
+    <div class="absolute inset-0 z-0 opacity-30">
         <div
-            class="absolute top-0 left-0 w-1/2 h-1/2 bg-indigo-900 opacity-20 blur-3xl rounded-full transform -translate-x-1/2 -translate-y-1/2">
+            class="absolute top-0 left-0 w-1/3 h-1/3 bg-gradient-to-br from-primary/10 via-primary-light/10 to-transparent rounded-full transform -translate-x-1/2 -translate-y-1/2">
         </div>
         <div
-            class="absolute bottom-0 right-0 w-1/2 h-1/2 bg-purple-900 opacity-20 blur-3xl rounded-full transform translate-x-1/2 translate-y-1/2">
+            class="absolute bottom-0 right-0 w-1/3 h-1/3 bg-gradient-to-tl from-purple-500/5 via-primary/5 to-transparent rounded-full transform translate-x-1/2 translate-y-1/2">
         </div>
     </div>
 
     <!-- PRE-FLIGHT LOBBY -->
     <div id="lobby-screen"
-        class="relative z-10 flex items-center justify-center h-full transition-opacity duration-500">
+        class="relative z-10 flex items-center justify-center min-h-screen transition-opacity duration-500 p-4">
         <div
-            class="bg-gray-800 bg-opacity-60 backdrop-blur-xl border border-gray-700 rounded-2xl shadow-2xl p-8 max-w-4xl w-full mx-4 flex flex-col md:flex-row gap-8">
+            class="bg-white border border-gray-200 rounded-2xl shadow-xl p-6 md:p-8 max-w-4xl w-full flex flex-col md:flex-row gap-6 md:gap-8">
             <!-- Video Preview -->
             <div class="flex-1 flex flex-col gap-4">
-                <h2
-                    class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">
+                <h2 class="text-2xl font-bold brand-gradient">
                     Get Ready
                 </h2>
                 <div
-                    class="relative aspect-video bg-black rounded-xl overflow-hidden shadow-lg border border-gray-700 ring-1 ring-white/10 group">
+                    class="relative aspect-video bg-black rounded-xl overflow-hidden shadow-lg border border-gray-200 group">
                     <video id="lobby-local-video" autoplay muted playsinline
                         class="w-full h-full object-cover transform scale-x-[-1]"></video>
 
@@ -35,23 +102,25 @@
                     <div
                         class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                         <button id="lobby-toggle-mic"
-                            class="p-3 rounded-full bg-gray-700 hover:bg-gray-600 text-white transition-colors">
+                            class="p-3 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors"
+                            aria-label="Toggle microphone">
                             <i class="fas fa-microphone"></i>
                         </button>
                         <button id="lobby-toggle-camera"
-                            class="p-3 rounded-full bg-gray-700 hover:bg-gray-600 text-white transition-colors">
+                            class="p-3 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors"
+                            aria-label="Toggle camera">
                             <i class="fas fa-video"></i>
                         </button>
                     </div>
 
-                    <div class="absolute inset-0 flex items-center justify-center bg-gray-900 pointer-events-none hidden"
+                    <div class="absolute inset-0 flex items-center justify-center bg-gray-50 pointer-events-none hidden"
                         id="lobby-camera-off-indicator">
                         <div class="text-center">
                             <div
-                                class="w-16 h-16 rounded-full bg-gray-800 flex items-center justify-center mx-auto mb-2">
-                                <i class="fas fa-video-slash text-gray-500 text-2xl"></i>
+                                class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-2">
+                                <i class="fas fa-video-slash text-gray-400 text-2xl"></i>
                             </div>
-                            <span class="text-gray-400 text-sm">Camera Off</span>
+                            <span class="text-gray-500 text-sm">Camera Off</span>
                         </div>
                     </div>
                 </div>
@@ -61,9 +130,10 @@
             <div class="flex-1 flex flex-col justify-between">
                 <div class="space-y-6">
                     <div>
-                        <h3 class="text-lg font-semibold text-gray-200 mb-1">{{ interview.application.job.title }}</h3>
-                        <p class="text-gray-400 text-sm">Interview with
-                            <span class="text-white font-medium">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-1">{{ interview.application.job.title }}</h3>
+                        <p class="text-gray-600 text-sm">
+                            Interview with
+                            <span class="text-gray-900 font-medium">
                                 {% if is_interviewer %}
                                 {{
                                 interview.application.applicant.get_full_name|default:interview.application.applicant.email
@@ -77,9 +147,9 @@
 
                     <div class="space-y-4">
                         <div class="space-y-1">
-                            <label class="text-xs font-medium text-gray-400 uppercase tracking-wider">Microphone</label>
+                            <label class="text-xs font-medium text-gray-500 uppercase tracking-wider">Microphone</label>
                             <select id="audio-input-select"
-                                class="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all">
+                                class="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all">
                                 <option>Loading devices...</option>
                             </select>
                             <!-- Mic Visualizer -->
@@ -91,18 +161,19 @@
                         </div>
 
                         <div class="space-y-1">
-                            <label class="text-xs font-medium text-gray-400 uppercase tracking-wider">Camera</label>
+                            <label class="text-xs font-medium text-gray-500 uppercase tracking-wider">Camera</label>
                             <select id="video-input-select"
-                                class="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all">
+                                class="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all">
                                 <option>Loading devices...</option>
                             </select>
                         </div>
                     </div>
                 </div>
 
+                <!-- Join Button with Brand Colors -->
                 <div class="mt-8">
                     <button id="join-room-btn"
-                        class="w-full py-4 px-6 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold shadow-lg shadow-blue-900/40 transform transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2">
+                        class="w-full py-4 px-6 rounded-xl btn-brand text-white font-bold shadow-lg shadow-primary/40 transform transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2">
                         <span>Join Room</span>
                         <i class="fas fa-arrow-right"></i>
                     </button>
@@ -122,20 +193,20 @@
             <!-- Header -->
             <div class="absolute top-0 left-0 right-0 p-4 z-50 flex justify-between items-start pointer-events-none">
                 <div
-                    class="bg-black/40 backdrop-blur-md px-4 py-2 rounded-lg border border-white/10 flex items-center gap-3 pointer-events-auto">
+                    class="bg-white/90 backdrop-blur-md px-4 py-2 rounded-lg border border-gray-200 flex items-center gap-3 pointer-events-auto shadow-sm">
                     <div class="relative">
                         <div class="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" id="record-indicator"></div>
                     </div>
-                    <span class="text-sm font-medium tracking-wide" id="timer-display">00:00</span>
-                    <div class="w-px h-4 bg-white/20 mx-1"></div>
-                    <span class="text-sm text-gray-300 truncate max-w-[200px]">{{ interview.application.job.title
+                    <span class="text-sm font-medium tracking-wide text-gray-900" id="timer-display">00:00</span>
+                    <div class="w-px h-4 bg-gray-300 mx-1"></div>
+                    <span class="text-sm text-gray-600 truncate max-w-[200px]">{{ interview.application.job.title
                         }}</span>
                 </div>
 
                 <div
-                    class="bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/10 flex items-center gap-2 pointer-events-auto">
+                    class="bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-lg border border-gray-200 flex items-center gap-2 pointer-events-auto shadow-sm">
                     <div class="w-2 h-2 rounded-full bg-green-500" id="connection-status-dot"></div>
-                    <span class="text-xs text-gray-400" id="connection-status-text">Connected</span>
+                    <span class="text-xs text-gray-600" id="connection-status-text">Connected</span>
                 </div>
             </div>
 
@@ -143,24 +214,30 @@
             <div class="flex-1 relative bg-black rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/10 group">
                 <video id="remote-video" autoplay playsinline class="w-full h-full object-cover"></video>
 
-                <div class="absolute inset-0 flex items-center justify-center bg-gray-900 pointer-events-none"
+                <div class="absolute inset-0 flex items-center justify-center bg-gray-100 pointer-events-none"
                     id="remote-waiting-state">
                     <div class="text-center">
                         <div class="relative w-20 h-20 mx-auto mb-4">
                             <div class="absolute inset-0 border-4 border-blue-500/30 rounded-full animate-ping"></div>
                             <div class="absolute inset-0 border-4 border-blue-500 rounded-full"></div>
                             <div class="flex items-center justify-center h-full">
-                                <i class="fas fa-user text-blue-400 text-2xl"></i>
+                                <i class="fas fa-user text-primary text-2xl"></i>
                             </div>
                         </div>
-                        <h3 class="text-xl font-semibold text-white mb-2">Waiting for candidate...</h3>
-                        <p class="text-gray-400 text-sm">They have been notified.</p>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2" id="waiting-text">
+                            {% if is_interviewer %}
+                            Waiting for candidate...
+                            {% else %}
+                            Waiting for interviewer...
+                            {% endif %}
+                        </h3>
+                        <p class="text-gray-500 text-sm">They have been notified.</p>
                     </div>
                 </div>
 
-                <!-- Name Tag -->
+                <!-- Name Tag - kept dark for visibility against video -->
                 <div
-                    class="absolute bottom-4 left-4 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-lg text-sm font-medium text-white border border-white/10">
+                    class="absolute bottom-4 left-4 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-lg text-sm font-medium text-gray-900 border border-gray-200 shadow-sm">
                     {% if is_interviewer %}
                     {{ interview.application.applicant.get_full_name|default:"Candidate" }}
                     {% else %}
@@ -175,9 +252,9 @@
             class="hidden flex-1 bg-[#1e1e1e] rounded-2xl overflow-hidden flex flex-col border border-gray-700 shadow-2xl z-40">
             <div class="h-14 bg-[#252526] flex items-center px-4 justify-between border-b border-gray-700">
                 <div class="flex items-center gap-3">
-                    <i class="fas fa-code text-blue-400"></i>
+                    <i class="fas fa-code text-primary"></i>
                     <select id="language-select"
-                        class="bg-[#3c3c3c] text-sm text-white border-none rounded px-3 py-1.5 focus:ring-1 focus:ring-blue-500">
+                        class="bg-[#3c3c3c] text-sm text-white border-none rounded px-3 py-1.5 focus:ring-1 focus:ring-primary">
                         <option value="python">Python</option>
                         <option value="javascript">JavaScript (Node.js)</option>
                         <option value="rust">Rust</option>
@@ -203,7 +280,8 @@
                     class="h-48 md:h-full md:w-1/3 bg-[#1e1e1e] border-t md:border-t-0 md:border-l border-gray-700 flex flex-col">
                     <div
                         class="px-4 py-2 bg-[#252526] text-xs font-semibold text-gray-400 uppercase tracking-wider border-b border-gray-700">
-                        Output</div>
+                        Output
+                    </div>
                     <div id="code-output" class="flex-1 p-4 font-mono text-sm overflow-auto text-gray-300">
                         <div class="text-gray-500 italic">Run code to see output...</div>
                     </div>
@@ -213,53 +291,55 @@
 
         <!-- Local Video (PiP) -->
         <div id="local-video-container"
-            class="absolute bottom-24 right-6 w-48 aspect-video bg-black rounded-xl overflow-hidden shadow-2xl border border-gray-700 ring-1 ring-white/20 cursor-move transition-all hover:scale-105 hover:shadow-blue-900/20 z-40">
+            class="absolute bottom-24 right-6 w-48 aspect-video bg-black rounded-xl overflow-hidden shadow-lg border border-gray-200 cursor-move transition-all hover:scale-105 hover:shadow-primary/20 z-40">
             <video id="local-video" autoplay muted playsinline
                 class="w-full h-full object-cover transform scale-x-[-1]"></video>
             <div
                 class="absolute bottom-2 left-2 text-[10px] font-medium text-white/80 bg-black/40 px-1.5 py-0.5 rounded">
-                You</div>
+                You
+            </div>
         </div>
 
         <!-- Control Bar -->
         <div
-            class="absolute bottom-6 left-1/2 transform -translate-x-1/2 flex items-center gap-3 bg-gray-900/90 backdrop-blur-xl p-3 rounded-2xl border border-gray-700 shadow-2xl z-50">
+            class="absolute bottom-6 left-1/2 transform -translate-x-1/2 flex items-center gap-3 bg-white/95 backdrop-blur-md p-3 rounded-2xl border border-gray-200 shadow-lg z-50">
             <button id="toggle-mic-btn"
-                class="w-12 h-12 rounded-xl flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-white transition-all tooltip-trigger"
-                data-title="Mute (Ctrl+D)">
+                class="w-12 h-12 rounded-xl flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-700 transition-all tooltip-trigger"
+                data-title="Mute (Ctrl+D)" aria-label="Toggle microphone">
                 <i class="fas fa-microphone"></i>
             </button>
             <button id="toggle-camera-btn"
-                class="w-12 h-12 rounded-xl flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-white transition-all tooltip-trigger"
-                data-title="Stop Video (Ctrl+E)">
+                class="w-12 h-12 rounded-xl flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-700 transition-all tooltip-trigger"
+                data-title="Stop Video (Ctrl+E)" aria-label="Toggle camera">
                 <i class="fas fa-video"></i>
             </button>
             <button id="share-screen-btn"
-                class="w-12 h-12 rounded-xl flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-white transition-all tooltip-trigger"
-                data-title="Share Screen">
+                class="w-12 h-12 rounded-xl flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-700 transition-all tooltip-trigger"
+                data-title="Share Screen" aria-label="Share screen">
                 <i class="fas fa-desktop"></i>
             </button>
 
             <button id="toggle-code-btn"
-                class="w-12 h-12 rounded-xl flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-white transition-all tooltip-trigger"
-                data-title="Code Editor">
+                class="w-12 h-12 rounded-xl flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-700 transition-all tooltip-trigger"
+                data-title="Code Editor" aria-label="Toggle code editor">
                 <i class="fas fa-code"></i>
             </button>
 
-            <div class="w-px h-8 bg-gray-700 mx-1"></div>
+            <div class="w-px h-8 bg-gray-300 mx-1"></div>
 
             <button id="toggle-sidebar-btn"
-                class="w-12 h-12 rounded-xl flex items-center justify-center bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 transition-all tooltip-trigger relative"
-                data-title="Show Sidebar">
+                class="w-12 h-12 rounded-xl flex items-center justify-center bg-primary/10 hover:bg-primary/20 text-primary transition-all tooltip-trigger relative"
+                data-title="Show Sidebar" aria-label="Toggle sidebar">
                 <i class="fas fa-columns"></i>
                 <span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full hidden"
                     id="sidebar-notification-dot"></span>
             </button>
 
-            <div class="w-px h-8 bg-gray-700 mx-1"></div>
+            <div class="w-px h-8 bg-gray-300 mx-1"></div>
 
             <button id="leave-room-btn"
-                class="px-6 h-12 rounded-xl bg-red-600 hover:bg-red-700 text-white font-medium transition-all flex items-center gap-2">
+                class="px-6 h-12 rounded-xl bg-red-600 hover:bg-red-700 text-white font-medium transition-all flex items-center gap-2"
+                aria-label="Leave interview room">
                 <i class="fas fa-phone-slash"></i>
                 <span>Leave</span>
             </button>
@@ -268,14 +348,18 @@
 
     <!-- Sidebar (Collapsible) -->
     <div id="room-sidebar"
-        class="w-80 bg-gray-900/95 backdrop-blur-xl border-l border-gray-800 flex flex-col transition-all duration-300 transform translate-x-0">
+        class="w-80 bg-white border-l border-gray-200 flex flex-col transition-all duration-300 transform translate-x-full hidden shadow-xl">
         <!-- Sidebar Tabs -->
-        <div class="flex border-b border-gray-800">
-            <button class="flex-1 py-3 text-sm font-medium text-blue-400 border-b-2 border-blue-500"
-                data-tab="transcript">Transcript</button>
+        <div class="flex border-b border-gray-200">
+            <button class="flex-1 py-3 text-sm font-medium text-primary border-b-2 border-primary"
+                data-tab="transcript">
+                Transcript
+            </button>
             {% if is_interviewer %}
-            <button class="flex-1 py-3 text-sm font-medium text-gray-400 hover:text-white transition-colors"
-                data-tab="notes">Notes</button>
+            <button class="flex-1 py-3 text-sm font-medium text-gray-400 hover:text-gray-700 transition-colors"
+                data-tab="notes">
+                Notes
+            </button>
             {% endif %}
         </div>
 
@@ -285,13 +369,13 @@
             <div class="flex gap-2 mb-3">
                 <div class="relative flex-1">
                     <input type="text" id="transcript-search"
-                        class="w-full bg-gray-800 border border-gray-700 rounded-lg py-1.5 pl-8 pr-3 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors"
+                        class="w-full bg-white border border-gray-300 rounded-lg py-1.5 pl-8 pr-3 text-xs text-gray-900 placeholder-gray-400 focus:outline-none focus:border-primary transition-colors"
                         placeholder="Search...">
                     <i
                         class="fas fa-search absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-500 text-xs"></i>
                 </div>
                 <button id="download-transcript-btn"
-                    class="bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg px-2.5 text-gray-400 hover:text-white transition-colors"
+                    class="bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded-lg px-2.5 text-gray-600 hover:text-gray-900 transition-colors"
                     title="Download Transcript">
                     <i class="fas fa-download text-xs"></i>
                 </button>
@@ -299,7 +383,7 @@
 
             <div class="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar" id="transcript-container">
                 <!-- Live Transcript Items will appear here -->
-                <div class="text-center text-gray-500 text-xs py-4">
+                <div class="text-center text-gray-400 text-xs py-4">
                     Live transcription initialized...
                 </div>
             </div>
@@ -310,68 +394,65 @@
         <div id="tab-notes" class="flex-1 flex flex-col overflow-hidden tab-content p-4 hidden">
             <div class="flex-1 flex flex-col gap-4">
                 <!-- Rating -->
-                <div class="bg-gray-800/50 p-4 rounded-xl border border-gray-700">
-                    <label class="block text-xs font-semibold text-gray-400 uppercase mb-2">Live Rating</label>
+                <div class="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                    <label class="block text-xs font-semibold text-gray-500 uppercase mb-2">Live Rating</label>
                     <div class="flex gap-2" id="rating-stars">
                         {% for i in "12345" %}
                         <button
-                            class="text-2xl text-gray-600 hover:text-yellow-400 focus:outline-none transition-colors star-btn"
+                            class="text-2xl text-gray-400 hover:text-yellow-400 focus:outline-none transition-colors star-btn"
                             data-value="{{ forloop.counter }}">★</button>
                         {% endfor %}
                     </div>
                 </div>
 
                 <!-- Notes Area -->
-                <div class="flex-1 bg-gray-800/50 p-4 rounded-xl border border-gray-700 flex flex-col">
-                    <label class="block text-xs font-semibold text-gray-400 uppercase mb-2">Private Notes</label>
+                <div class="flex-1 bg-gray-50 p-4 rounded-xl border border-gray-200 flex flex-col">
+                    <label class="block text-xs font-semibold text-gray-500 uppercase mb-2">Private Notes</label>
                     <textarea id="private-notes-area"
-                        class="flex-1 w-full bg-transparent border-none focus:ring-0 text-sm text-gray-300 placeholder-gray-600 resize-none"
+                        class="flex-1 w-full bg-white border border-gray-200 rounded-lg p-2 text-sm text-gray-700 placeholder-gray-400 resize-none focus:outline-none focus:ring-1 focus:ring-primary"
                         placeholder="Type your observations here..."></textarea>
-                    <div class="text-xs text-gray-500 text-right mt-2" id="notes-save-status">Saved</div>
+                    <div class="text-xs text-gray-400 text-right mt-2" id="notes-save-status">Saved</div>
                 </div>
             </div>
         </div>
-        {% endif %}
         {% endif %}
     </div>
 
     <!-- AI Summary Modal (Hidden) -->
     <div id="ai-summary-modal"
-        class="absolute inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
-        <div
-            class="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-2xl max-h-[80vh] flex flex-col shadow-2xl">
-            <div class="p-6 border-b border-gray-800 flex justify-between items-center">
-                <h3 class="text-xl font-bold text-white flex items-center gap-2">
-                    <i class="fas fa-magic text-purple-400"></i> AI Interview Summary
+        class="absolute inset-0 z-50 bg-gray-900/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white border border-gray-200 rounded-2xl w-full max-w-2xl max-h-[80vh] flex flex-col shadow-xl">
+            <div class="p-6 border-b border-gray-200 flex justify-between items-center">
+                <h3 class="text-xl font-bold text-gray-900 flex items-center gap-2">
+                    <i class="fas fa-magic text-primary"></i> AI Interview Summary
                 </h3>
-                <button id="close-summary-btn" class="text-gray-400 hover:text-white transition-colors">
+                <button id="close-summary-btn" class="text-gray-400 hover:text-gray-700 transition-colors">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
             <div class="p-6 overflow-y-auto custom-scrollbar space-y-6">
                 <!-- Content injected via JS -->
-                <div id="ai-summary-content" class="text-gray-300 space-y-4">
+                <div id="ai-summary-content" class="text-gray-700 space-y-4">
                     <div class="animate-pulse flex space-x-4">
                         <div class="flex-1 space-y-4 py-1">
-                            <div class="h-4 bg-gray-700 rounded w-3/4"></div>
+                            <div class="h-4 bg-gray-200 rounded w-3/4"></div>
                             <div class="space-y-2">
-                                <div class="h-4 bg-gray-700 rounded"></div>
-                                <div class="h-4 bg-gray-700 rounded w-5/6"></div>
+                                <div class="h-4 bg-gray-200 rounded"></div>
+                                <div class="h-4 bg-gray-200 rounded w-5/6"></div>
                             </div>
                         </div>
                     </div>
-                    <p class="text-center text-gray-500 text-sm">Waiting for interview completion...</p>
+                    <p class="text-center text-gray-400 text-sm">Waiting for interview completion...</p>
                 </div>
             </div>
-            <div class="p-4 border-t border-gray-800 flex justify-end">
+            <div class="p-4 border-t border-gray-200 flex justify-end">
                 <button id="refresh-summary-btn"
-                    class="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-2">
+                    class="text-sm text-primary hover:text-primary-light flex items-center gap-2">
                     <i class="fas fa-sync-alt"></i> Refresh
                 </button>
             </div>
         </div>
     </div>
-</div>
 </div>
 
 <!-- DATA & CSRF -->
@@ -382,32 +463,9 @@
         "isInterviewer": {{ is_interviewer|yesno:"true,false" }},
         "userEmail": "{{ user.email }}",
         "iceServers": {{ ice_servers|safe }},
-        "wsUrl": "{% url 'ws_interview_room' interview_id=interview.id %}"
+        "wsUrl": "{% if request.is_secure %}wss{% else %}ws{% endif %}://{{ request.get_host }}/ws/interview/room/{{ interview.id }}/"
     }
 </script>
-
-{% endblock %}
-
-{% block extra_css %}
-<style>
-    .custom-scrollbar::-webkit-scrollbar {
-        width: 4px;
-    }
-
-    .custom-scrollbar::-webkit-scrollbar-track {
-        background: transparent;
-    }
-
-    .custom-scrollbar::-webkit-scrollbar-thumb {
-        background: #374151;
-        border-radius: 4px;
-    }
-
-    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-        background: #4B5563;
-    }
-</style>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 {% endblock %}
 
 {% block extra_js %}

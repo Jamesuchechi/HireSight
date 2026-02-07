@@ -7,12 +7,14 @@ from django.views.generic import View, TemplateView, FormView, UpdateView
 from django.urls import reverse_lazy
 from django.shortcuts import redirect, get_object_or_404, render
 from django.utils import timezone
-from django.core.mail import EmailMultiAlternatives
+from django.core.mail import EmailMultiAlternatives, get_connection
 from django.template.loader import render_to_string
 from django.core.exceptions import ValidationError
 from django.conf import settings
 from django.contrib.sessions.models import Session
 from datetime import timedelta
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 import secrets
 import json
 
@@ -94,10 +96,39 @@ class RegisterView(FormView):
         
         # Create email message and send with error logging
         try:
-            email_msg = EmailMultiAlternatives(subject, '', from_email, to_email)
-            email_msg.attach_alternative(html_content, "text/html")
-            email_msg.send(fail_silently=False)
+            # Create plain text version
+            text_content = f"Your verification code is: {token}\n\nPlease visit {verification_url} to verify your email."
+            
+            # Create multipart message with explicit UTF-8 encoding
+            from email.utils import formataddr
+            
+            msg = MIMEMultipart('alternative')
+            msg['Subject'] = subject
+            msg['From'] = from_email
+            msg['To'] = user.email
+            
+            # Attach plain text part with UTF-8
+            part1 = MIMEText(text_content, 'plain', 'utf-8')
+            msg.attach(part1)
+            
+            # Attach HTML part with UTF-8
+            part2 = MIMEText(html_content, 'html', 'utf-8')
+            msg.attach(part2)
+            
+            # Send using Django's connection
+            connection = get_connection()
+            connection.open()
+            connection.connection.send_message(msg)
+            connection.close()
+            
             logger.info(f'Verification email sent successfully to {user.email}')
+        except UnicodeEncodeError as e:
+            logger.error(f'Unicode encoding error sending verification email to {user.email}: {e}')
+            logger.error(f'Problematic content at position {e.start}: {repr(html_content[max(0, e.start-10):e.start+50])}')
+            messages.warning(
+                self.request,
+                'Account created but we could not send the verification email. Please try resending.'
+            )
         except Exception as e:
             logger.error(f'Failed to send verification email to {user.email}: {e}')
             messages.warning(
@@ -348,11 +379,43 @@ class ResendVerificationView(LoginRequiredMixin, View):
         
         # Create email message and send with error logging
         try:
-            email_msg = EmailMultiAlternatives(subject, '', from_email, to_email)
-            email_msg.attach_alternative(html_content, "text/html")
-            email_msg.send(fail_silently=False)
+            # Create plain text version
+            text_content = f"Your verification code is: {token}\n\nPlease visit {request.build_absolute_uri(reverse_lazy('accounts:verify_email_form'))} to verify your email."
+            
+            # Create multipart message with explicit UTF-8 encoding
+            from email.mime.multipart import MIMEMultipart
+            from email.mime.text import MIMEText
+            from django.core.mail import get_connection
+            
+            msg = MIMEMultipart('alternative')
+            msg['Subject'] = subject
+            msg['From'] = from_email
+            msg['To'] = request.user.email
+            
+            # Attach plain text part with UTF-8
+            part1 = MIMEText(text_content, 'plain', 'utf-8')
+            msg.attach(part1)
+            
+            # Explicitly scrub any non-ascii characters to prevent encoding errors
+            # This replaces any character > 127 with a space
+            html_content_safe = ''.join([c if ord(c) < 128 else ' ' for c in html_content])
+            
+            # Attach HTML part with UTF-8
+            part2 = MIMEText(html_content_safe, 'html', 'utf-8')
+            msg.attach(part2)
+            
+            # Send using Django's connection
+            connection = get_connection()
+            connection.open()
+            connection.connection.send_message(msg)
+            connection.close()
+            
             logger.info(f'Verification email resent successfully to {request.user.email}')
             messages.success(request, 'Verification code sent! Please check your inbox.')
+        except UnicodeEncodeError as e:
+            logger.error(f'Unicode encoding error resending verification email to {request.user.email}: {e}')
+            logger.error(f'Problematic content at position {e.start}: {repr(html_content[max(0, e.start-10):e.start+50])}')
+            messages.error(request, 'Could not send verification email due to encoding error. Please contact support.')
         except Exception as e:
             logger.error(f'Failed to resend verification email to {request.user.email}: {e}')
             messages.error(request, f'Could not send verification email. Please try again later. Error: {e}')
@@ -424,6 +487,7 @@ class ForgotPasswordView(FormView):
             
             # Create email message
             email = EmailMultiAlternatives(subject, '', from_email, to_email)
+            email.encoding = 'utf-8'  # Explicitly set UTF-8 encoding
             email.attach_alternative(html_content, "text/html")
             email.send(fail_silently=True)
         
@@ -1466,6 +1530,7 @@ class AdminCompanyVerificationActionView(LoginRequiredMixin, View):
                 settings.DEFAULT_FROM_EMAIL,
                 [user.email]
             )
+            email.encoding = 'utf-8'  # Explicitly set UTF-8 encoding
             email.attach_alternative(html_content, "text/html")
             email.send(fail_silently=True)
             
@@ -1735,6 +1800,7 @@ class ChangeEmailView(LoginRequiredMixin, FormView):
         
         # Create email message
         email = EmailMultiAlternatives(subject, '', from_email, to_email)
+        email.encoding = 'utf-8'  # Explicitly set UTF-8 encoding
         email.attach_alternative(html_content, "text/html")
         email.send(fail_silently=True)
         
@@ -1785,6 +1851,7 @@ class ConfirmChangeEmailView(View):
             })
             
             email = EmailMultiAlternatives(subject, '', from_email, to_email)
+            email.encoding = 'utf-8'  # Explicitly set UTF-8 encoding
             email.attach_alternative(html_content, "text/html")
             email.send(fail_silently=True)
             
@@ -1850,6 +1917,7 @@ class ChangePasswordView(LoginRequiredMixin, FormView):
             })
             
             email = EmailMultiAlternatives(subject, '', from_email, to_email)
+            email.encoding = 'utf-8'  # Explicitly set UTF-8 encoding
             email.attach_alternative(html_content, "text/html")
             email.send(fail_silently=True)
         except Exception as e:
@@ -2040,6 +2108,7 @@ class DeleteAccountView(LoginRequiredMixin, FormView):
             })
             
             email = EmailMultiAlternatives(subject, '', from_email, to_email)
+            email.encoding = 'utf-8'  # Explicitly set UTF-8 encoding
             email.attach_alternative(html_content, "text/html")
             email.send(fail_silently=True)
         except Exception as e:

@@ -355,7 +355,7 @@ class ScreeningResult(models.Model):
 
     def __str__(self):
         if self.application:
-            name = self.application.user.get_full_name() or self.application.user.email
+            name = self.application.applicant.get_full_name() or self.application.applicant.email
             return f"{name} - {self.match_score}% match"
         if self.resume:
             return f"{self.resume.user.email} - {self.match_score}% match"
@@ -413,10 +413,10 @@ class ScreeningResult(models.Model):
     def candidate_name(self):
         """Return candidate name from application if available."""
         if self.application:
-            name = self.application.user.get_full_name()
+            name = self.application.applicant.get_full_name()
             if name:
                 return name
-            return self.application.user.email
+            return self.application.applicant.email
         return "Unknown Candidate"
 
 

@@ -12,7 +12,7 @@ from apps.interviews import websocket_consumers as interviews_consumers
 websocket_urlpatterns = [
     # Interview practice session progress
     re_path(
-        r'ws/interview/session/(?P<session_id>\w+)/$',
+        r'ws/interview/session/(?P<session_id>[0-9a-f-]+)/$',
         interviews_consumers.SessionProgressConsumer.as_asgi(),
         name='ws_session_progress'
     ),
@@ -26,14 +26,14 @@ websocket_urlpatterns = [
     
     # Screening progress updates
     re_path(
-        r'ws/screening/(?P<screening_id>\w+)/$',
+        r'ws/screening/(?P<screening_id>[0-9a-f-]+)/$',
         websocket_consumers.ScreeningProgressConsumer.as_asgi(),
         name='ws_screening_progress'
     ),
     
     # AI insights real-time updates
     re_path(
-        r'ws/ai-insights/(?P<application_id>\w+)/$',
+        r'ws/ai-insights/(?P<application_id>[0-9a-f-]+)/$',
         websocket_consumers.AIInsightConsumer.as_asgi(),
         name='ws_ai_insights'
     ),
@@ -47,20 +47,20 @@ websocket_urlpatterns = [
     
     # Application status updates
     re_path(
-        r'ws/application/(?P<application_id>\w+)/$',
+        r'ws/application/(?P<application_id>[0-9a-f-]+)/$',
         websocket_consumers.ApplicationStatusConsumer.as_asgi(),
         name='ws_application_status'
     ),
     
     # Bulk operations progress
     re_path(
-        r'ws/bulk-operation/(?P<operation_id>\w+)/$',
+        r'ws/bulk-operation/(?P<operation_id>[0-9a-f-]+)/$',
         websocket_consumers.BulkOperationConsumer.as_asgi(),
         name='ws_bulk_operation'
     ),
 
     re_path(
-        r'ws/messaging/conversation/(?P<conversation_id>\w+)/$',
+        r'ws/messaging/conversation/(?P<conversation_id>[0-9a-f-]+)/$',
         messaging_consumers.ConversationConsumer.as_asgi(),
         name='ws_conversation'
     ),
