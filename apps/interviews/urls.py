@@ -63,12 +63,22 @@ urlpatterns = [
         views.BulkInterviewScheduleView.as_view(),
         name='bulk_schedule'
     ),
+    path(
+        '<uuid:interview_id>/summary/',
+        views_ux.InterviewSummaryView.as_view(),
+        name='summary'
+    ),
     
     # Video Interview
     path(
         'room/<uuid:interview_id>/',
         views.InterviewRoomView.as_view(),
         name='room'
+    ),
+    path(
+        'room/<uuid:interview_id>/warmup/',
+        views.InterviewWarmupView.as_view(),
+        name='room_warmup'
     ),
     path(
         'recording/<uuid:interview_id>/upload/',

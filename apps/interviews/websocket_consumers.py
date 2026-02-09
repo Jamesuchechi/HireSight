@@ -254,6 +254,13 @@ class VideoInterviewConsumer(AsyncWebsocketConsumer):
                 }
             )
 
+        elif message_type == 'process_audio':
+            # Handle incoming audio chunk for transcription
+            await self.handle_audio_transcription(
+                data.get('audio'),
+                data.get('speaker_name', 'Unknown')
+            )
+
     # Handlers for Group Messages
     async def signaling_message(self, event):
         # Don't echo back to sender
@@ -275,7 +282,7 @@ class VideoInterviewConsumer(AsyncWebsocketConsumer):
             await self.send(text_data=json.dumps({
                 'type': 'peer_status',
                 'status': event['status'],
-                'user_id': event.get('user_id'),
+                'user_id': str(event.get('user_id')) if event.get('user_id') else None,
                 'email': event.get('email')
             }))
 

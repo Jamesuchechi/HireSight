@@ -1,6 +1,7 @@
 /**
  * Video Interview Room Logic
  * Handles WebRTC, Signaling, Recording, and UI interactions.
+ * Note: Warmup wizard is now handled by warmup.js in a separate page.
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -23,15 +24,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let codingSession;
 
     // === DOM ELEMENTS ===
-    const lobbyScreen = document.getElementById('lobby-screen');
-    const lobbyLocalVideo = document.getElementById('lobby-local-video');
-    const interviewRoom = document.getElementById('interview-room');
     const localVideo = document.getElementById('local-video');
     const remoteVideo = document.getElementById('remote-video');
-    const joinBtn = document.getElementById('join-room-btn');
-    const audioSelect = document.getElementById('audio-input-select');
-    const videoSelect = document.getElementById('video-input-select');
-    const micLevelBar = document.getElementById('mic-level-bar');
 
     // Controls
     const toggleMicBtn = document.getElementById('toggle-mic-btn');
@@ -48,50 +42,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // === INITIALIZATION ===
     async function init() {
-        await getDevices();
-        await startLobbyStream();
-
-        joinBtn.addEventListener('click', joinRoom);
-
-        // Lobby controls
-        const lobbyToggleMic = document.getElementById('lobby-toggle-mic');
-        const lobbyToggleCamera = document.getElementById('lobby-toggle-camera');
-
-        if (lobbyToggleMic) {
-            lobbyToggleMic.addEventListener('click', () => {
-                if (localStream) {
-                    const audioTrack = localStream.getAudioTracks()[0];
-                    audioTrack.enabled = !audioTrack.enabled;
-                    lobbyToggleMic.innerHTML = audioTrack.enabled
-                        ? '<i class="fas fa-microphone"></i>'
-                        : '<i class="fas fa-microphone-slash"></i>';
-                    lobbyToggleMic.classList.toggle('bg-red-500', !audioTrack.enabled);
-                }
-            });
-        }
-
-        if (lobbyToggleCamera) {
-            lobbyToggleCamera.addEventListener('click', () => {
-                if (localStream) {
-                    const videoTrack = localStream.getVideoTracks()[0];
-                    videoTrack.enabled = !videoTrack.enabled;
-                    lobbyToggleCamera.innerHTML = videoTrack.enabled
-                        ? '<i class="fas fa-video"></i>'
-                        : '<i class="fas fa-video-slash"></i>';
-                    lobbyToggleCamera.classList.toggle('bg-red-500', !videoTrack.enabled);
-                    document.getElementById('lobby-camera-off-indicator').classList.toggle('hidden', videoTrack.enabled);
-                }
-            });
-        }
-
-        // Device selection handlers
-        audioSelect.addEventListener('change', async (e) => {
-            await changeDevice('audio', e.target.value);
-        });
-
-        videoSelect.addEventListener('change', async (e) => {
-            await changeDevice('video', e.target.value);
-        });
+        // Request media access and connect immediately (warmup already completed)
+        await initializeMedia();
+        connectSocket();
 
         // Setup control listeners
         toggleMicBtn.addEventListener('click', toggleMic);
@@ -141,14 +94,16 @@ document.addEventListener('DOMContentLoaded', () => {
             // Notes Logic
             const notesArea = document.getElementById('private-notes-area');
             let typingTimer;
-            notesArea.addEventListener('input', () => {
-                document.getElementById('notes-save-status').textContent = 'Saving...';
-                clearTimeout(typingTimer);
-                typingTimer = setTimeout(() => {
-                    sendNotes(notesArea.value);
-                    document.getElementById('notes-save-status').textContent = 'Saved';
-                }, 1000);
-            });
+            if (notesArea) {
+                notesArea.addEventListener('input', () => {
+                    document.getElementById('notes-save-status').textContent = 'Saving...';
+                    clearTimeout(typingTimer);
+                    typingTimer = setTimeout(() => {
+                        sendNotes(notesArea.value);
+                        document.getElementById('notes-save-status').textContent = 'Saved';
+                    }, 1000);
+                });
+            }
         }
 
         // Initialize Coding Session
@@ -165,15 +120,42 @@ document.addEventListener('DOMContentLoaded', () => {
         setupKeyboardShortcuts();
     }
 
+    // === MEDIA INITIALIZATION ===
+    async function initializeMedia() {
+        try {
+            // Request both audio and video
+            localStream = await navigator.mediaDevices.getUserMedia({
+                audio: true,
+                video: true
+            });
+
+            localVideo.srcObject = localStream;
+
+            // Only start recording if interviewer
+            if (isInterviewer) {
+                startRecording();
+            }
+
+            // Start audio transcription for everyone
+            startAudioTranscription();
+
+        } catch (e) {
+            console.error('Media access error:', e);
+            updateConnectionStatus('Media Error', 'red');
+        }
+    }
+
     function setupTranscriptTools() {
         const searchInput = document.getElementById('transcript-search');
         const container = document.getElementById('transcript-container');
         const downloadBtn = document.getElementById('download-transcript-btn');
 
+        if (!searchInput || !container || !downloadBtn) return;
+
         // Search Filter
         searchInput.addEventListener('input', (e) => {
             const term = e.target.value.toLowerCase();
-            const items = container.querySelectorAll('.transcript-item'); // We need to add this class to items
+            const items = container.querySelectorAll('.transcript-item');
             items.forEach(item => {
                 const text = item.textContent.toLowerCase();
                 item.style.display = text.includes(term) ? 'block' : 'none';
@@ -185,8 +167,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const items = container.querySelectorAll('.transcript-item');
             let content = "Interview Transcript\n\n";
             items.forEach(item => {
-                // simple parsing or just textContent
-                // Expected format: "Sender: Text"
                 content += item.textContent.trim() + "\n";
             });
 
@@ -200,131 +180,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // === DEVICE MANAGEMENT ===
-    async function getDevices() {
-        try {
-            const devices = await navigator.mediaDevices.enumerateDevices();
-            audioSelect.innerHTML = '';
-            videoSelect.innerHTML = '';
-
-            devices.forEach(device => {
-                const option = document.createElement('option');
-                option.value = device.deviceId;
-                option.text = device.label || `${device.kind} - ${device.deviceId.slice(0, 5)}`;
-                if (device.kind === 'audioinput') audioSelect.appendChild(option);
-                else if (device.kind === 'videoinput') videoSelect.appendChild(option);
-            });
-        } catch (e) {
-            console.error('Error getting devices:', e);
-        }
-    }
-
-    async function changeDevice(type, deviceId) {
-        if (!localStream) return;
-
-        try {
-            const constraints = type === 'audio'
-                ? { audio: { deviceId: { exact: deviceId } }, video: false }
-                : { audio: false, video: { deviceId: { exact: deviceId } } };
-
-            const newStream = await navigator.mediaDevices.getUserMedia(constraints);
-            const newTrack = type === 'audio' ? newStream.getAudioTracks()[0] : newStream.getVideoTracks()[0];
-            const oldTrack = type === 'audio' ? localStream.getAudioTracks()[0] : localStream.getVideoTracks()[0];
-
-            // Replace track in local stream
-            localStream.removeTrack(oldTrack);
-            localStream.addTrack(newTrack);
-            oldTrack.stop();
-
-            // Update video elements
-            lobbyLocalVideo.srcObject = localStream;
-            if (localVideo.srcObject) {
-                localVideo.srcObject = localStream;
-            }
-
-            // Replace track in peer connection if exists
-            if (peerConnection) {
-                const sender = peerConnection.getSenders().find(s => s.track && s.track.kind === type);
-                if (sender) {
-                    await sender.replaceTrack(newTrack);
-                }
-            }
-
-            // Restart audio visualizer if changing audio
-            if (type === 'audio') {
-                setupAudioVisualizer(localStream);
-            }
-        } catch (e) {
-            console.error(`Error changing ${type} device:`, e);
-            alert(`Could not change ${type} device. Please try again.`);
-        }
-    }
-
-    async function startLobbyStream() {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({
-                audio: true,
-                video: true // default
-            });
-            lobbyLocalVideo.srcObject = stream;
-            localStream = stream;
-            setupAudioVisualizer(stream);
-        } catch (e) {
-            console.error('Error starting stream:', e);
-            alert('Could not access camera/microphone. Please check permissions.');
-        }
-    }
-
-    let audioVisualizerActive = false;
-    function setupAudioVisualizer(stream) {
-        const audioContext = new AudioContext();
-        const src = audioContext.createMediaStreamSource(stream);
-        const analyser = audioContext.createAnalyser();
-        analyser.fftSize = 256;
-        src.connect(analyser);
-        const bufferLength = analyser.frequencyBinCount;
-        const dataArray = new Uint8Array(bufferLength);
-
-        audioVisualizerActive = true;
-
-        function draw() {
-            if (!audioVisualizerActive || !localStream) {
-                audioContext.close();
-                return;
-            }
-            requestAnimationFrame(draw);
-            analyser.getByteFrequencyData(dataArray);
-            let sum = 0;
-            for (let i = 0; i < bufferLength; i++) sum += dataArray[i];
-            const average = sum / bufferLength;
-            if (micLevelBar) {
-                micLevelBar.style.width = `${Math.min(100, average * 2)}%`; // Amplify a bit
-            }
-        }
-        draw();
-    }
-
-    // === JOIN ROOM & WEBSOCKET ===
-    async function joinRoom() {
-        // Transition UI
-        lobbyScreen.classList.add('hidden');
-        interviewRoom.classList.remove('hidden');
-        setTimeout(() => interviewRoom.classList.remove('opacity-0'), 100);
-
-        // Move stream to main room
-        localVideo.srcObject = localStream;
-
-        // Only start recording if interviewer
-        if (isInterviewer) {
-            startRecording();
-        }
-
-        connectSocket();
-    }
-
+    // === WEBSOCKET CONNECTION ===
     function connectSocket() {
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        socket = new WebSocket(`${protocol}//${window.location.host}${wsUrl}`);
+        socket = new WebSocket(wsUrl);
 
         socket.onopen = () => {
             console.log('WebSocket Connected');
@@ -402,9 +260,11 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         // Add local tracks
-        localStream.getTracks().forEach(track => {
-            peerConnection.addTrack(track, localStream);
-        });
+        if (localStream) {
+            localStream.getTracks().forEach(track => {
+                peerConnection.addTrack(track, localStream);
+            });
+        }
     }
 
     async function createOffer() {
@@ -428,13 +288,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function sendSignal(message) {
         socket.send(JSON.stringify({
-            type: message.type || 'signal', // offer/answer/candidate types match RTCSessionDescriptionInit
+            type: message.type || 'signal',
             ...message
         }));
     }
 
     // === RECORDING ===
     function startRecording() {
+        if (!localStream) return;
+
         if (!MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) {
             console.warn('VP9 codec not supported, recording might fail');
         }
@@ -450,10 +312,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Slice every 10 seconds
         mediaRecorder.start(10000);
         isRecording = true;
-        document.getElementById('record-indicator').classList.remove('hidden');
-
-        // Start separate audio recording for transcription
-        startAudioTranscription();
+        const recordIndicator = document.getElementById('record-indicator');
+        if (recordIndicator) recordIndicator.classList.remove('hidden');
     }
 
     function startAudioTranscription() {
@@ -470,12 +330,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     const reader = new FileReader();
                     reader.readAsDataURL(e.data);
                     reader.onloadend = () => {
-                        const base64Audio = reader.result; // "data:audio/webm;base64,..."
+                        const base64Audio = reader.result;
 
                         socket.send(JSON.stringify({
                             type: 'process_audio',
                             audio: base64Audio,
-                            speaker_name: isInterviewer ? 'Interviewer' : 'Candidate' // logic to get real name if available
+                            speaker_name: isInterviewer ? 'Interviewer' : 'Candidate'
                         }));
                     };
                 }
@@ -498,8 +358,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // Get CSRF Token
         const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
+        // Get current language prefix from URL
+        const langPrefix = window.location.pathname.match(/^\/[a-z]{2}\//)?.[0] || '/';
+
         try {
-            await fetch(`/interviews/recording/${interviewId}/upload/`, {
+            await fetch(`${langPrefix}interviews/recording/${interviewId}/upload/`, {
                 method: 'POST',
                 headers: { 'X-CSRFToken': csrfToken },
                 body: formData
@@ -511,21 +374,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // === LIVE IO ===
     function sendNotes(notes) {
-        socket.send(JSON.stringify({
-            type: 'update_notes',
-            notes: notes
-        }));
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({
+                type: 'update_notes',
+                notes: notes
+            }));
+        }
     }
 
     function sendRating(rating) {
-        socket.send(JSON.stringify({
-            type: 'update_rating',
-            rating: rating
-        }));
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({
+                type: 'update_rating',
+                rating: rating
+            }));
+        }
     }
 
     function appendTranscript(text, sender) {
         const container = document.getElementById('transcript-container');
+        if (!container) return;
 
         // Remove placeholder on first transcript
         const placeholder = container.querySelector('.text-center');
@@ -561,18 +429,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // === UI HELPERS ===
     function updateConnectionStatus(status, color) {
-        connectionStatusText.textContent = status;
-        // Use full class names for Tailwind
-        const colorClasses = {
-            'green': 'bg-green-500',
-            'red': 'bg-red-500',
-            'yellow': 'bg-yellow-500',
-            'blue': 'bg-blue-500'
-        };
-        connectionStatusDot.className = `w-2 h-2 rounded-full ${colorClasses[color] || 'bg-gray-500'}`;
+        if (connectionStatusText) connectionStatusText.textContent = status;
+        if (connectionStatusDot) {
+            const colorClasses = {
+                'green': 'bg-green-500',
+                'red': 'bg-red-500',
+                'yellow': 'bg-yellow-500',
+                'blue': 'bg-blue-500'
+            };
+            connectionStatusDot.className = `w-2 h-2 rounded-full ${colorClasses[color] || 'bg-gray-500'}`;
+        }
     }
 
     function toggleMic() {
+        if (!localStream || !localStream.getAudioTracks().length) return;
         isMuted = !isMuted;
         localStream.getAudioTracks()[0].enabled = !isMuted;
         toggleMicBtn.innerHTML = isMuted ? '<i class="fas fa-microphone-slash"></i>' : '<i class="fas fa-microphone"></i>';
@@ -580,6 +450,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function toggleCamera() {
+        if (!localStream || !localStream.getVideoTracks().length) return;
         isVideoOff = !isVideoOff;
         localStream.getVideoTracks()[0].enabled = !isVideoOff;
         toggleCameraBtn.innerHTML = isVideoOff ? '<i class="fas fa-video-slash"></i>' : '<i class="fas fa-video"></i>';
@@ -592,17 +463,19 @@ document.addEventListener('DOMContentLoaded', () => {
             const screenTrack = screenStream.getVideoTracks()[0];
 
             if (peerConnection) {
-                const sender = peerConnection.getSenders().find(s => s.track.kind === 'video');
-                sender.replaceTrack(screenTrack);
+                const sender = peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+                if (sender) sender.replaceTrack(screenTrack);
             }
 
             localVideo.srcObject = screenStream;
 
             screenTrack.onended = () => {
                 // Revert to camera
-                if (peerConnection) {
-                    const sender = peerConnection.getSenders().find(s => s.track.kind === 'video');
-                    sender.replaceTrack(localStream.getVideoTracks()[0]);
+                if (peerConnection && localStream) {
+                    const sender = peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+                    if (sender && localStream.getVideoTracks().length) {
+                        sender.replaceTrack(localStream.getVideoTracks()[0]);
+                    }
                 }
                 localVideo.srcObject = localStream;
             };
@@ -625,9 +498,6 @@ document.addEventListener('DOMContentLoaded', () => {
             audioRecorder.stop();
         }
 
-        // Stop audio visualizer
-        audioVisualizerActive = false;
-
         // Close peer connection
         closePeerConnection();
 
@@ -637,7 +507,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Redirect
-        window.location.href = '/interviews/';
+        window.location.href = `/interviews/${interviewId}/summary/`;
     }
 
     function setupKeyboardShortcuts() {

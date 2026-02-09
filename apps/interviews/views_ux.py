@@ -21,7 +21,8 @@ from django.urls import reverse
 from django.core.cache import cache
 from .progress_tasks import generate_warmup_question_task
 
-from .models import InterviewPracticeSession, PracticeQuestion, PracticeResponse
+
+from .models import InterviewPracticeSession, PracticeQuestion, PracticeResponse, Interview, InterviewCodingSession
 
 
 @method_decorator(login_required, name='dispatch')
@@ -793,11 +794,8 @@ class SessionControlsView(View):
         question_id = data.get('question_id')
         
         # Delete previous response to allow re-recording
-        PracticeResponse.objects.filter(
-            session=session,
-            question_id=question_id
-        ).delete()
-        
+
+
         return JsonResponse({
             'success': True,
             'message': 'Question reset for re-recording'
@@ -879,3 +877,19 @@ class RetryResponseAnalysisView(LoginRequiredMixin, CandidateRequiredMixin, View
         messages.info(request, "Analysis retry queued. Please refresh the page in a few moments.")
         
         return redirect('interviews:practice_response_detail', response_id=response_id)
+
+
+@method_decorator(login_required, name='dispatch')
+class InterviewSummaryView(DetailView):
+    """Display summary of completed interview."""
+    model = Interview
+    template_name = 'interviews/video_summary.html'
+    context_object_name = 'interview'
+    pk_url_kwarg = 'interview_id'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if hasattr(self.object, 'video_session'):
+            context['coding_session'] = getattr(self.object.video_session, 'coding_session', None)
+            context['transcript'] = self.object.video_session.transcript
+        return context

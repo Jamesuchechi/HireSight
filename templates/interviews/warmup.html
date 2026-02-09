@@ -1,0 +1,299 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}System Check | HireSight{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* CSS Custom Properties for HireSight Brand Colors */
+    :root {
+        --primary: #0066FF;
+        --primary-light: #00D4FF;
+        --secondary: #00D4FF;
+    }
+
+    /* Brand gradient text */
+    .brand-gradient {
+        background: linear-gradient(135deg, #0066FF, #00D4FF);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    /* Brand button gradient */
+    .btn-brand {
+        background: linear-gradient(135deg, #0066FF, #00D4FF);
+    }
+
+    .btn-brand:hover {
+        background: linear-gradient(135deg, #0052CC, #00B8E6);
+    }
+
+    /* Warmup Wizard Styles */
+    .warmup-step {
+        transition: all 0.3s ease-in-out;
+    }
+
+    /* Interview container */
+    .warmup-container {
+        min-height: calc(100vh - 2rem);
+    }
+</style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+{% endblock %}
+
+{% block footer %}
+<!-- Hidden footer for warmup wizard to maximize space -->
+{% endblock %}
+
+{% block content %}
+<div class="warmup-container w-full bg-gray-50 text-gray-900 overflow-hidden relative font-sans p-4">
+    <!-- Background Elements -->
+    <div class="absolute inset-0 z-0 opacity-30">
+        <div
+            class="absolute top-0 left-0 w-1/3 h-1/3 bg-gradient-to-br from-primary/10 via-primary-light/10 to-transparent rounded-full transform -translate-x-1/2 -translate-y-1/2">
+        </div>
+        <div
+            class="absolute bottom-0 right-0 w-1/3 h-1/3 bg-gradient-to-tl from-purple-500/5 via-primary/5 to-transparent rounded-full transform translate-x-1/2 translate-y-1/2">
+        </div>
+    </div>
+
+    <!-- WARMUP WIZARD -->
+    <div id="lobby-screen"
+        class="relative z-10 flex items-center justify-center min-h-screen transition-opacity duration-500">
+
+        <div class="max-w-4xl w-full space-y-6">
+            <!-- Header for Wizard -->
+            <section
+                class="bg-gradient-to-r from-primary to-secondary text-white rounded-3xl shadow-2xl p-8 overflow-hidden relative">
+                <div class="absolute inset-0 opacity-20 bg-[url('/static/images/grid.svg')]"></div>
+                <div class="relative z-10 space-y-2">
+                    <p class="text-sm uppercase tracking-[0.4em] text-white/80">Interview Check</p>
+                    <h1 class="text-3xl md:text-4xl font-bold">System Setup</h1>
+                    <p class="text-white/90 max-w-2xl">
+                        Let's check your camera and microphone to ensure a smooth interview experience.
+                    </p>
+                    <div class="flex flex-wrap items-center gap-3 mt-6">
+                        <div
+                            class="inline-flex items-center gap-2 bg-white/20 px-4 py-2 rounded-full text-sm font-semibold border border-white/30">
+                            <span>Current Step</span>
+                            <span id="warmupProgress" class="text-white">Step 1 of 3</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Wizard Steps Container -->
+            <div id="warmupFlow" class="space-y-6">
+
+                <!-- STEP 1: CAMERA TEST -->
+                <div id="cameraTest" class="warmup-step bg-white rounded-3xl shadow-xl p-8 space-y-6">
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <div class="space-y-4">
+                            <div class="flex items-center gap-3">
+                                <span
+                                    class="w-10 h-10 rounded-full bg-primary text-white font-semibold flex items-center justify-center">01</span>
+                                <div>
+                                    <p class="text-sm uppercase tracking-[0.4em] text-gray-400">Camera Test</p>
+                                    <h2 class="text-2xl text-gray-900 font-semibold">Check your video.</h2>
+                                </div>
+                            </div>
+                            <p class="text-gray-600">
+                                Select your camera below and make sure you are clearly visible.
+                            </p>
+
+                            <div class="space-y-1">
+                                <label class="text-xs font-medium text-gray-500 uppercase tracking-wider">Camera
+                                    Device</label>
+                                <select id="video-input-select"
+                                    class="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all">
+                                    <option>Loading devices...</option>
+                                </select>
+                            </div>
+
+                            <button id="startCameraTest"
+                                class="w-full px-4 py-3 bg-blue-600 text-white rounded-2xl font-semibold flex items-center justify-center gap-2 hover:bg-blue-700 transition">
+                                <i class="fas fa-play"></i>
+                                Start Camera
+                            </button>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div
+                                class="bg-slate-900 rounded-2xl overflow-hidden aspect-video flex items-center justify-center relative shadow-inner">
+                                <video id="lobby-local-video" autoplay muted playsinline
+                                    class="w-full h-full object-cover transform scale-x-[-1] hidden"></video>
+                                <div id="cameraPlaceholder" class="text-center text-white/50 space-y-2">
+                                    <i class="fas fa-video text-4xl"></i>
+                                    <p>Camera preview will appear here.</p>
+                                </div>
+                            </div>
+                            <div id="cameraStatus"
+                                class="hidden bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-2xl px-4 py-3 text-sm flex items-center gap-2">
+                                <i class="fas fa-exclamation-circle"></i>
+                                <span id="cameraStatusText">Waiting for camera...</span>
+                            </div>
+                            <div id="cameraSuccess"
+                                class="hidden bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl px-4 py-3 text-sm flex items-center gap-2">
+                                <i class="fas fa-check-circle"></i>
+                                Camera is working!
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex justify-end pt-6 border-t border-gray-100">
+                        <button id="cameraTestContinue" disabled
+                            class="px-6 py-2 bg-primary text-white rounded-2xl hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed transition font-semibold">
+                            Continue to Microphone <i class="fas fa-arrow-right ml-2"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- STEP 2: MICROPHONE TEST -->
+                <div id="microphoneTest" class="warmup-step hidden bg-white rounded-3xl shadow-xl p-8 space-y-6">
+                    <div class="grid md:grid-cols-2 gap-10">
+                        <div class="space-y-4">
+                            <div class="flex items-center gap-3">
+                                <span
+                                    class="w-10 h-10 rounded-full bg-primary text-white font-semibold flex items-center justify-center">02</span>
+                                <div>
+                                    <p class="text-sm uppercase tracking-[0.4em] text-gray-400">Microphone Test</p>
+                                    <h2 class="text-2xl text-gray-900 font-semibold">Test your audio.</h2>
+                                </div>
+                            </div>
+                            <p class="text-gray-600">
+                                Speak normally. We'll show your audio levels below.
+                            </p>
+
+                            <div class="space-y-1">
+                                <label class="text-xs font-medium text-gray-500 uppercase tracking-wider">Microphone
+                                    Device</label>
+                                <select id="audio-input-select"
+                                    class="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all">
+                                    <option>Loading devices...</option>
+                                </select>
+                            </div>
+
+                            <button id="startMicTest"
+                                class="w-full px-4 py-3 bg-blue-600 text-white rounded-2xl font-semibold flex items-center justify-center gap-2 hover:bg-blue-700 transition">
+                                <i class="fas fa-microphone"></i>
+                                Start Microphone
+                            </button>
+                        </div>
+                        <div class="space-y-4">
+                            <div
+                                class="bg-gradient-to-b from-slate-900 to-slate-800 rounded-2xl p-6 min-h-[200px] flex flex-col justify-between shadow-inner">
+                                <div>
+                                    <p class="text-xs text-white/70 uppercase tracking-[0.4em]">Audio Level</p>
+                                </div>
+                                <div class="flex gap-2 mt-6 h-32 items-end justify-center px-8">
+                                    <div
+                                        class="audioBar flex-1 bg-slate-700 rounded-t-lg h-1 transition-all duration-75">
+                                    </div>
+                                    <div
+                                        class="audioBar flex-1 bg-slate-700 rounded-t-lg h-1 transition-all duration-75">
+                                    </div>
+                                    <div
+                                        class="audioBar flex-1 bg-slate-700 rounded-t-lg h-1 transition-all duration-75">
+                                    </div>
+                                    <div
+                                        class="audioBar flex-1 bg-slate-700 rounded-t-lg h-1 transition-all duration-75">
+                                    </div>
+                                </div>
+                                <div id="micStatus" class="text-white/70 text-sm flex items-center gap-2 mt-2">
+                                    <i class="fas fa-microphone-slash"></i>
+                                    Click 'Start Microphone' to begin...
+                                </div>
+                            </div>
+                            <div id="micSuccess"
+                                class="hidden bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl px-4 py-3 text-sm flex items-center gap-2">
+                                <i class="fas fa-check-circle"></i>
+                                Microphone is ready!
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex justify-between pt-6 border-t border-gray-100">
+                        <button
+                            class="prevStep px-4 py-2 border border-gray-200 rounded-2xl text-gray-600 hover:bg-gray-50 transition">
+                            Back
+                        </button>
+                        <button id="micTestContinue" disabled
+                            class="px-6 py-2 bg-primary text-white rounded-2xl hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed transition font-semibold">
+                            Continue to Final Check <i class="fas fa-arrow-right ml-2"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- STEP 3: FINAL CHECK (JOIN) -->
+                <div id="finalConfirmation" class="warmup-step hidden bg-white rounded-3xl shadow-xl p-8 space-y-6">
+                    <div class="flex items-center gap-3">
+                        <span
+                            class="w-10 h-10 rounded-full bg-primary text-white font-semibold flex items-center justify-center">03</span>
+                        <div>
+                            <p class="text-sm uppercase tracking-[0.4em] text-gray-400">Final Check</p>
+                            <h2 class="text-2xl text-gray-900 font-semibold">Ready to join?</h2>
+                        </div>
+                    </div>
+
+                    <div class="bg-gray-50 rounded-2xl p-6 border border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">{{ interview.application.job.title }}</h3>
+                        <p class="text-gray-600">
+                            Interview with <span class="text-gray-900 font-medium">
+                                {% if is_interviewer %}
+                                {{
+                                interview.application.applicant.get_full_name|default:interview.application.applicant.email
+                                }}
+                                {% else %}
+                                {{ interview.interviewer_name }}
+                                {% endif %}
+                            </span>
+                        </p>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="flex items-center gap-3 text-gray-700">
+                            <i class="fas fa-check-circle text-green-500 text-xl"></i>
+                            <span>Camera connected and tested</span>
+                        </div>
+                        <div class="flex items-center gap-3 text-gray-700">
+                            <i class="fas fa-check-circle text-green-500 text-xl"></i>
+                            <span>Microphone connected and tested</span>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between pt-6 border-t border-gray-100">
+                        <button
+                            class="prevStep px-4 py-2 border border-gray-200 rounded-2xl text-gray-600 hover:bg-gray-50 transition">
+                            Back
+                        </button>
+                        <form method="POST" id="join-form">
+                            {% csrf_token %}
+                            <input type="hidden" name="selected_video_device" id="selected-video-device">
+                            <input type="hidden" name="selected_audio_device" id="selected-audio-device">
+                            <button type="submit" id="join-room-btn"
+                                class="px-8 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-2xl font-bold shadow-lg shadow-primary/40 transform transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2">
+                                <span>Join Interview Room</span>
+                                <i class="fas fa-door-open"></i>
+                            </button>
+                        </form>
+                    </div>
+                    <p class="text-center text-xs text-gray-500 mt-2">
+                        By joining, you agree to being recorded for quality assurance.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Interview Data -->
+<script id="interview-data" type="application/json">
+{
+    "id": "{{ interview.id }}",
+    "isInterviewer": {{ is_interviewer|yesno:"true,false" }}
+}
+</script>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/interviews/warmup.js' %}"></script>
+{% endblock %}

@@ -1263,6 +1263,11 @@ class InterviewRoomView(LoginRequiredMixin, InterviewAccessMixin, DetailView):
         if not self.object.use_inapp_video:
             messages.warning(request, "This interview is set to use an external video link.")
             return redirect('interviews:detail', interview_id=self.object.id)
+        
+        # Check if warmup is complete - redirect to warmup if not
+        warmup_key = f'warmup_complete_{self.object.id}'
+        if not request.session.get(warmup_key, False):
+            return redirect('interviews:room_warmup', interview_id=self.object.id)
             
         # Ensure session object exists
         InterviewVideoSession.objects.get_or_create(
@@ -1275,16 +1280,57 @@ class InterviewRoomView(LoginRequiredMixin, InterviewAccessMixin, DetailView):
         context = super().get_context_data(**kwargs)
         user = self.request.user
         
-        is_interviewer = (user.account_type == 'company')
+        # Defensive check for account_type (handles edge cases with AnonymousUser)
+        is_interviewer = getattr(user, 'account_type', None) == 'company'
         context['is_interviewer'] = is_interviewer
         context['video_session'] = self.object.video_session
         
         # Turn/Stun server config (Mock for now, would come from settings in prod)
-        context['ice_servers'] = settings.ICE_SERVERS if hasattr(settings, 'ICE_SERVERS') else [
+        ice_servers = settings.ICE_SERVERS if hasattr(settings, 'ICE_SERVERS') else [
             {'urls': 'stun:stun.l.google.com:19302'}
         ]
+        context['ice_servers'] = json.dumps(ice_servers)
         
         return context
+
+
+class InterviewWarmupView(LoginRequiredMixin, InterviewAccessMixin, DetailView):
+    """
+    Pre-flight warmup wizard for video interviews.
+    Tests camera/microphone before joining the actual interview room.
+    """
+    model = Interview
+    template_name = 'interviews/warmup.html'
+    pk_url_kwarg = 'interview_id'
+
+    def dispatch(self, request, *args, **kwargs):
+        # Validate that in-app video is enabled
+        self.object = self.get_object()
+        if not self.object.use_inapp_video:
+            messages.warning(request, "This interview is set to use an external video link.")
+            return redirect('interviews:detail', interview_id=self.object.id)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        is_interviewer = getattr(user, 'account_type', None) == 'company'
+        context['is_interviewer'] = is_interviewer
+        return context
+
+    def post(self, request, *args, **kwargs):
+        """Mark warmup as complete and redirect to the interview room."""
+        self.object = self.get_object()
+        
+        # Store in session that warmup is complete for this interview
+        warmup_key = f'warmup_complete_{self.object.id}'
+        request.session[warmup_key] = True
+        
+        # Optionally store selected devices
+        request.session[f'video_device_{self.object.id}'] = request.POST.get('selected_video_device', '')
+        request.session[f'audio_device_{self.object.id}'] = request.POST.get('selected_audio_device', '')
+        
+        return redirect('interviews:room', interview_id=self.object.id)
 
 
 class InterviewRecordingUploadView(LoginRequiredMixin, InterviewAccessMixin, View):
@@ -1337,70 +1383,124 @@ class InterviewRecordingUploadView(LoginRequiredMixin, InterviewAccessMixin, Vie
             return JsonResponse({'status': 'success', 'url': file_url})
             
         except Exception as e:
+            logger.error(f"Recording upload failed: {e}")
+            return JsonResponse({'error': str(e)}, status=500)
+
+
+class InterviewRecordingMergeView(LoginRequiredMixin, InterviewAccessMixin, View):
+    """
+    Merge all recording chunks into a single file.
+    """
+    def post(self, request, interview_id):
+        interview = get_object_or_404(Interview, id=interview_id)
+        session = interview.video_session
+
+        if not session.recording_chunks:
+            return JsonResponse({'error': 'No chunks to merge'}, status=400)
+
+        try:
+            # Sort chunks by index
+            chunks = sorted(session.recording_chunks, key=lambda x: x['index'])
+
+            # Create temp directory
+            temp_dir = tempfile.mkdtemp()
+            merged_path = os.path.join(temp_dir, f"merged_recording_{interview.id}.webm")
+
+            # Merge chunks
+            with open(merged_path, 'wb') as merged_file:
+                for chunk in chunks:
+                    chunk_path = os.path.join(settings.MEDIA_ROOT, chunk['path'].lstrip('/'))
+                    with open(chunk_path, 'rb') as chunk_file:
+                        merged_file.write(chunk_file.read())
+            
+            # Upload to storage
+            file_name = f"interviews/recordings/{interview.id}/merged_recording.webm"
+            with open(merged_path, 'rb') as merged_file:
+                saved_path = default_storage.save(file_name, merged_file)
+            
+            # Update session
+            session.recording_url = default_storage.url(saved_path)
+            session.save(update_fields=['recording_url'])
+            
+            # Clean up
+            shutil.rmtree(temp_dir)
+            
+            return JsonResponse({'status': 'success', 'url': session.recording_url})    
+        except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
 
 
 @require_POST
 def execute_code(request):
     """Execute candidate code in sandboxed Docker container"""
-    data = json.loads(request.body)
-    code = data.get('code')
-    language = data.get('language', 'python')
-    interview_id = data.get('interview_id')
-    
-    # Security: Verify access
-    interview = get_object_or_404(Interview, id=interview_id)
-    if request.user != interview.application.applicant and request.user != interview.application.job.company.user:
-         return JsonResponse({'error': 'Unauthorized'}, status=403)
-    
-    # Execute in Docker
-    if language == 'python':
-        result = execute_python_code(code)
-    elif language == 'javascript':
-        result = execute_javascript_code(code)
-    elif language == 'rust':
-        result = execute_rust_code(code)
-    elif language == 'go':
-        result = execute_go_code(code)
-    elif language == 'cpp':
-        result = execute_cpp_code(code)
-    elif language == 'php':
-        result = execute_php_code(code)
-    elif language == 'ruby':
-        result = execute_ruby_code(code)
-    else:
-        return JsonResponse({'error': 'Unsupported language'}, status=400)
-    
-    # Save execution result if successful or failed attempt
-    if 'success' in result:
-         # Find or create session (should exist from websocket)
-        coding_session = InterviewCodingSession.objects.filter(
-            video_session__interview=interview
-        ).first()
+    try:
+        data = json.loads(request.body)
+        code = data.get('code')
+        language = data.get('language', 'python')
+        interview_id = data.get('interview_id')
         
-        if coding_session:
-            coding_session.final_code = code
-            coding_session.test_results = result
-            coding_session.save()
+        # Security: Verify access
+        interview = get_object_or_404(Interview, id=interview_id)
+        if request.user != interview.application.applicant and request.user != interview.application.job.company.user:
+             return JsonResponse({'success': False, 'error': 'Unauthorized'}, status=403)
+        
+        # Execute in Docker
+        if language == 'python':
+            result = execute_python_code(code)
+        elif language == 'javascript':
+            result = execute_javascript_code(code)
+        elif language == 'rust':
+            result = execute_rust_code(code)
+        elif language == 'go':
+            result = execute_go_code(code)
+        elif language == 'cpp':
+            result = execute_cpp_code(code)
+        elif language == 'php':
+            result = execute_php_code(code)
+        elif language == 'ruby':
+            result = execute_ruby_code(code)
+        else:
+            return JsonResponse({'success': False, 'error': 'Unsupported language'}, status=400)
+        
+        # Save execution result if successful or failed attempt
+        if 'success' in result:
+             # Find or create session (should exist from websocket)
+            coding_session = InterviewCodingSession.objects.filter(
+                video_session__interview=interview
+            ).first()
+            
+            if coding_session:
+                coding_session.final_code = code
+                coding_session.test_results = result
+                coding_session.save()
+        
+        return JsonResponse(result)
     
-    return JsonResponse(result)
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON request body'}, status=400)
+    except Exception as e:
+        logger.error(f"Code execution error: {e}")
+        return JsonResponse({'success': False, 'error': f'Execution failed: {str(e)}'}, status=500)
 
+
+import base64
 
 def execute_python_code(code):
     """Run Python code in isolated Docker container"""
     try:
         client = docker.from_env()
-        # Create temporary file with code
+        encoded_code = base64.b64encode(code.encode('utf-8')).decode('utf-8')
+        cmd = f'python -c "import sys, base64; exec(base64.b64decode(sys.argv[1]))" {encoded_code}'
+        
         container = client.containers.run(
             'python:3.11-slim',
-            command=f'python -c "{code}"',
+            command=cmd,
             mem_limit='128m',
             cpu_quota=50000,
             network_disabled=True,
             remove=True,
             stdout=True,
             stderr=True,
-            # timeout=5 # Timeout is handled by client in some versions or need wrapper
         )
         
         return {
@@ -1416,9 +1516,13 @@ def execute_javascript_code(code):
     """Run JavaScript code in isolated Docker container (Node.js)"""
     try:
         client = docker.from_env()
+        encoded_code = base64.b64encode(code.encode('utf-8')).decode('utf-8')
+        # Node can eval base64
+        cmd = ['node', '-e', f'eval(Buffer.from("{encoded_code}", "base64").toString())']
+        
         container = client.containers.run(
             'node:18-slim',
-            command=['node', '-e', code],
+            command=cmd,
             mem_limit='128m',
             cpu_quota=50000,
             network_disabled=True,
@@ -1438,27 +1542,23 @@ def execute_javascript_code(code):
 
 def execute_rust_code(code):
     """Run Rust code in isolated Docker container"""
-    # Rust requires compilation. We'll wrap it in main if not present, but for now expect full program suitable for main.rs
-    # A simple approach: echo code to main.rs, compile, and run.
-    command = f'/bin/sh -c "echo \'{code}\' > main.rs && rustc main.rs && ./main"'
-    
     try:
         client = docker.from_env()
+        encoded_code = base64.b64encode(code.encode('utf-8')).decode('utf-8')
+        # Decode base64 to file then compile
+        command = f'/bin/sh -c "echo {encoded_code} | base64 -d > main.rs && rustc main.rs && ./main"'
+        
         container = client.containers.run(
             'rust:slim',
             command=command,
-            mem_limit='256m', # Rust compilation needs more memory
+            mem_limit='256m',
             cpu_quota=80000,
             network_disabled=True,
             remove=True,
             stdout=True,
             stderr=True,
         )
-        
-        return {
-            'success': True,
-            'output': container.decode('utf-8')
-        }
+        return {'success': True, 'output': container.decode('utf-8')}
     except docker.errors.ContainerError as e:
         return {'success': False, 'error': e.stderr.decode('utf-8')}
     except Exception as e:
@@ -1466,9 +1566,11 @@ def execute_rust_code(code):
 
 def execute_go_code(code):
     """Run Go code in isolated Docker container"""
-    command = f'/bin/sh -c "echo \'{code}\' > main.go && go run main.go"'
     try:
         client = docker.from_env()
+        encoded_code = base64.b64encode(code.encode('utf-8')).decode('utf-8')
+        command = f'/bin/sh -c "echo {encoded_code} | base64 -d > main.go && go run main.go"'
+        
         container = client.containers.run(
             'golang:1.20-alpine',
             command=command,
@@ -1487,9 +1589,11 @@ def execute_go_code(code):
 
 def execute_cpp_code(code):
     """Run C++ code in isolated Docker container"""
-    command = f'/bin/sh -c "echo \'{code}\' > main.cpp && g++ -o main main.cpp && ./main"'
     try:
         client = docker.from_env()
+        encoded_code = base64.b64encode(code.encode('utf-8')).decode('utf-8')
+        command = f'/bin/sh -c "echo {encoded_code} | base64 -d > main.cpp && g++ -o main main.cpp && ./main"'
+        
         container = client.containers.run(
             'gcc:latest',
             command=command,
@@ -1510,9 +1614,13 @@ def execute_php_code(code):
     """Run PHP code in isolated Docker container"""
     try:
         client = docker.from_env()
+        encoded_code = base64.b64encode(code.encode('utf-8')).decode('utf-8')
+        # PHP can evaluate base64
+        command = f'php -r "eval(base64_decode(\'{encoded_code}\'));"'
+        
         container = client.containers.run(
             'php:8.2-cli-alpine',
-            command=['php', '-r', code],
+            command=['sh', '-c', command],
             mem_limit='128m',
             cpu_quota=50000,
             network_disabled=True,
@@ -1530,9 +1638,12 @@ def execute_ruby_code(code):
     """Run Ruby code in isolated Docker container"""
     try:
         client = docker.from_env()
+        encoded_code = base64.b64encode(code.encode('utf-8')).decode('utf-8')
+        command = f'ruby -e "eval(Base64.decode64(\'{encoded_code}\'))"'
+        
         container = client.containers.run(
             'ruby:3.2-alpine',
-            command=['ruby', '-e', code],
+            command=['sh', '-c', command],
             mem_limit='128m',
             cpu_quota=50000,
             network_disabled=True,

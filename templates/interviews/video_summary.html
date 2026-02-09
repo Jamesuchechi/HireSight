@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="bg-gray-800 rounded-lg shadow-xl overflow-hidden border border-gray-700">
+        <!-- Header -->
+        <div class="p-6 border-b border-gray-700 flex justify-between items-center bg-gray-900">
+            <div>
+                <h1 class="text-2xl font-bold text-white mb-2">Interview Summary</h1>
+                <p class="text-gray-400">
+                    {{ interview.get_interview_type_display }} with {{ interview.application.candidate.get_full_name }}
+                </p>
+                <p class="text-xs text-gray-500 mt-1">
+                    {{ interview.scheduled_date|date:"F j, Y, g:i a" }}
+                </p>
+            </div>
+            <a href="{% url 'dashboard' %}"
+                class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors">
+                Back to Dashboard
+            </a>
+        </div>
+
+        <div class="p-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Left Column: Transcript & Notes -->
+            <div class="space-y-8">
+                <!-- Transcript -->
+                <div class="bg-gray-700/50 rounded-lg p-4 border border-gray-600">
+                    <h2 class="text-lg font-semibold text-white mb-4 flex items-center">
+                        <i class="fas fa-comment-alt mr-2 text-blue-400"></i> Transcript
+                    </h2>
+                    <div class="h-96 overflow-y-auto bg-gray-900 rounded p-4 text-sm space-y-2 font-mono">
+                        {% if transcript %}
+                        <div class="whitespace-pre-wrap text-gray-300">{{ transcript }}</div>
+                        {% else %}
+                        <p class="text-gray-500 italic text-center py-10">No transcript available for this session.</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Internal Notes (If Interviewer) -->
+                {% if user == interview.application.job.company.user %}
+                <div class="bg-gray-700/50 rounded-lg p-4 border border-gray-600">
+                    <h2 class="text-lg font-semibold text-white mb-4 flex items-center">
+                        <i class="fas fa-sticky-note mr-2 text-yellow-400"></i> Internal Notes
+                    </h2>
+                    <div class="bg-gray-900 rounded p-4 text-sm text-gray-300 min-h-[100px]">
+                        {{ interview.video_session.internal_notes|default:"No notes taken."|linebreaks }}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Right Column: Code Snapshot -->
+            <div class="space-y-8">
+                <div class="bg-gray-700/50 rounded-lg p-4 border border-gray-600 h-full flex flex-col">
+                    <h2 class="text-lg font-semibold text-white mb-4 flex items-center">
+                        <i class="fas fa-code mr-2 text-green-400"></i> Final Code Assessment
+                    </h2>
+
+                    {% if coding_session and coding_session.final_code %}
+                    <div
+                        class="bg-gray-900 rounded p-2 mb-2 flex justify-between items-center text-xs text-gray-400 border-b border-gray-800">
+                        <span>Language: <span class="text-blue-300 font-mono">{{ coding_session.language
+                                }}</span></span>
+                        <span>Length: {{ coding_session.final_code|length }} chars</span>
+                    </div>
+                    <pre
+                        class="flex-grow bg-[#1e1e1e] p-4 rounded text-sm overflow-auto text-gray-300 font-mono border border-gray-800"><code>{{ coding_session.final_code }}</code></pre>
+                    {% else %}
+                    <div
+                        class="flex-grow flex flex-col items-center justify-center text-gray-500 bg-gray-900 rounded border border-gray-800">
+                        <i class="fas fa-code-branch text-4xl mb-4 opacity-50"></i>
+                        <p>No code written during this session.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

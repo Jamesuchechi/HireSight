@@ -152,8 +152,11 @@ class CodingSession {
         this.runBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Running...';
         this.outputContainer.innerHTML = '<div class="text-gray-400">Executing...</div>';
 
+        // Get current language prefix from URL (e.g., '/en/')
+        const langPrefix = window.location.pathname.match(/^\/[a-z]{2}\//)?.[0] || '/';
+
         try {
-            const response = await fetch('/interviews/execute-code/', {
+            const response = await fetch(`${langPrefix}interviews/execute-code/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -165,6 +168,10 @@ class CodingSession {
                     'language': this.language
                 })
             });
+
+            if (!response.ok) {
+                throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+            }
 
             const result = await response.json();
 
@@ -185,8 +192,13 @@ class CodingSession {
         if (!this.editor) return;
 
         const code = this.editor.getValue();
+        // Get current language prefix from URL (e.g., '/en/')
+        // Check both at start of path and after any base path
+        const pathMatch = window.location.pathname.match(/\/([a-z]{2})\//);
+        const langPrefix = pathMatch ? `/${pathMatch[1]}/` : '/en/';
+
         try {
-            await fetch(`/interviews/coding-session/${this.config.id}/save/`, {
+            await fetch(`${langPrefix}interviews/coding-session/${this.config.id}/save/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
