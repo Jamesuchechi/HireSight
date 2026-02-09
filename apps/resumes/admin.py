@@ -3,7 +3,15 @@ from django.utils.html import format_html
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django.db.models import Count, Q
-from .models import Resume
+from .models import (
+    Resume, 
+    ResumeOptimization, 
+    ResumeSuggestion, 
+    ResumeRewriteDraft,
+    ResumeTemplate,
+    ResumeTemplateCustomization,
+    AIRewriteSession
+)
 from .parsers import resume_parser
 
 
@@ -296,3 +304,88 @@ class ResumeAdmin(admin.ModelAdmin):
         """Optimize queryset with select_related."""
         queryset = super().get_queryset(request)
         return queryset.select_related('user')
+
+
+# New Template System Admin Models
+
+@admin.register(ResumeTemplate)
+class ResumeTemplateAdmin(admin.ModelAdmin):
+    list_display = ['name', 'category', 'tone', 'usage_count', 'is_active', 'is_premium']
+    list_filter = ['category', 'tone', 'is_active', 'is_premium']
+    search_fields = ['name', 'description']
+    prepopulated_fields = {'slug': ('name',)}
+    readonly_fields = ['usage_count', 'created_at', 'updated_at']
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('name', 'slug', 'description', 'category', 'tone', 'is_active', 'is_premium')
+        }),
+        ('Template Content', {
+            'fields': ('html_template', 'css_styles', 'writing_style_guide')
+        }),
+        ('Configuration', {
+            'fields': ('section_priorities', 'default_color_scheme', 'default_font_settings')
+        }),
+        ('Media', {
+            'fields': ('preview_image', 'thumbnail_image')
+        }),
+        ('Statistics', {
+            'fields': ('usage_count', 'created_at', 'updated_at')
+        }),
+    )
+
+
+@admin.register(AIRewriteSession)
+class AIRewriteSessionAdmin(admin.ModelAdmin):
+    list_display = ['id', 'resume', 'template', 'llm_provider', 'status', 'tokens_used', 'created_at']
+    list_filter = ['llm_provider', 'status', 'created_at']
+    readonly_fields = ['created_at', 'completed_at', 'tokens_used', 'processing_time_seconds']
+    search_fields = ['resume__title', 'job_title', 'industry']
+    fieldsets = (
+        ('Session Info', {
+            'fields': ('resume', 'template', 'llm_provider', 'status')
+        }),
+        ('Context', {
+            'fields': ('job_title', 'industry', 'highlights', 'metrics_focus', 'job_description', 'additional_instructions')
+        }),
+        ('Content', {
+            'fields': ('original_content', 'rewritten_content')
+        }),
+        ('Metrics', {
+            'fields': ('tokens_used', 'processing_time_seconds', 'created_at', 'completed_at')
+        }),
+        ('Error', {
+            'fields': ('error_message',),
+            'classes': ('collapse',)
+        }),
+    )
+
+
+@admin.register(ResumeTemplateCustomization)
+class ResumeTemplateCustomizationAdmin(admin.ModelAdmin):
+    list_display = ['id', 'resume', 'template', 'created_at']
+    list_filter = ['template', 'created_at']
+    search_fields = ['resume__title']
+    readonly_fields = ['created_at', 'updated_at']
+
+
+@admin.register(ResumeOptimization)
+class ResumeOptimizationAdmin(admin.ModelAdmin):
+    list_display = ['resume', 'overall_score', 'ats_score', 'analyzed_at']
+    list_filter = ['analyzed_at']
+    search_fields = ['resume__title']
+    readonly_fields = ['analyzed_at', 'updated_at']
+
+
+@admin.register(ResumeSuggestion)
+class ResumeSuggestionAdmin(admin.ModelAdmin):
+    list_display = ['optimization', 'category', 'priority', 'title']
+    list_filter = ['category', 'priority']
+    search_fields = ['title', 'description']
+
+
+@admin.register(ResumeRewriteDraft)
+class ResumeRewriteDraftAdmin(admin.ModelAdmin):
+    list_display = ['resume', 'status', 'created_at']
+    list_filter = ['status', 'created_at']
+    search_fields = ['resume__title']
+    readonly_fields = ['created_at']

@@ -408,3 +408,240 @@ class ResumeRewriteDraft(models.Model):
 
     def __str__(self):
         return f"Rewrite Draft for {self.resume.title} ({self.get_status_display()})"
+
+
+# ============================================================================
+# TEMPLATE SYSTEM MODELS
+# ============================================================================
+
+def template_preview_upload_path(instance, filename):
+    """Generate upload path for template preview images."""
+    ext = filename.split('.')[-1]
+    return f"resume_templates/previews/{instance.slug}.{ext}"
+
+
+def template_thumbnail_upload_path(instance, filename):
+    """Generate upload path for template thumbnail images."""
+    ext = filename.split('.')[-1]
+    return f"resume_templates/thumbnails/{instance.slug}.{ext}"
+
+
+class ResumeTemplate(models.Model):
+    """Professional resume templates with different styles and layouts"""
+    
+    CATEGORY_CHOICES = [
+        ('modern', 'Modern'),
+        ('classic', 'Classic'),
+        ('creative', 'Creative'),
+        ('ats', 'ATS-Optimized'),
+        ('executive', 'Executive'),
+        ('minimal', 'Minimalist'),
+        ('academic', 'Academic'),
+        ('technical', 'Technical'),
+        ('infographic', 'Infographic'),
+        ('bold', 'Bold'),
+    ]
+    
+    TONE_CHOICES = [
+        ('professional', 'Professional'),
+        ('friendly', 'Friendly'),
+        ('authoritative', 'Authoritative'),
+        ('creative', 'Creative'),
+        ('technical', 'Technical'),
+        ('academic', 'Academic'),
+    ]
+    
+    name = models.CharField(max_length=100)
+    slug = models.SlugField(unique=True)
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES)
+    description = models.TextField()
+    
+    # Template content and styling
+    html_template = models.TextField(help_text="Jinja2 template for HTML rendering")
+    css_styles = models.TextField(help_text="CSS styles for this template")
+    
+    # AI guidance for rewriting
+    tone = models.CharField(max_length=20, choices=TONE_CHOICES)
+    writing_style_guide = models.TextField(
+        help_text="Instructions for AI on how to write content for this template"
+    )
+    section_priorities = models.JSONField(
+        default=dict,
+        help_text="Which sections to emphasize: {'skills': 'high', 'experience': 'high'}"
+    )
+    
+    # Visual assets
+    preview_image = models.ImageField(
+        upload_to=template_preview_upload_path,
+        blank=True,
+        null=True
+    )
+    thumbnail_image = models.ImageField(
+        upload_to=template_thumbnail_upload_path,
+        blank=True,
+        null=True
+    )
+    
+    # Metadata
+    is_premium = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+    usage_count = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    # Color schemes (JSON)
+    default_color_scheme = models.JSONField(
+        default=dict,
+        help_text="Default colors: {'primary': '#2563eb', 'secondary': '#64748b', 'accent': '#f59e0b'}"
+    )
+    
+    class Meta:
+        ordering = ['-usage_count', 'name']
+    
+    def __str__(self):
+        return f"{self.name} ({self.get_category_display()})"
+    
+    def increment_usage(self):
+        """Increment usage count when template is used"""
+        self.usage_count += 1
+        self.save(update_fields=['usage_count'])
+
+
+class ResumeTemplateCustomization(models.Model):
+    """User's customization of a template for their resume"""
+    
+    resume = models.OneToOneField(
+        Resume,
+        on_delete=models.CASCADE,
+        related_name='template_customization'
+    )
+    template = models.ForeignKey(
+        ResumeTemplate,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='customizations'
+    )
+    
+    # Color customization
+    color_scheme = models.JSONField(
+        default=dict,
+        help_text="Custom colors overriding template defaults"
+    )
+    
+    # Font customization
+    font_settings = models.JSONField(
+        default=dict,
+        help_text="Font family, sizes: {'heading': 'Inter', 'body': 'Open Sans', 'size': 11}"
+    )
+    
+    # Section management
+    section_order = models.JSONField(
+        default=list,
+        help_text="Order of sections: ['summary', 'experience', 'education', 'skills']"
+    )
+    section_visibility = models.JSONField(
+        default=dict,
+        help_text="Which sections to show: {'certifications': true, 'hobbies': false}"
+    )
+    
+    # Layout options
+    layout_settings = models.JSONField(
+        default=dict,
+        help_text="Margins, spacing, columns: {'margins': '0.5in', 'columns': 1}"
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return f"Customization for {self.resume.title}"
+
+
+class AIRewriteSession(models.Model):
+    """Track AI rewrite sessions with template and LLM selection"""
+    
+    LLM_CHOICES = [
+        ('mistral', 'Mistral AI'),
+        ('groq', 'Groq (Llama 3.3)'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('processing', 'Processing'),
+        ('completed', 'Completed'),
+        ('failed', 'Failed'),
+    ]
+    
+    resume = models.ForeignKey(
+        Resume,
+        on_delete=models.CASCADE,
+        related_name='rewrite_sessions'
+    )
+    template = models.ForeignKey(
+        ResumeTemplate,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text="Template selected for rewrite (null = blank/no template)"
+    )
+    
+    # LLM selection
+    llm_provider = models.CharField(
+        max_length=20,
+        choices=LLM_CHOICES,
+        default='mistral'
+    )
+    
+    # Context for rewrite
+    job_title = models.CharField(max_length=200, blank=True)
+    industry = models.CharField(max_length=100, blank=True)
+    highlights = models.TextField(blank=True)
+    metrics_focus = models.TextField(blank=True)
+    job_description = models.TextField(blank=True)
+    additional_instructions = models.TextField(blank=True)
+    
+    # Results
+    original_content = models.TextField()
+    rewritten_content = models.TextField(blank=True)
+    
+    # Metadata
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='pending'
+    )
+    tokens_used = models.IntegerField(default=0)
+    processing_time_seconds = models.FloatField(null=True, blank=True)
+    error_message = models.TextField(blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "AI Rewrite Session"
+        verbose_name_plural = "AI Rewrite Sessions"
+    
+    def __str__(self):
+        return f"Rewrite for {self.resume.title} using {self.get_llm_provider_display()}"
+    
+    def mark_as_processing(self):
+        """Mark session as processing"""
+        self.status = 'processing'
+        self.save(update_fields=['status'])
+    
+    def mark_as_completed(self, rewritten_text, tokens, processing_time):
+        """Mark session as completed with results"""
+        self.status = 'completed'
+        self.rewritten_content = rewritten_text
+        self.tokens_used = tokens
+        self.processing_time_seconds = processing_time
+        self.completed_at = timezone.now()
+        self.save()
+    
+    def mark_as_failed(self, error_msg):
+        """Mark session as failed with error message"""
+        self.status = 'failed'
+        self.error_message = error_msg
+        self.save()

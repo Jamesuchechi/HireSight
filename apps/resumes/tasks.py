@@ -212,3 +212,84 @@ def daily_resume_maintenance():
     return {
         'stuck_resumes_reset': stuck_count,
     }
+
+
+@shared_task(bind=True, max_retries=3)
+def process_ai_rewrite_with_template(self, session_id):
+    """
+    Process AI rewrite with template awareness
+    
+    Args:
+        session_id: ID of the AIRewriteSession object
+        
+    Returns:
+        dict: Processing result
+    """
+    from .models import AIRewriteSession
+    from .ai_template_rewriter import TemplateAwareRewriter
+    
+    try:
+        # Get session
+        session = AIRewriteSession.objects.get(id=session_id)
+        session.mark_as_processing()
+        
+        logger.info(
+            f"Starting AI rewrite for session {session_id} "
+            f"using {session.llm_provider}"
+        )
+        
+        # Initialize rewriter
+        rewriter = TemplateAwareRewriter(llm_provider=session.llm_provider)
+        
+        # Prepare context
+        context = {
+            'job_title': session.job_title,
+            'industry': session.industry,
+            'highlights': session.highlights,
+            'metrics_focus': session.metrics_focus,
+            'job_description': session.job_description,
+            'additional_instructions': session.additional_instructions,
+        }
+        
+        # Rewrite
+        rewritten_text, tokens, processing_time = rewriter.rewrite_with_template(
+            resume_text=session.original_content,
+            template=session.template,
+            context=context
+        )
+        
+        # Update session
+        session.mark_as_completed(rewritten_text, tokens, processing_time)
+        
+        # Increment template usage
+        if session.template:
+            session.template.increment_usage()
+        
+        logger.info(
+            f"AI rewrite completed for session {session_id}: "
+            f"{tokens} tokens, {processing_time:.2f}s"
+        )
+        
+        return {
+            'success': True,
+            'session_id': session_id,
+            'tokens_used': tokens,
+            'processing_time': processing_time,
+        }
+        
+    except AIRewriteSession.DoesNotExist:
+        logger.error(f"AIRewriteSession {session_id} not found")
+        raise
+        
+    except Exception as e:
+        logger.error(f"AI rewrite failed for session {session_id}: {e}")
+        
+        # Mark session as failed
+        try:
+            session = AIRewriteSession.objects.get(id=session_id)
+            session.mark_as_failed(str(e))
+        except:
+            pass
+        
+        # Retry with exponential backoff
+        raise self.retry(exc=e, countdown=60 * (self.request.retries + 1))

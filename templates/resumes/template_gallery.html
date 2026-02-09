@@ -1,0 +1,175 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Resume Templates - HireSight{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-4xl font-bold text-gray-900 mb-2">Resume Templates</h1>
+            <p class="text-lg text-gray-600">Choose a professional template and let AI rewrite your resume to match its
+                style</p>
+        </div>
+
+        <!-- Category Filter -->
+        <div class="mb-8 bg-white rounded-xl shadow-sm p-6">
+            <h3 class="text-sm font-semibold text-gray-700 mb-4">Filter by Category</h3>
+            <div class="flex flex-wrap gap-2">
+                <a href="{% url 'resumes:template_gallery' %}"
+                    class="px-4 py-2 rounded-lg text-sm font-medium transition {% if not selected_category %}bg-primary text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
+                    All Templates
+                </a>
+                {% for value, label in categories %}
+                <a href="?category={{ value }}"
+                    class="px-4 py-2 rounded-lg text-sm font-medium transition {% if selected_category == value %}bg-primary text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
+                    {{ label }}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Templates Grid -->
+        {% if templates %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for template in templates %}
+            <div
+                class="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group">
+                <!-- Template Preview Image -->
+                <div class="relative h-64 bg-gray-100 overflow-hidden">
+                    {% if template.preview_image %}
+                    <img src="{{ template.preview_image.url }}" alt="{{ template.name }}"
+                        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                    {% else %}
+                    <div
+                        class="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5">
+                        <svg class="w-24 h-24 text-primary/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                            </path>
+                        </svg>
+                    </div>
+                    {% endif %}
+
+                    <!-- Category Badge -->
+                    <div class="absolute top-3 right-3">
+                        <span
+                            class="px-3 py-1 bg-white/90 backdrop-blur-sm text-xs font-semibold text-gray-700 rounded-full shadow-sm">
+                            {{ template.get_category_display }}
+                        </span>
+                    </div>
+
+                    {% if template.is_premium %}
+                    <div class="absolute top-3 left-3">
+                        <span class="px-3 py-1 bg-yellow-400 text-xs font-bold text-gray-900 rounded-full shadow-sm">
+                            ✨ Premium
+                        </span>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Template Info -->
+                <div class="p-6">
+                    <h3 class="text-xl font-bold text-gray-900 mb-2">{{ template.name }}</h3>
+                    <p class="text-sm text-gray-600 mb-4 line-clamp-2">{{ template.description }}</p>
+
+                    <!-- Template Metadata -->
+                    <div class="flex items-center gap-4 mb-4 text-xs text-gray-500">
+                        <div class="flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z">
+                                </path>
+                            </svg>
+                            <span>{{ template.get_tone_display }}</span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z">
+                                </path>
+                            </svg>
+                            <span>Used {{ template.usage_count }} times</span>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex gap-2">
+                        <a href="{% url 'resumes:template_preview' template.pk %}"
+                            class="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition text-center">
+                            Preview
+                        </a>
+                        {% with first_resume=request.user.resume_set.first %}
+                        {% if first_resume %}
+                        <a href="{% url 'resumes:ai_rewrite_with_template' pk=first_resume.pk %}?template={{ template.pk }}"
+                            class="flex-1 px-4 py-2 bg-primary hover:bg-primary-dark text-white text-sm font-medium rounded-lg transition text-center">
+                            Use Template
+                        </a>
+                        {% else %}
+                        <a href="{% url 'resumes:upload' %}"
+                            class="flex-1 px-4 py-2 bg-primary hover:bg-primary-dark text-white text-sm font-medium rounded-lg transition text-center"
+                            onclick="return confirm('You need to upload a resume first. Go to upload page?')">
+                            Use Template
+                        </a>
+                        {% endif %}
+                        {% endwith %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <!-- Empty State -->
+        <div class="bg-white rounded-xl shadow-sm p-12 text-center">
+            <svg class="w-24 h-24 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                </path>
+            </svg>
+            <h3 class="text-xl font-semibold text-gray-900 mb-2">No Templates Available</h3>
+            <p class="text-gray-600">Templates are being added. Check back soon!</p>
+        </div>
+        {% endif %}
+
+        <!-- Info Section -->
+        <div class="mt-12 bg-gradient-to-r from-primary/10 to-primary/5 rounded-xl p-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">How It Works</h2>
+            <div class="grid md:grid-cols-3 gap-6">
+                <div class="flex gap-4">
+                    <div
+                        class="flex-shrink-0 w-10 h-10 bg-primary text-white rounded-full flex items-center justify-center font-bold">
+                        1</div>
+                    <div>
+                        <h3 class="font-semibold text-gray-900 mb-1">Choose a Template</h3>
+                        <p class="text-sm text-gray-600">Select a professional template that matches your industry and
+                            style</p>
+                    </div>
+                </div>
+                <div class="flex gap-4">
+                    <div
+                        class="flex-shrink-0 w-10 h-10 bg-primary text-white rounded-full flex items-center justify-center font-bold">
+                        2</div>
+                    <div>
+                        <h3 class="font-semibold text-gray-900 mb-1">AI Rewrite</h3>
+                        <p class="text-sm text-gray-600">Our AI rewrites your resume to match the template's tone and
+                            style</p>
+                    </div>
+                </div>
+                <div class="flex gap-4">
+                    <div
+                        class="flex-shrink-0 w-10 h-10 bg-primary text-white rounded-full flex items-center justify-center font-bold">
+                        3</div>
+                    <div>
+                        <h3 class="font-semibold text-gray-900 mb-1">Export & Apply</h3>
+                        <p class="text-sm text-gray-600">Download as PDF/DOCX or apply the rewrite to create a new
+                            version</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

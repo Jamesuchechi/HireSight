@@ -339,3 +339,89 @@ class BulkResumeDeleteForm(forms.Form):
                 raise ValidationError('Some resumes do not belong to you.')
         
         return ids
+
+
+class AIRewriteWithTemplateForm(forms.Form):
+    """Form for AI rewrite with template and LLM selection"""
+    
+    template_id = forms.IntegerField(
+        required=False,
+        widget=forms.HiddenInput()
+    )
+    
+    llm_provider = forms.ChoiceField(
+        choices=[
+            ('mistral', 'Mistral AI'),
+            ('groq', 'Groq (Llama 3.3)'),
+        ],
+        initial='mistral',
+        widget=forms.RadioSelect(attrs={
+            'class': 'llm-provider-radio'
+        })
+    )
+    
+    job_title = forms.CharField(
+        required=False,
+        max_length=200,
+        widget=forms.TextInput(attrs={
+            'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition',
+            'placeholder': 'e.g., Senior Software Engineer'
+        })
+    )
+    
+    industry = forms.ChoiceField(
+        required=False,
+        choices=REWRITE_INDUSTRY_CHOICES,
+        widget=forms.Select(attrs={
+            'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition'
+        })
+    )
+    
+    highlights = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={
+            'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition',
+            'rows': 3,
+            'placeholder': 'Key skills, achievements, or projects to highlight'
+        })
+    )
+    
+    metrics_focus = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={
+            'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition',
+            'rows': 3,
+            'placeholder': 'Metrics to emphasize (e.g., "Increased revenue by 40%")'
+        })
+    )
+    
+    job_description = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={
+            'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition',
+            'rows': 5,
+            'placeholder': 'Paste job description or provide additional context'
+        })
+    )
+    
+    additional_instructions = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={
+            'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition',
+            'rows': 2,
+            'placeholder': 'Any specific instructions for the AI'
+        })
+    )
+    
+    def clean_template_id(self):
+        """Validate template exists if provided"""
+        template_id = self.cleaned_data.get('template_id')
+        
+        if template_id:
+            from .models import ResumeTemplate
+            try:
+                ResumeTemplate.objects.get(pk=template_id, is_active=True)
+            except ResumeTemplate.DoesNotExist:
+                raise ValidationError('Selected template is not available.')
+        
+        return template_id

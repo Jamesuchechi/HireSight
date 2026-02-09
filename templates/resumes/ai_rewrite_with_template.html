@@ -1,0 +1,171 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}AI Rewrite with Template - {{ resume.title }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+
+        <!-- Header -->
+        <div class="mb-8">
+            <a href="{% url 'resumes:detail' resume.pk %}"
+                class="inline-flex items-center gap-2 text-primary hover:text-primary-dark transition mb-4">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                </svg>
+                Back to Resume
+            </a>
+            <h1 class="text-4xl font-bold text-gray-900 mb-2">AI-Powered Resume Rewrite</h1>
+            <p class="text-lg text-gray-600">Rewriting: <strong>{{ resume.title }}</strong></p>
+        </div>
+
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+
+            <!-- Template Selection -->
+            <div class="bg-white rounded-xl shadow-md p-6">
+                <h2 class="text-xl font-bold text-gray-900 mb-4">1. Choose Template (Optional)</h2>
+                <p class="text-sm text-gray-600 mb-4">Select a template to match its style, or leave blank for general
+                    improvement</p>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- Blank Option -->
+                    <label class="relative cursor-pointer">
+                        <input type="radio" name="template_id" value="" class="peer sr-only" {% if not selected_template %}checked{% endif %}>
+                        <div class="p-4 border-2 border-gray-200 rounded-lg peer-checked:border-primary peer-checked:bg-primary/5 transition">
+                            <div class="h-32 bg-gray-100 rounded mb-3 flex items-center justify-center">
+                                <span class="text-gray-400 font-medium">No Template</span>
+                            </div>
+                            <p class="font-semibold text-gray-900">Blank</p>
+                            <p class="text-xs text-gray-500">General improvement</p>
+                        </div>
+                    </label>
+
+                    <!-- Template Options -->
+                    {% for template in templates %}
+                    <label class="relative cursor-pointer">
+                        <input type="radio" name="template_id" value="{{ template.pk }}" class="peer sr-only" {% if selected_template.pk == template.pk %}checked{% endif %}>
+                        <div class="p-4 border-2 border-gray-200 rounded-lg peer-checked:border-primary peer-checked:bg-primary/5 transition">
+                            {% if template.thumbnail_image %}
+                            <img src="{{ template.thumbnail_image.url }}" alt="{{ template.name }}"
+                                class="w-full h-32 object-cover rounded mb-3">
+                            {% else %}
+                            <div class="h-32 bg-gradient-to-br from-primary/10 to-primary/5 rounded mb-3"></div>
+                            {% endif %}
+                            <p class="font-semibold text-gray-900">{{ template.name }}</p>
+                            <p class="text-xs text-gray-500">{{ template.get_category_display }}</p>
+                        </div>
+                    </label>
+                    {% endfor %}
+                </div>
+
+                <div class="mt-4">
+                    <a href="{% url 'resumes:template_gallery' %}" class="text-sm text-primary hover:text-primary-dark">
+                        Browse all templates →
+                    </a>
+                </div>
+            </div>
+
+            <!-- LLM Selection -->
+            <div class="bg-white rounded-xl shadow-md p-6">
+                <h2 class="text-xl font-bold text-gray-900 mb-4">2. Choose AI Model</h2>
+                <div class="grid md:grid-cols-2 gap-4">
+                    <label class="relative cursor-pointer">
+                        <input type="radio" name="llm_provider" value="mistral" class="peer sr-only" checked>
+                        <div
+                            class="p-6 border-2 border-gray-200 rounded-lg peer-checked:border-primary peer-checked:bg-primary/5 transition">
+                            <div class="flex items-center gap-3 mb-2">
+                                <div
+                                    class="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center text-white font-bold">
+                                    M</div>
+                                <div>
+                                    <p class="font-bold text-gray-900">Mistral AI</p>
+                                    <p class="text-xs text-gray-500">Fast & efficient</p>
+                                </div>
+                            </div>
+                            <p class="text-sm text-gray-600">Optimized for professional content with excellent quality
+                            </p>
+                        </div>
+                    </label>
+
+                    <label class="relative cursor-pointer">
+                        <input type="radio" name="llm_provider" value="groq" class="peer sr-only">
+                        <div
+                            class="p-6 border-2 border-gray-200 rounded-lg peer-checked:border-primary peer-checked:bg-primary/5 transition">
+                            <div class="flex items-center gap-3 mb-2">
+                                <div
+                                    class="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center text-white font-bold">
+                                    G</div>
+                                <div>
+                                    <p class="font-bold text-gray-900">Groq (Llama 3.3)</p>
+                                    <p class="text-xs text-gray-500">Ultra-fast inference</p>
+                                </div>
+                            </div>
+                            <p class="text-sm text-gray-600">Powered by Llama 3.3 70B for creative, detailed rewrites
+                            </p>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Context & Instructions -->
+            <div class="bg-white rounded-xl shadow-md p-6">
+                <h2 class="text-xl font-bold text-gray-900 mb-4">3. Provide Context (Optional)</h2>
+
+                <div class="space-y-4">
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Target Job Title</label>
+                            {{ form.job_title }}
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Industry</label>
+                            {{ form.industry }}
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Key Highlights</label>
+                        {{ form.highlights }}
+                        <p class="text-xs text-gray-500 mt-1">Skills, achievements, or projects to emphasize</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Metrics to Highlight</label>
+                        {{ form.metrics_focus }}
+                        <p class="text-xs text-gray-500 mt-1">Quantifiable achievements (e.g., "Increased revenue by
+                            40%")</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Job Description or Additional
+                            Context</label>
+                        {{ form.job_description }}
+                        <p class="text-xs text-gray-500 mt-1">Paste a job description to tailor your resume</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Additional Instructions</label>
+                        {{ form.additional_instructions }}
+                        <p class="text-xs text-gray-500 mt-1">Any specific guidance for the AI</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit -->
+            <div class="flex items-center justify-between bg-white rounded-xl shadow-md p-6">
+                <div class="text-sm text-gray-600">
+                    <p class="font-medium mb-1">Ready to rewrite?</p>
+                    <p>This will take 10-30 seconds depending on the AI model</p>
+                </div>
+                <button type="submit"
+                    class="px-8 py-3 bg-primary hover:bg-primary-dark text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition transform hover:scale-105">
+                    Generate AI Rewrite
+                </button>
+            </div>
+        </form>
+
+    </div>
+</div>
+{% endblock %}

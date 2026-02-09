@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from . import template_views
 
 app_name = 'resumes'
 
@@ -48,4 +49,16 @@ urlpatterns = [
     path('compare/run/', views.compare_resumes, name='compare_run'),
     path('<int:pk>/benchmark/data/', views.benchmark_resume, name='benchmark_data'),
     path('<int:pk>/optimize/advanced/', views.advanced_optimize_resume, name='advanced_optimize'),
+    
+    # Template System
+    path('templates/', template_views.TemplateGalleryView.as_view(), name='template_gallery'),
+    path('templates/<int:pk>/', template_views.TemplatePreviewView.as_view(), name='template_preview'),
+    
+    # AI Rewrite with Template
+    path('<int:pk>/ai-rewrite/', template_views.AIRewriteWithTemplateView.as_view(), name='ai_rewrite_with_template'),
+    path('<int:pk>/ai-rewrite/<int:session_id>/status/', template_views.AIRewriteStatusView.as_view(), name='ai_rewrite_status'),
+    path('api/ai-rewrite/<int:session_id>/status/', template_views.ai_rewrite_status_api, name='ai_rewrite_status_api'),
+    
+    # Export
+    path('<int:pk>/export/<str:format>/', template_views.ExportResumeView.as_view(), name='export'),
 ]

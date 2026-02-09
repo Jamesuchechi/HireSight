@@ -1,0 +1,215 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}AI Rewrite Status - {{ resume.title }}{% endblock %}
+
+{% block extra_head %}
+<script>
+    // Auto-refresh status every 3 seconds
+    let statusCheckInterval;
+    let completedOrFailed = false;
+
+    function checkStatus() {
+        if (completedOrFailed) {
+            clearInterval(statusCheckInterval);
+            return;
+        }
+
+        fetch('{% url "resumes:ai_rewrite_status_api" session.id %}')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updateStatus(data);
+
+                    if (data.status === 'completed' || data.status === 'failed') {
+                        completedOrFailed = true;
+                        clearInterval(statusCheckInterval);
+                    }
+                }
+            })
+            .catch(error => console.error('Error checking status:', error));
+    }
+
+    function updateStatus(data) {
+        const statusEl = document.getElementById('status-indicator');
+        const messageEl = document.getElementById('status-message');
+        const resultEl = document.getElementById('result-section');
+        const errorEl = document.getElementById('error-section');
+
+        if (data.status === 'completed') {
+            statusEl.innerHTML = `
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                    <svg class="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                    </svg>
+                </div>
+                <div>
+                    <p class="text-xl font-bold text-green-600">Rewrite Complete!</p>
+                    <p class="text-sm text-gray-600">Processed in ${data.processing_time?.toFixed(2)}s using ${data.tokens_used} tokens</p>
+                </div>
+            </div>
+        `;
+
+            if (data.rewritten_content) {
+                resultEl.classList.remove('hidden');
+                document.getElementById('rewritten-text').textContent = data.rewritten_content;
+            }
+
+            // Show action buttons
+            document.getElementById('action-buttons').classList.remove('hidden');
+
+        } else if (data.status === 'failed') {
+            statusEl.innerHTML = `
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                    <svg class="w-6 h-6 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                    </svg>
+                </div>
+                <div>
+                    <p class="text-xl font-bold text-red-600">Rewrite Failed</p>
+                    <p class="text-sm text-gray-600">An error occurred during processing</p>
+                </div>
+            </div>
+        `;
+
+            if (data.error_message) {
+                errorEl.classList.remove('hidden');
+                document.getElementById('error-message').textContent = data.error_message;
+            }
+
+        } else if (data.status === 'processing') {
+            messageEl.textContent = 'AI is analyzing and rewriting your resume...';
+        }
+    }
+
+    // Start checking status when page loads
+    document.addEventListener('DOMContentLoaded', function () {
+        statusCheckInterval = setInterval(checkStatus, 3000);
+        checkStatus(); // Check immediately
+    });
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-4xl font-bold text-gray-900 mb-2">AI Rewrite in Progress</h1>
+            <p class="text-lg text-gray-600">Resume: <strong>{{ resume.title }}</strong></p>
+        </div>
+
+        <!-- Status Card -->
+        <div class="bg-white rounded-xl shadow-lg p-8 mb-6">
+            <div id="status-indicator" class="mb-6">
+                {% if session.status == 'completed' %}
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                        <svg class="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd"
+                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                clip-rule="evenodd"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-xl font-bold text-green-600">Rewrite Complete!</p>
+                        <p class="text-sm text-gray-600">Processed in {{ session.processing_time_seconds|floatformat:2
+                            }}s using {{ session.tokens_used }} tokens</p>
+                    </div>
+                </div>
+                {% elif session.status == 'failed' %}
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                        <svg class="w-6 h-6 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd"
+                                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                clip-rule="evenodd"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-xl font-bold text-red-600">Rewrite Failed</p>
+                        <p class="text-sm text-gray-600">An error occurred during processing</p>
+                    </div>
+                </div>
+                {% else %}
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
+                        <svg class="w-6 h-6 text-primary animate-spin" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                            </path>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-xl font-bold text-gray-900">Processing...</p>
+                        <p id="status-message" class="text-sm text-gray-600">
+                            {% if session.status == 'processing' %}
+                            AI is analyzing and rewriting your resume...
+                            {% else %}
+                            Queued for processing...
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Session Info -->
+            <div class="grid md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
+                <div>
+                    <p class="text-xs text-gray-500 mb-1">AI Model</p>
+                    <p class="font-semibold text-gray-900">{{ session.get_llm_provider_display }}</p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-500 mb-1">Template</p>
+                    <p class="font-semibold text-gray-900">{{ session.template.name|default:"Blank" }}</p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-500 mb-1">Started</p>
+                    <p class="font-semibold text-gray-900">{{ session.created_at|date:"M d, Y g:i A" }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Error Section -->
+        <div id="error-section"
+            class="bg-red-50 border border-red-200 rounded-xl p-6 mb-6 {% if session.status != 'failed' %}hidden{% endif %}">
+            <h3 class="text-lg font-semibold text-red-900 mb-2">Error Details</h3>
+            <p id="error-message" class="text-red-700">{{ session.error_message }}</p>
+            <div class="mt-4">
+                <a href="{% url 'resumes:ai_rewrite_with_template' resume.pk %}"
+                    class="inline-block px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition">
+                    Try Again
+                </a>
+            </div>
+        </div>
+
+        <!-- Result Section -->
+        <div id="result-section"
+            class="bg-white rounded-xl shadow-lg p-8 mb-6 {% if session.status != 'completed' %}hidden{% endif %}">
+            <h3 class="text-xl font-bold text-gray-900 mb-4">Rewritten Resume</h3>
+            <div class="prose max-w-none">
+                <pre id="rewritten-text"
+                    class="whitespace-pre-wrap bg-gray-50 p-6 rounded-lg text-sm">{{ session.rewritten_content }}</pre>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div id="action-buttons" class="flex gap-4 {% if session.status != 'completed' %}hidden{% endif %}">
+            <a href="{% url 'resumes:detail' resume.pk %}"
+                class="flex-1 px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg text-center transition">
+                Back to Resume
+            </a>
+            <a href="{% url 'resumes:export' resume.pk 'pdf' %}"
+                class="flex-1 px-6 py-3 bg-primary hover:bg-primary-dark text-white font-semibold rounded-lg text-center transition">
+                Export as PDF
+            </a>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
