@@ -258,7 +258,7 @@ export default function DashboardLayout({
                 </header>
 
                 {/* Page Content */}
-                <main className="flex-grow overflow-y-auto p-8 scrollbar-hide">
+                <main className="relative flex-grow overflow-y-auto p-8 scrollbar-hide">
                     {children}
                 </main>
             </div>

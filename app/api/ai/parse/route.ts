@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ResumeParser } from "@/lib/ai/resume-parser";
-// @ts-ignore
-import pdf from "pdf-parse/lib/pdf-parse.js";
+import { PDFParse } from "pdf-parse";
+import { getData } from "pdf-parse/worker";
 
+// Force initialize the worker for Next.js/Turbopack environments
+PDFParse.setWorker(getData());
 export async function POST(req: NextRequest) {
     try {
         const formData = await req.formData();
@@ -16,8 +18,9 @@ export async function POST(req: NextRequest) {
 
         if (file.type === "application/pdf") {
             const buffer = Buffer.from(await file.arrayBuffer());
-            const data = await pdf(buffer);
-            resumeText = data.text;
+            const parser = new PDFParse({ data: buffer });
+            const result = await parser.getText();
+            resumeText = result.text;
         } else {
             // Assume plain text for other types like .txt
             resumeText = await file.text();

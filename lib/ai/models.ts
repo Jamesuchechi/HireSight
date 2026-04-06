@@ -16,16 +16,10 @@ export const modelRegistry: AIModel[] = [
         description: "Primary choice for complex reasoning & speed." 
     },
     { 
-        id: "mixtral-8x7b-32768", 
+        id: "llama-3.1-70b-versatile", 
         provider: "groq", 
-        name: "Mixtral 8x7B", 
-        description: "Stable fallback for large context windows." 
-    },
-    { 
-        id: "gemma2-9b-it", 
-        provider: "groq", 
-        name: "Gemma 2 9B", 
-        description: "Highly efficient for shorter extractions." 
+        name: "Llama 3.1 70B", 
+        description: "High-capacity fallback for complex reasoning." 
     },
     { 
         id: "llama-3.1-8b-instant", 

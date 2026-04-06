@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const { title, file_url, status, parsed_content, is_primary } = await req.json();
+        const { title, file_url, status, parsed_content, is_primary, parent_id, version_label, template_settings } = await req.json();
 
         // If setting as primary, unset others first
         if (is_primary) {
@@ -51,7 +51,10 @@ export async function POST(req: NextRequest) {
                 file_url,
                 status: status || 'uploaded',
                 parsed_content,
-                is_primary: is_primary || false
+                is_primary: is_primary || false,
+                parent_id,
+                version_label,
+                template_settings: template_settings || { theme: "modern" }
             })
             .select()
             .single();

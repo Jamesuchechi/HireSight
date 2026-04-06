@@ -25,6 +25,8 @@ interface Resume {
     is_primary: boolean;
     created_at: string;
     parsed_content: any;
+    parent_id?: string;
+    version_label?: string;
 }
 
 export default function ResumesPage() {
@@ -169,18 +171,25 @@ export default function ResumesPage() {
                         >
                             {/* Status Indicator */}
                             <div className="flex items-center justify-between mb-8">
-                                <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center space-x-2 ${
-                                    resume.status === 'parsed' ? "bg-emerald-50 text-emerald-600" :
-                                    resume.status === 'parsing' ? "bg-blue-50 text-blue-600" :
-                                    "bg-gray-50 text-gray-500"
-                                }`}>
-                                    {resume.status === 'parsed' ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
-                                    <span>{resume.status}</span>
+                                <div className="flex flex-col space-y-2">
+                                    <div className={`w-fit px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center space-x-2 ${
+                                        resume.status === 'parsed' ? "bg-emerald-50 text-emerald-600" :
+                                        resume.status === 'parsing' ? "bg-blue-50 text-blue-600" :
+                                        "bg-gray-50 text-gray-500"
+                                    }`}>
+                                        {resume.status === 'parsed' ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
+                                        <span>{resume.status}</span>
+                                    </div>
+                                    {resume.parent_id && (
+                                        <div className="px-3 py-1 bg-primary/10 text-primary border border-primary/20 rounded-lg text-[9px] font-black uppercase tracking-widest w-fit">
+                                            Role-Specific Synthesis
+                                        </div>
+                                    )}
                                 </div>
                                 {resume.is_primary && (
                                     <div className="flex items-center space-x-2 text-primary">
                                         <Star className="w-4 h-4 fill-primary" />
-                                        <span className="text-[10px] font-black uppercase tracking-widest">Active</span>
+                                        <span className="text-[10px] font-black uppercase tracking-widest">Master DNA</span>
                                     </div>
                                 )}
                             </div>
@@ -190,11 +199,11 @@ export default function ResumesPage() {
                                 <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-500">
                                     <FileText className="w-8 h-8 text-zinc-900" />
                                 </div>
-                                <h3 className="text-xl font-black font-display text-zinc-900 italic uppercase truncate">
-                                    {resume.title}
+                                <h3 className="text-xl font-black font-display text-zinc-900 italic uppercase truncate px-2">
+                                    {resume.version_label || resume.title}
                                 </h3>
                                 <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-2 leading-none">
-                                    SYNTHESIZED {new Date(resume.created_at).toLocaleDateString()}
+                                    {resume.parent_id ? "GENETIC EVOLUTION" : "INITIAL SYNTHESIS"} • {new Date(resume.created_at).toLocaleDateString()}
                                 </p>
                             </div>
 
@@ -208,17 +217,13 @@ export default function ResumesPage() {
                             </div>
 
                             {/* Actions */}
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-2 gap-3 mb-3">
                                 <button 
-                                    onClick={() => handleSetPrimary(resume.id)}
-                                    disabled={resume.is_primary}
-                                    className={`py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                                        resume.is_primary 
-                                        ? "bg-emerald-50 text-emerald-600 cursor-default" 
-                                        : "bg-gray-50 text-gray-400 hover:bg-primary/10 hover:text-primary"
-                                    }`}
+                                    onClick={() => window.location.href = `/dashboard/resumes/${resume.id}`}
+                                    className="py-3 bg-zinc-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-zinc-800 transition-all flex items-center justify-center space-x-2"
                                 >
-                                    {resume.is_primary ? "ACTIVE" : "SET ACTIVE"}
+                                    <Eye className="w-3 h-3" />
+                                    <span>VIEW DNA</span>
                                 </button>
                                 <button 
                                     onClick={() => handleDelete(resume.id)}
@@ -227,6 +232,18 @@ export default function ResumesPage() {
                                     PURGE
                                 </button>
                             </div>
+
+                            <button 
+                                onClick={() => handleSetPrimary(resume.id)}
+                                disabled={resume.is_primary}
+                                className={`w-full py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                    resume.is_primary 
+                                    ? "bg-emerald-50 text-emerald-600 cursor-default" 
+                                    : "bg-gray-50 text-gray-400 hover:bg-primary/10 hover:text-primary"
+                                }`}
+                            >
+                                {resume.is_primary ? "ACTIVE BASE DNA" : "SET AS BASE DNA"}
+                            </button>
 
                             {/* Background Decoration */}
                             <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
