@@ -32,6 +32,7 @@ const candidateNav: NavItem[] = [
     { label: "Overview", href: "/dashboard", icon: <LayoutDashboard className="w-5 h-5" /> },
     { label: "Job Search", href: "/dashboard/jobs", icon: <Search className="w-5 h-5" /> },
     { label: "Applications", href: "/dashboard/applications", icon: <FileText className="w-5 h-5" /> },
+    { label: "My Resumes", href: "/dashboard/resumes", icon: <FileText className="w-5 h-5" /> },
     { label: "My Profile", href: "/dashboard/profile", icon: <Users className="w-5 h-5" /> },
     { label: "Settings", href: "/dashboard/settings", icon: <Settings className="w-5 h-5" /> },
 ];
@@ -40,6 +41,7 @@ const recruiterNav: NavItem[] = [
     { label: "Overview", href: "/dashboard", icon: <LayoutDashboard className="w-5 h-5" /> },
     { label: "Active Jobs", href: "/dashboard/jobs/manage", icon: <Briefcase className="w-5 h-5" /> },
     { label: "Candidates", href: "/dashboard/candidates", icon: <Users className="w-5 h-5" /> },
+    { label: "My Profile", href: "/dashboard/profile", icon: <Users className="w-5 h-5" /> },
     { label: "AI Screening", href: "/dashboard/screening", icon: <Zap className="w-5 h-5" /> },
     { label: "Settings", href: "/dashboard/settings", icon: <Settings className="w-5 h-5" /> },
 ];
@@ -55,8 +57,22 @@ export default function DashboardLayout({
     
     const [role, setRole] = useState<"candidate" | "recruiter" | null>(null);
     const [profile, setProfile] = useState<any>(null);
-    const [sidebarOpen, setSidebarOpen] = useState(true);
+    const [sidebarOpen, setSidebarOpen] = useState(false);
     const [loading, setLoading] = useState(true);
+
+    // Initial check for desktop screens
+    useEffect(() => {
+        if (typeof window !== "undefined" && window.innerWidth >= 1024) {
+            setSidebarOpen(true);
+        }
+    }, []);
+
+    // Close sidebar on navigation on mobile
+    useEffect(() => {
+        if (window.innerWidth < 1024) {
+             setSidebarOpen(false);
+        }
+    }, [pathname]);
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -102,10 +118,23 @@ export default function DashboardLayout({
     const navItems = role === "recruiter" ? recruiterNav : candidateNav;
 
     return (
-        <div className="min-h-screen bg-gray-50 flex overflow-hidden selection:bg-primary/20 selection:text-primary">
+        <div className="min-h-screen bg-gray-50 flex overflow-hidden selection:bg-primary/20 selection:text-primary relative">
+            {/* Mobile Backdrop */}
+            <AnimatePresence>
+                {sidebarOpen && (
+                    <motion.div 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={() => setSidebarOpen(false)}
+                        className="fixed inset-0 bg-zinc-900/60 backdrop-blur-sm z-30 lg:hidden"
+                    />
+                )}
+            </AnimatePresence>
+
             {/* Sidebar */}
             <aside 
-                className={`fixed lg:relative z-30 h-screen bg-zinc-900 text-white transition-all duration-300 ease-in-out flex flex-col ${
+                className={`fixed lg:relative z-40 h-screen bg-zinc-900 text-white transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) flex flex-col ${
                     sidebarOpen ? "w-72" : "w-20"
                 } ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
             >

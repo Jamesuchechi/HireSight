@@ -72,7 +72,7 @@ function RegisterForm() {
                         <span className="text-secondary italic underline decoration-white/20">intelligent hiring.</span>
                     </motion.h2>
                     <p className="text-lg text-gray-400 mb-8 leading-relaxed">
-                        Whether you are a world-class talent or a high-velocity recruiter, HireSight v2 is your unfair advantage.
+                        Whether you are a world-class talent or a high-velocity recruiter, HireSight is your unfair advantage.
                     </p>
                     
                     <div className="space-y-6">

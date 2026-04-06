@@ -62,18 +62,14 @@ const Hero = () => {
                     <h1 className="text-6xl md:text-[110px] font-black font-display text-zinc-900 leading-[0.95] tracking-tighter mb-10">
                         The Future of <br />
                         <div className="relative h-[1.1em] overflow-hidden">
-                            <AnimatePresence mode="wait">
-                                <motion.span
+                            <AnimatePresence mode="wait"><motion.span
                                     key={words[index]}
                                     initial={{ y: 50, opacity: 0 }}
                                     animate={{ y: 0, opacity: 1 }}
                                     exit={{ y: -50, opacity: 0 }}
                                     transition={{ duration: 0.5, ease: "circOut" }}
                                     className="absolute inset-0 bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent italic px-2"
-                                >
-                                    {words[index]}
-                                </motion.span>
-                            </AnimatePresence>
+                                >{words[index]}</motion.span></AnimatePresence>
                         </div>
                         <span className="text-zinc-900">Hiring</span>
                     </h1>

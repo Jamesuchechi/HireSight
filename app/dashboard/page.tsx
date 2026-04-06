@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Briefcase, FileText, Send, Zap, Clock, Star, TrendingUp, Search, ArrowUpRight, MapPin } from "lucide-react";
+import { Briefcase, FileText, Send, Zap, Clock, Star, TrendingUp, Search, ArrowUpRight, MapPin, BrainCircuit } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import ResumeUpload from "@/components/ResumeUpload";
 
 const SidebarItem = ({ icon, title, value, color }: { icon: React.ReactNode, title: string, value: string | number, color: string }) => (
     <div className="p-6 bg-white border border-gray-100 rounded-[32px] shadow-sm hover:shadow-xl transition-all group overflow-hidden relative">
@@ -93,6 +94,35 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Main Content Area */}
                 <div className="lg:col-span-2 space-y-8">
+                    {!isRecruiter && (
+                        <div className="bg-white border border-gray-100 rounded-[40px] p-8 shadow-sm">
+                            <div className="flex items-center space-x-4 mb-6">
+                                <div className="p-4 bg-primary text-white rounded-[20px]">
+                                    <BrainCircuit className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-black font-display text-zinc-900 italic uppercase">AI Resume Synthesis</h3>
+                                    <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Direct protocol analysis via Mistral & Groq</p>
+                                </div>
+                            </div>
+                            
+                            <ResumeUpload onSuccess={(data) => {
+                                console.log("Synthesized Profile:", data);
+                            }} />
+
+                            <div className="pt-6 border-t border-gray-50 flex items-center justify-between">
+                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Supports PDF, DOCX, TXT</p>
+                                <div className="flex -space-x-2">
+                                     {[1, 2, 3].map(i => (
+                                         <div key={i} className="w-6 h-6 rounded-full border-2 border-white bg-gray-100 flex items-center justify-center text-[10px] font-black text-gray-400 uppercase">
+                                             AI
+                                         </div>
+                                     ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Activity Feed / List */}
                     <div className="bg-white border border-gray-100 rounded-[40px] shadow-sm p-8">
                         <div className="flex items-center justify-between mb-8">

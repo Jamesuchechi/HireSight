@@ -5,6 +5,8 @@ CREATE TABLE public.profiles (
   full_name TEXT,
   role TEXT CHECK (role IN ('candidate', 'recruiter')) DEFAULT 'candidate',
   avatar_url TEXT,
+  cover_url TEXT,
+  bio TEXT,
   onboarding_completed BOOLEAN DEFAULT false
 );
 
@@ -40,3 +42,70 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- 6. Supabase Storage Setup (Manual Action: Create bucket 'profile-assets' first)
+-- Enable Storage Policies
+CREATE POLICY "Public Access" ON storage.objects
+  FOR SELECT USING (bucket_id = 'profile-assets');
+
+CREATE POLICY "Authenticated Upload" ON storage.objects
+  FOR INSERT WITH CHECK (
+    bucket_id = 'profile-assets' AND 
+    auth.uid() = (storage.foldername(name))[1]::uuid
+  );
+
+CREATE POLICY "Authenticated Update" ON storage.objects
+  FOR UPDATE USING (
+    bucket_id = 'profile-assets' AND 
+    auth.uid() = (storage.foldername(name))[1]::uuid
+  );
+
+CREATE POLICY "Authenticated Delete" ON storage.objects
+  FOR DELETE USING (
+    bucket_id = 'profile-assets' AND 
+    auth.uid() = (storage.foldername(name))[1]::uuid
+  );
+
+-- 7. Resumes Management System
+CREATE TABLE public.resumes (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
+  title TEXT NOT NULL,
+  file_url TEXT NOT NULL,
+  status TEXT CHECK (status IN ('uploaded', 'parsing', 'parsed', 'failed')) DEFAULT 'uploaded',
+  is_primary BOOLEAN DEFAULT false,
+  parsed_content JSONB,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Enable RLS for Resumes
+ALTER TABLE public.resumes ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view their own resumes." ON public.resumes
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own resumes." ON public.resumes
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own resumes." ON public.resumes
+  FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own resumes." ON public.resumes
+  FOR DELETE USING (auth.uid() = user_id);
+
+-- 8. Resumes Storage Setup (Manual Action: Create bucket 'resumes' first)
+CREATE POLICY "Resumes Read Access" ON storage.objects
+  FOR SELECT USING (bucket_id = 'resumes' AND auth.uid() = (storage.foldername(name))[1]::uuid);
+
+CREATE POLICY "Resumes Upload Access" ON storage.objects
+  FOR INSERT WITH CHECK (
+    bucket_id = 'resumes' AND 
+    auth.uid() = (storage.foldername(name))[1]::uuid
+  );
+
+CREATE POLICY "Resumes Delete Access" ON storage.objects
+  FOR DELETE USING (
+    bucket_id = 'resumes' AND 
+    auth.uid() = (storage.foldername(name))[1]::uuid
+  );
