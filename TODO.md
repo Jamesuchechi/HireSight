@@ -1,103 +1,42 @@
-# HireSight Development TODO - Reorganized
+# HireSight 2.0 Development Roadmap (Next.js + Supabase)
 
-**Version**: 2.1  
-**Last Updated**: January 13, 2026  
-**Status**: In Progress
-
----
-
+**Version**: 3.0 (Migration)  
+**Last Updated**: April 6, 2026  
+**Status**: Initial Scaffolding
 
 ---
 
-## 📱 App-Based Organization
+## 🏗️ Phase 1: Foundation & Infrastructure
+- [ ] Initialize Next.js 15 Project (App Router, TS, Tailwind)
+- [ ] Setup Supabase Project & Auth configuration
+- [ ] Define Database Schema in Supabase (SQL Migrations)
+- [ ] Port Shared Layout & Navigation components
+- [ ] Implement Landing Page (Framer Motion animations)
 
-This TODO is organized by Django app to make implementation clearer and more logical.
+## 🔐 Phase 2: Authentication & Profiles
+- [ ] Implement Sign Up / Sign In with Supabase Auth
+- [ ] Role-based Access Control (RLS Policies)
+- [ ] Personal Profile Builder (Jobs Seeker)
+- [ ] Company Profile Builder (Recruiter)
+- [ ] Profile Settings & Preferences
 
----
+## 🤖 Phase 3: AI Core (Mistral + Groq + OpenRouter)
+- [ ] Implement Resume Parser (Groq + Mistral)
+- [ ] Setup Supabase Storage for Resumes
+- [ ] Semantic Match Engine (Supabase Vector)
+- [ ] Automated Job Matching & Scoring
 
-## 🔐 **accounts** App
-
-### Core Authentication & User Management
-- [x] User registration with email verification
-- [x] Login/logout functionality with session management
-- [x] Password reset via email (forgot password flow)
-- [ ] Two-factor authentication (2FA)
-- [ ] Account lockout after failed login attempts (Django Axes - already configured)
-- [ ] Social authentication (Google, LinkedIn OAuth)
-
-### Personal Profile Management
-- [ ] Profile editing form (name, headline, bio, avatar upload)
-- [ ] Skills management (add/remove/edit with autocomplete)
-- [ ] Experience timeline (CRUD operations)
-- [ ] Education section (CRUD operations)
-- [ ] Certifications & portfolio links
-- [ ] Job preferences (salary range, remote preference, availability status)
-- [ ] Privacy settings (profile visibility controls)
-- [ ] Profile completion progress indicator
-- [ ] Profile analytics (who viewed your profile, profile views count)
-
-### Company Profile Management
-- [ ] Company info editing (name, logo, industry, size)
-- [ ] Company description & mission statement
-- [ ] Benefits listing (JSON field management)
-- [ ] Multiple office locations support (with geocoding)
-- [ ] Team photos gallery
-- [ ] Company verification system (document upload & review)
-- [ ] Verification badge display
-- [ ] Social media links (LinkedIn, Twitter, Facebook)
-
-### Account Settings
-- [x] Email preferences (notification settings)
-- [ ] Change password functionality
-- [x] Change email with verification
-- [ ] Delete account (with data export option)
-- [ ] Session management (view active sessions, logout from all devices)
-- [ ] API key management (for API access)
+## 💼 Phase 4: Job Management & Applications
+- [ ] Job Posting & Lifecycle Management
+- [ ] Job Searching & Filtering (Elastic/Vector)
+- [ ] Application Pipeline (Kanban Board)
+- [ ] In-app Messaging & Realtime Notifications
 
 ---
 
-## 📄 **resumes** App
-
-🚀 **CURRENTLY IMPLEMENTING** - This is our next development priority after completing the accounts authentication system.
-
-### Resume Management
-- [ ] Resume file upload (PDF/DOCX, max 5MB validation)
-- [ ] Multiple resume versions per user
-- [ ] Set primary resume for applications
-- [ ] Resume preview (PDF viewer in browser)
-- [ ] Resume download functionality
-- [ ] Resume metadata tracking (upload date, file size, format)
-- [ ] Resume versioning system (v1, v2, v3)
-
-### AI Resume Parsing
-- [ ] Parse uploaded resumes with spaCy + PyPDF2
-- [ ] Extract structured data (name, email, phone, location)
-- [ ] Extract skills from resume text
-- [ ] Extract work experience timeline
-- [ ] Extract education history
-- [ ] Extract certifications
-- [ ] Store parsed data in JSONB field
-- [ ] Handle parsing errors gracefully
-- [ ] Support multiple file formats (PDF, DOCX, TXT)
-- [ ] Async parsing with Celery task queue
-
-### Resume Optimization (Personal Only)
-- [ ] AI-powered resume analysis
-- [ ] Check for action verbs vs passive language
-- [ ] Check for quantifiable achievements
-- [ ] Calculate ATS-friendliness score
-- [ ] Provide improvement suggestions (checklist format)
-- [ ] Keyword density analysis
-- [ ] Formatting recommendations
-- [ ] Re-analyze after user makes changes
-- [ ] Generate PDF optimization report
-
-### Auto-Fill Profile from Resume
-- [ ] One-click "Import from Resume" button
-- [ ] Map parsed resume data to profile fields
-- [ ] Smart merge (don't overwrite existing data)
-- [ ] Preview changes before applying
-- [ ] Undo import functionality
+## 📱 Legacy Tracker (Django)
+- Legacy files moved to `legacy-django/` for reference.
+- No users to migrate (Fresh Start).
 
 ---
 

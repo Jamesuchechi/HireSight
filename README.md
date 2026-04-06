@@ -8,11 +8,12 @@
 
 ## 🎯 Vision
 
-Transform the hiring process from a tedious, biased, manual task into an intelligent, fair, and efficient experience for both job seekers and employers. HireSight leverages cutting-edge NLP and machine learning to:
+Transform the hiring process using state-of-the-art AI. HireSight 2.0 is built on **Next.js 15** and **Supabase**, providing a real-time, high-performance experience for both job seekers and employers.
 
-- **For Job Seekers**: Find the perfect job match, track applications, and showcase skills effectively
-- **For Companies**: Screen candidates at scale, reduce time-to-hire, and make data-driven hiring decisions
-- **For Everyone**: Eliminate unconscious bias and create a transparent, merit-based hiring ecosystem
+HireSight leverages **Mistral**, **OpenRouter**, and **Groq** to:
+- **For Job Seekers**: Find the perfect job match, track applications, and showcase skills effectively.
+- **For Companies**: Screen candidates at scale with sub-second AI inference, reduce time-to-hire, and make data-driven hiring decisions.
+- **For Everyone**: Eliminate unconscious bias and create a transparent, merit-based hiring ecosystem.
 
 ---
 
@@ -112,22 +113,18 @@ Transform the hiring process from a tedious, biased, manual task into an intelli
 
 | Layer | Technology | Purpose |
 |-------|-----------|---------|
-| **Framework** | Django 5.0 | Full-stack web framework with batteries included |
-| **Frontend** | HTML5 + Tailwind CSS + Alpine.js | Modern, utility-first styling with lightweight JS |
-| **Interactive Updates** | HTMX | Dynamic updates without full page reload |
-| **Database** | PostgreSQL 15+ | Relational data with JSONB for flexibility |
-| **ORM** | Django ORM | Built-in, powerful database abstraction |
-| **Authentication** | Django Auth + Custom User | Email-based auth with role separation |
-| **File Storage** | Django Storage / AWS S3 | Resume and image uploads |
-| **Resume Parsing** | spaCy + PyPDF2 + python-docx | Extract structured data from PDFs/DOCX |
-| **NLP & AI** | spaCy + Sentence Transformers | Semantic matching and skill extraction |
-| **Embeddings** | all-MiniLM-L6-v2 | Fast, accurate sentence embeddings |
-| **Task Queue** | Celery + Redis | Background jobs (email, resume processing) |
-| **Email** | Django Email / SendGrid | Transactional emails and notifications |
-| **Caching** | Redis | Session storage, rate limiting, caching |
-| **Monitoring** | Django Debug Toolbar + Logging | Development debugging and error tracking |
-| **Deployment** | Gunicorn + Nginx | Production WSGI server with reverse proxy |
-| **Testing** | pytest + pytest-django | Comprehensive test coverage |
+| **Framework** | Next.js 15 (App Router) | Modern, fast, and server-side rendered application |
+| **Styling** | Tailwind CSS v4 | Utility-first, high-performance styling |
+| **Animation** | Framer Motion | Fluid, premium user interactions |
+| **Database** | Supabase (PostgreSQL) | Relational data with built-in RLS and Realtime |
+| **Authentication** | Supabase Auth | Secure, modern auth with social & PKCE support |
+| **Vector Search**| Supabase PGVector | Semantic matching for resumes and job descriptions |
+| **Storage** | Supabase Storage | Secure, scalable file storage for resumes |
+| **AI Models** | Mistral, Groq, OpenRouter | State-of-the-art LLMs for parsing and screening |
+| **Inference** | Groq LPU™ | Sub-second AI parsing and matching |
+| **Email** | Resend / SendGrid | High-deliverability transactional emails |
+| **Monitoring** | Sentry | Full-stack error tracking and performance monitoring |
+| **Deployment** | Vercel | Global edge-network deployment |
 
 ---
 

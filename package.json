@@ -1,27 +1,33 @@
 {
-  "name": "hiresight",
-  "version": "1.0.0",
-  "description": "**HireSight** is a comprehensive, dual-sided recruitment platform that connects job seekers with companies through intelligent AI-powered resume screening and matching. Built for both candidates seeking opportunities and recruiters looking for top talent, HireSight streamlines the entire hiring lifecycle from job posting to offer acceptance.",
-  "main": "index.js",
-  "directories": {
-    "doc": "docs",
-    "test": "tests"
-  },
+  "name": "hiresight-2.0",
+  "version": "0.1.0",
+  "private": true,
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Jamesuchechi/HireSight.git"
+  "dependencies": {
+    "@supabase/ssr": "^0.5.1",
+    "@supabase/supabase-js": "^2.45.6",
+    "clsx": "^2.1.1",
+    "framer-motion": "^11.11.9",
+    "lucide-react": "^0.453.0",
+    "next": "^16.2.2",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "tailwind-merge": "^2.5.4"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/Jamesuchechi/HireSight/issues"
-  },
-  "homepage": "https://github.com/Jamesuchechi/HireSight#readme",
   "devDependencies": {
-    "tailwindcss": "^3.4.19"
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "autoprefixer": "^10.4.27",
+    "eslint": "^9",
+    "eslint-config-next": "^16.2.2",
+    "postcss": "^8",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5"
   }
 }
