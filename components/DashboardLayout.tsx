@@ -16,7 +16,11 @@ import {
     TrendingUp,
     Zap,
     MapPin,
-    ArrowUpRight
+    ArrowUpRight,
+    Trophy,
+    BrainCircuit,
+    ShieldCheck,
+    Target
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -31,6 +35,8 @@ interface NavItem {
 const candidateNav: NavItem[] = [
     { label: "Overview", href: "/dashboard", icon: <LayoutDashboard className="w-5 h-5" /> },
     { label: "Job Search", href: "/jobs", icon: <Search className="w-5 h-5" /> },
+    { label: "Skill Explorer", href: "/dashboard/assessments/browse", icon: <BrainCircuit className="w-5 h-5" /> },
+    { label: "Achievements", href: "/dashboard/achievements", icon: <Trophy className="w-5 h-5" /> },
     { label: "Applications", href: "/dashboard/applications", icon: <FileText className="w-5 h-5" /> },
     { label: "My Resumes", href: "/dashboard/resumes", icon: <FileText className="w-5 h-5" /> },
     { label: "My Profile", href: "/dashboard/profile", icon: <Users className="w-5 h-5" /> },
@@ -41,6 +47,7 @@ const recruiterNav: NavItem[] = [
     { label: "Overview", href: "/dashboard", icon: <LayoutDashboard className="w-5 h-5" /> },
     { label: "Active Jobs", href: "/dashboard/jobs", icon: <Briefcase className="w-5 h-5" /> },
     { label: "Applications", href: "/dashboard/applications", icon: <FileText className="w-5 h-5" /> },
+    { label: "Assessment Matrix", href: "/dashboard/assessments", icon: <ShieldCheck className="w-5 h-5" /> },
     { label: "Candidates", href: "/dashboard/candidates", icon: <Users className="w-5 h-5" /> },
     { label: "My Profile", href: "/dashboard/profile", icon: <Users className="w-5 h-5" /> },
     { label: "AI Screening", href: "/dashboard/screening", icon: <Zap className="w-5 h-5" /> },
