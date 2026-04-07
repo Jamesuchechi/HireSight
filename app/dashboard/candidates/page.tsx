@@ -27,11 +27,11 @@ export default function CandidatePoolPage() {
                 .from("job_applications")
                 .select(`
                     candidate:profiles!candidate_id(*),
-                    job:jobs(id, title),
+                    job:jobs!inner(id, title, company_id),
                     created_at,
                     match_score
                 `)
-                .eq("job:jobs.company_id", user.id)
+                .eq("job.company_id", user.id)
                 .order("created_at", { ascending: false });
 
             if (data) {

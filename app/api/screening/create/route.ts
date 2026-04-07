@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const { title, jobId, totalFiles, criteria } = await req.json();
+        const { title, jobId, totalFiles, criteria, weightQuestions, weightAssessments, questionsConfig } = await req.json();
 
         if (!title || !totalFiles) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -24,6 +24,9 @@ export async function POST(req: NextRequest) {
                 title,
                 total_files: totalFiles,
                 criteria: criteria || {},
+                weight_screening_questions: weightQuestions || 0,
+                weight_assessments: weightAssessments || 0,
+                screening_questions_config: questionsConfig || {},
                 status: 'pending'
             })
             .select()

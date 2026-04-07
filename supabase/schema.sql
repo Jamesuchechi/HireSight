@@ -7,6 +7,16 @@ CREATE TABLE public.profiles (
   avatar_url TEXT,
   cover_url TEXT,
   bio TEXT,
+  headline TEXT,
+  location TEXT,
+  phone TEXT,
+  skills JSONB DEFAULT '[]'::jsonb,
+  experience JSONB DEFAULT '[]'::jsonb,
+  education JSONB DEFAULT '[]'::jsonb,
+  certifications JSONB DEFAULT '[]'::jsonb,
+  portfolio_links JSONB DEFAULT '[]'::jsonb,
+  job_preferences JSONB DEFAULT '{}'::jsonb,
+  company_data JSONB DEFAULT '{}'::jsonb,
   onboarding_completed BOOLEAN DEFAULT false
 );
 

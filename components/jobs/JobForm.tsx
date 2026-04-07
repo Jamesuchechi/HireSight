@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { 
   ChevronRight, ChevronLeft, Rocket, CheckCircle, 
-  MapPin, Briefcase, DollarSign, BrainCircuit, Type, FileText 
+  MapPin, Briefcase, DollarSign, BrainCircuit, Type, FileText, Users, Calendar, Star 
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import RichTextEditor from "./RichTextEditor";
@@ -36,9 +36,19 @@ interface JobFormValues extends FieldValues {
   job_type: "full-time" | "part-time" | "contract" | "internship";
   salary_min: number;
   salary_max: number;
+  salary_period: "hourly" | "monthly" | "yearly";
   currency: string;
+  department: string;
   description: string;
+  responsibilities: string;
+  nice_to_have: string;
+  benefits: string;
   requirements: string;
+  positions_available: number;
+  application_deadline: string;
+  requires_cover_letter: boolean;
+  requires_portfolio: boolean;
+  is_featured: boolean;
   status: "draft" | "active";
   skills: Skill[];
   screening_questions: ScreeningQuestion[];
@@ -52,9 +62,19 @@ const jobSchema = z.object({
   job_type: z.enum(["full-time", "part-time", "contract", "internship"]),
   salary_min: z.number().default(0),
   salary_max: z.number().default(0),
+  salary_period: z.enum(["hourly", "monthly", "yearly"]).default("yearly"),
   currency: z.string().default("USD"),
+  department: z.string().default(""),
   description: z.string().min(50, "Description must be at least 50 characters"),
+  responsibilities: z.string().default(""),
+  nice_to_have: z.string().default(""),
+  benefits: z.string().default(""),
   requirements: z.string().default(""),
+  positions_available: z.number().min(1).default(1),
+  application_deadline: z.string().optional(),
+  requires_cover_letter: z.boolean().default(false),
+  requires_portfolio: z.boolean().default(false),
+  is_featured: z.boolean().default(false),
   status: z.enum(["draft", "active"]).default("active"),
   skills: z.array(z.object({
     name: z.string(),
@@ -85,9 +105,19 @@ export default function JobForm() {
       job_type: "full-time",
       salary_min: 0,
       salary_max: 0,
+      salary_period: "yearly",
       currency: "USD",
+      department: "",
       description: "",
+      responsibilities: "",
+      nice_to_have: "",
+      benefits: "",
       requirements: "",
+      positions_available: 1,
+      application_deadline: "",
+      requires_cover_letter: false,
+      requires_portfolio: false,
+      is_featured: false,
       status: "active",
       skills: [],
       screening_questions: []
@@ -98,9 +128,11 @@ export default function JobForm() {
 
   const nextStep = async () => {
     const fieldsToValidate = step === 1 
-      ? ["title", "location", "remote_type", "experience_level", "job_type"] 
+      ? ["title", "department", "location", "remote_type", "experience_level", "job_type", "salary_min", "salary_max", "salary_period"] 
       : step === 2 
-      ? ["description"] 
+      ? ["description", "responsibilities", "nice_to_have", "benefits"] 
+      : step === 3
+      ? ["skills", "positions_available", "application_deadline"]
       : [];
     
     const isValid = await trigger(fieldsToValidate as any);
@@ -125,12 +157,22 @@ export default function JobForm() {
           requirements: values.requirements,
           salary_min: values.salary_min,
           salary_max: values.salary_max,
+          salary_period: values.salary_period,
           currency: values.currency,
+          department: values.department,
           location: values.location,
           remote_type: values.remote_type,
           experience_level: values.experience_level,
           job_type: values.job_type,
           status: values.status,
+          responsibilities: values.responsibilities,
+          nice_to_have: values.nice_to_have,
+          benefits: values.benefits,
+          positions_available: values.positions_available,
+          application_deadline: values.application_deadline || null,
+          requires_cover_letter: values.requires_cover_letter,
+          requires_portfolio: values.requires_portfolio,
+          is_featured: values.is_featured,
         })
         .select()
         .single();
@@ -175,8 +217,8 @@ export default function JobForm() {
     }
   };
 
-  const stepTitles = ["Protocol Origin", "Core Logic", "Screening Phase"];
-  const stepIcons = [<Rocket key="1" />, <Type key="2" />, <BrainCircuit key="3" />];
+  const stepTitles = ["Protocol Origin", "Core Logic", "Mission Setup", "Screening Phase"];
+  const stepIcons = [<Rocket key="1" />, <Type key="2" />, <FileText key="3" />, <BrainCircuit key="4" />];
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -196,7 +238,7 @@ export default function JobForm() {
             }`}>
                 {title}
             </span>
-            {i < 2 && (
+            {i < 3 && (
               <div className="absolute left-[calc(50%+30px)] top-6 w-[calc(100%-60px)] h-0.5 bg-gray-50">
                 <motion.div 
                   className="h-full bg-primary"
@@ -225,7 +267,7 @@ export default function JobForm() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="space-y-2 md:col-span-2">
+                <div className="space-y-2 md:col-span-1">
                   <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-4 italic">Position Title</label>
                   <div className="flex bg-gray-50/50 border border-gray-100 rounded-[24px] overflow-hidden focus-within:ring-4 focus-within:ring-primary/5 transition-all">
                     <div className="p-4 flex items-center justify-center text-primary border-r border-gray-100">
@@ -238,6 +280,20 @@ export default function JobForm() {
                     />
                   </div>
                   {errors.title && <p className="text-rose-500 text-[10px] uppercase font-black tracking-widest pl-4">{errors.title.message}</p>}
+                </div>
+
+                <div className="space-y-2 md:col-span-1">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-4 italic">Department</label>
+                  <div className="flex bg-gray-50/50 border border-gray-100 rounded-[24px] overflow-hidden focus-within:ring-4 focus-within:ring-primary/5 transition-all">
+                    <div className="p-4 flex items-center justify-center text-primary border-r border-gray-100">
+                      <Users className="w-5 h-5" />
+                    </div>
+                    <input
+                      {...register("department")}
+                      placeholder="e.g. Engineering"
+                      className="w-full bg-transparent p-4 text-sm font-bold focus:outline-none"
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -339,7 +395,7 @@ export default function JobForm() {
                 <p className="text-xs text-gray-400 font-bold uppercase tracking-widest italic">Define the detailed scope and requirements</p>
               </div>
 
-              <div className="space-y-6">
+              <div className="space-y-10">
                 <div className="space-y-4">
                   <div className="flex items-center space-x-2 ml-4">
                       <FileText className="w-4 h-4 text-primary" />
@@ -357,6 +413,60 @@ export default function JobForm() {
                     )}
                   />
                   {errors.description && <p className="text-rose-500 text-[10px] uppercase font-black tracking-widest pl-4">{errors.description.message}</p>}
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-2 ml-4">
+                      <Briefcase className="w-4 h-4 text-primary" />
+                      <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 italic">Key Responsibilities</label>
+                  </div>
+                  <Controller
+                    name="responsibilities"
+                    control={control}
+                    render={({ field }) => (
+                      <RichTextEditor 
+                        content={field.value} 
+                        onChange={field.onChange} 
+                        placeholder="Outline the primary duties and expected outcomes..."
+                      />
+                    )}
+                  />
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-2 ml-4">
+                      <BrainCircuit className="w-4 h-4 text-primary" />
+                      <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 italic">Nice to Have / Bonus Protocol</label>
+                  </div>
+                  <Controller
+                    name="nice_to_have"
+                    control={control}
+                    render={({ field }) => (
+                      <RichTextEditor 
+                        content={field.value} 
+                        onChange={field.onChange} 
+                        placeholder="Additional skills or experience that would be an advantage..."
+                      />
+                    )}
+                  />
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-2 ml-4">
+                      <DollarSign className="w-4 h-4 text-emerald-500" />
+                      <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 italic">Benefits & Perks</label>
+                  </div>
+                  <Controller
+                    name="benefits"
+                    control={control}
+                    render={({ field }) => (
+                      <RichTextEditor 
+                        content={field.value} 
+                        onChange={field.onChange} 
+                        placeholder="Detail the compensation, equity, and other perks..."
+                      />
+                    )}
+                  />
                 </div>
               </div>
             </motion.div>
@@ -386,17 +496,91 @@ export default function JobForm() {
 
               <div className="bg-white border border-gray-100 rounded-[48px] p-10 shadow-sm space-y-8">
                 <div className="space-y-2">
-                  <h2 className="text-3xl font-black font-display italic text-zinc-900 tracking-tighter">Applicant Screening</h2>
-                  <p className="text-xs text-gray-400 font-bold uppercase tracking-widest italic">Configure logic to automate the initial vetting process</p>
+                  <h2 className="text-3xl font-black font-display italic text-zinc-900 tracking-tighter">Mission Strategy</h2>
+                  <p className="text-xs text-gray-400 font-bold uppercase tracking-widest italic">Configure deployment parameters and requirements</p>
                 </div>
-                <Controller
-                  name="screening_questions"
-                  control={control}
-                  render={({ field }) => (
-                    <ScreeningQuestionsInput value={field.value} onChange={field.onChange} />
-                  )}
-                />
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-4 italic">Deployment Deadline</label>
+                    <div className="flex bg-gray-50/50 border border-gray-100 rounded-[24px] overflow-hidden focus-within:ring-4 focus-within:ring-primary/5 transition-all">
+                      <div className="p-4 flex items-center justify-center text-primary border-r border-gray-100">
+                        <Calendar className="w-5 h-5" />
+                      </div>
+                      <input
+                        type="date"
+                        {...register("application_deadline")}
+                        className="w-full bg-transparent p-4 text-sm font-bold focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-4 italic">Positions Available</label>
+                    <div className="flex bg-gray-50/50 border border-gray-100 rounded-[24px] overflow-hidden focus-within:ring-4 focus-within:ring-primary/5 transition-all">
+                      <div className="p-4 flex items-center justify-center text-primary border-r border-gray-100">
+                        <Users className="w-5 h-5" />
+                      </div>
+                      <input
+                        type="number"
+                        {...register("positions_available", { valueAsNumber: true })}
+                        className="w-full bg-transparent p-4 text-sm font-bold focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-6 pt-4">
+                  <div className="flex items-center justify-between p-6 bg-gray-50/50 rounded-[32px] border border-gray-100">
+                    <div className="flex items-center space-x-4">
+                      <div className="p-3 bg-primary/10 text-primary rounded-2xl">
+                        <Star className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-black text-zinc-900 italic">Premium Highlight</p>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Feature this job at the top of the search results</p>
+                      </div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" {...register("is_featured")} className="sr-only peer" />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                    </label>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <label className="flex items-center space-x-3 p-6 bg-white border border-gray-100 rounded-[32px] cursor-pointer hover:border-primary/20 transition-all">
+                      <input type="checkbox" {...register("requires_cover_letter")} className="w-5 h-5 rounded-lg border-gray-300 text-primary focus:ring-primary" />
+                      <span className="text-[10px] font-black uppercase tracking-widest text-zinc-900 italic">Require Cover Letter</span>
+                    </label>
+                    <label className="flex items-center space-x-3 p-6 bg-white border border-gray-100 rounded-[32px] cursor-pointer hover:border-primary/20 transition-all">
+                      <input type="checkbox" {...register("requires_portfolio")} className="w-5 h-5 rounded-lg border-gray-300 text-primary focus:ring-primary" />
+                      <span className="text-[10px] font-black uppercase tracking-widest text-zinc-900 italic">Require Portfolio URL</span>
+                    </label>
+                  </div>
+                </div>
               </div>
+            </motion.div>
+          )}
+
+          {step === 4 && (
+            <motion.div
+              key="step4"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="bg-white border border-gray-100 rounded-[48px] p-10 shadow-sm space-y-8"
+            >
+              <div className="space-y-2">
+                <h2 className="text-3xl font-black font-display italic text-zinc-900 tracking-tighter">Applicant Screening</h2>
+                <p className="text-xs text-gray-400 font-bold uppercase tracking-widest italic">Configure logic to automate the initial vetting process</p>
+              </div>
+              <Controller
+                name="screening_questions"
+                control={control}
+                render={({ field }) => (
+                  <ScreeningQuestionsInput value={field.value} onChange={field.onChange} />
+                )}
+              />
             </motion.div>
           )}
         </AnimatePresence>
@@ -414,7 +598,7 @@ export default function JobForm() {
             </button>
           ) : <div />}
 
-          {step < 3 ? (
+          {step < 4 ? (
             <button
               type="button"
               onClick={nextStep}

@@ -56,18 +56,20 @@ export async function getCandidateDashboardData(supabase: SupabaseClient<Databas
 }
 
 export async function getRecruiterDashboardData(supabase: SupabaseClient<Database>, userId: string) {
-    // 1. Active Jobs
-    const { data: activeJobs } = await supabase
+    // 1. All Non-Deleted Jobs
+    const { data: jobs } = await supabase
         .from("jobs")
-        .select("*")
+        .select("id, status")
         .eq("company_id", userId)
-        .eq("status", "active");
+        .neq("status", "deleted");
 
-    const jobIds = activeJobs?.map(j => j.id) || [];
+    const jobIds = (jobs as any[])?.map(j => j.id) || [];
+    const activeJobs = (jobs as any[])?.filter(j => j.status === 'active') || [];
 
     // 2. Stats
+    // Fix: Count ALL applications for recruiter's jobs, not just those with status 'applied'
     const [applicantsCount, interviewsCount, upcomingInterviews] = await Promise.all([
-        supabase.from("job_applications").select("*", { count: "exact", head: true }).in("job_id", jobIds).eq("status", "applied"),
+        supabase.from("job_applications").select("*", { count: "exact", head: true }).in("job_id", jobIds),
         supabase.from("interviews").select("*", { count: "exact", head: true }).in("job_id", jobIds).gte("start_time", new Date().toISOString()),
         supabase.from("interviews").select("*, job:jobs(title, location)").in("job_id", jobIds).gte("start_time", new Date().toISOString()).order("start_time", { ascending: true }).limit(5)
     ]);
@@ -80,11 +82,15 @@ export async function getRecruiterDashboardData(supabase: SupabaseClient<Databas
         .order("match_score", { ascending: false })
         .limit(5);
 
-    // 4. Recent Activity (Applications + Screening)
+    // 4. Recent Activity (Filtered by company_id correctly)
     const { data: recentActivity } = await supabase
         .from("job_applications")
-        .select("*, job:jobs(title), candidate:profiles(full_name)")
-        .in("job_id", jobIds)
+        .select(`
+            *,
+            job:jobs!inner(title, company_id),
+            candidate:profiles(full_name)
+        `)
+        .eq("job.company_id", userId)
         .order("created_at", { ascending: false })
         .limit(10);
 
@@ -95,16 +101,16 @@ export async function getRecruiterDashboardData(supabase: SupabaseClient<Databas
         .in("job_id", jobIds);
 
     const funnel = {
-        applied: funnelData?.filter(a => a.status === 'applied').length || 0,
-        screening: funnelData?.filter(a => a.status === 'screening').length || 0,
-        interview: funnelData?.filter(a => a.status === 'interview').length || 0,
-        offer: funnelData?.filter(a => a.status === 'offer').length || 0,
-        hired: funnelData?.filter(a => a.status === 'hired').length || 0
+        applied: (funnelData as any[])?.filter(a => a.status === 'applied').length || 0,
+        screening: (funnelData as any[])?.filter(a => a.status === 'screening').length || 0,
+        interview: (funnelData as any[])?.filter(a => a.status === 'interview').length || 0,
+        offer: (funnelData as any[])?.filter(a => a.status === 'offer').length || 0,
+        hired: (funnelData as any[])?.filter(a => a.status === 'hired').length || 0
     };
 
     return {
         stats: {
-            activeJobs: activeJobs?.length || 0,
+            activeJobs: activeJobs.length,
             totalApplicants: applicantsCount.count || 0,
             interviewsThisWeek: interviewsCount.count || 0,
             offersPending: funnel.offer,

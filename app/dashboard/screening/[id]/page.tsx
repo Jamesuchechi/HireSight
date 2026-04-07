@@ -77,7 +77,33 @@ export default function ScreeningResultsPage({ params }: { params: Promise<{ id:
     const filteredResults = results.filter(r => 
         r.candidate_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         r.candidate_email.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    ).filter(r => !r.is_dismissed);
+
+    const toggleShortlist = async (resultId: string, current: boolean) => {
+        const { error } = await supabase
+            .from("screening_results")
+            .update({ is_shortlisted: !current })
+            .eq("id", resultId);
+        
+        if (!error) {
+            setResults(prev => prev.map(r => r.id === resultId ? { ...r, is_shortlisted: !current } : r));
+            if (selectedResult?.id === resultId) {
+                setSelectedResult({ ...selectedResult, is_shortlisted: !current });
+            }
+        }
+    };
+
+    const dismissResult = async (resultId: string) => {
+        const { error } = await supabase
+            .from("screening_results")
+            .update({ is_dismissed: true })
+            .eq("id", resultId);
+        
+        if (!error) {
+            setResults(prev => prev.filter(r => r.id !== resultId));
+            if (selectedResult?.id === resultId) setSelectedResult(null);
+        }
+    };
 
     // Analytics Calculation
     const avgScore = results.length > 0 ? Math.round(results.reduce((acc, r) => acc + r.match_score, 0) / results.length) : 0;
@@ -128,7 +154,18 @@ export default function ScreeningResultsPage({ params }: { params: Promise<{ id:
                             <Download className="w-4 h-4" />
                             <span>Export Matrix</span>
                         </button>
-                        <button className="px-10 py-5 bg-zinc-900 text-white rounded-[32px] font-black text-sm uppercase tracking-widest italic hover:scale-105 transition-all shadow-xl">
+                        <button 
+                            onClick={() => {
+                                const shortlisted = results.filter(r => r.is_shortlisted);
+                                if (shortlisted.length === 0) {
+                                    alert("No candidates selected for deployment.");
+                                    return;
+                                }
+                                // Deployment logic
+                                alert(`Deploying ${shortlisted.length} candidates to mission: ${session.job?.title || "General Pool"}`);
+                            }}
+                            className="px-10 py-5 bg-zinc-900 text-white rounded-[32px] font-black text-sm uppercase tracking-widest italic hover:scale-105 transition-all shadow-xl disabled:opacity-50"
+                        >
                             Deploy Candidates
                         </button>
                     </div>
@@ -180,8 +217,9 @@ export default function ScreeningResultsPage({ params }: { params: Promise<{ id:
                             <thead>
                                 <tr className="bg-gray-50/50 border-b border-gray-100">
                                     <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 italic">Candidate Metrics</th>
-                                    <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 italic">Neural Match</th>
-                                    <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 italic text-right">Data Audit</th>
+                                    <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 italic text-center">Breakdown</th>
+                                    <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 italic">Neural Resonance</th>
+                                    <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 italic text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50">
@@ -206,8 +244,29 @@ export default function ScreeningResultsPage({ params }: { params: Promise<{ id:
                                             </div>
                                         </td>
                                         <td className="px-8 py-6">
+                                            <div className="flex items-center space-x-1 justify-center">
+                                                {['skills', 'exp', 'edu', 'keyword', 'question'].map((scoreKey) => (
+                                                    <div 
+                                                        key={scoreKey}
+                                                        className="w-1.5 h-6 bg-gray-50 rounded-full overflow-hidden" 
+                                                        title={`${scoreKey}: ${r.analysis[`${scoreKey}_score`] || 0}%`}
+                                                    >
+                                                        <div 
+                                                            className={`w-full h-full ${
+                                                                scoreKey === 'skills' ? 'bg-primary' :
+                                                                scoreKey === 'exp' ? 'bg-secondary' :
+                                                                scoreKey === 'edu' ? 'bg-zinc-900' :
+                                                                scoreKey === 'keyword' ? 'bg-emerald-500' : 'bg-amber-500'
+                                                            }`}
+                                                            style={{ height: `${r.analysis[`${scoreKey}_score`] || 0}%`, marginTop: 'auto' }}
+                                                        />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </td>
+                                        <td className="px-8 py-6">
                                             <div className="flex items-center space-x-3">
-                                                 <div className="w-32 h-2 bg-gray-50 rounded-full overflow-hidden">
+                                                 <div className="w-24 h-1.5 bg-gray-50 rounded-full overflow-hidden">
                                                      <motion.div 
                                                         initial={{ width: 0 }}
                                                         animate={{ width: `${r.match_score}%` }}
@@ -220,10 +279,21 @@ export default function ScreeningResultsPage({ params }: { params: Promise<{ id:
                                                  <span className="text-xs font-black text-zinc-900 italic">{r.match_score}%</span>
                                             </div>
                                         </td>
-                                        <td className="px-8 py-6 text-right">
-                                            <button className="p-3 bg-gray-50 text-gray-400 rounded-xl group-hover:bg-secondary group-hover:text-white transition-all">
-                                                <ArrowUpRight className="w-4 h-4" />
-                                            </button>
+                                        <td className="px-8 py-6">
+                                            <div className="flex items-center justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button 
+                                                    onClick={(e) => { e.stopPropagation(); toggleShortlist(r.id, r.is_shortlisted); }}
+                                                    className={`p-2 rounded-lg border transition-all ${r.is_shortlisted ? "bg-amber-50 border-amber-200 text-amber-500" : "bg-white border-gray-100 text-gray-300 hover:text-amber-500"}`}
+                                                >
+                                                    <Star className={`w-4 h-4 ${r.is_shortlisted ? "fill-current" : ""}`} />
+                                                </button>
+                                                <button 
+                                                    onClick={(e) => { e.stopPropagation(); dismissResult(r.id); }}
+                                                    className="p-2 bg-white border border-gray-100 text-gray-300 hover:text-red-500 hover:border-red-100 rounded-lg transition-all"
+                                                >
+                                                    <XCircle className="w-4 h-4" />
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -296,6 +366,10 @@ export default function ScreeningResultsPage({ params }: { params: Promise<{ id:
                                           <div className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-[8px] font-black uppercase tracking-widest text-primary flex items-center space-x-2">
                                               <Briefcase className="w-3 h-3" />
                                               <span>Skills: {selectedResult.analysis.skills_score}%</span>
+                                          </div>
+                                          <div className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-[8px] font-black uppercase tracking-widest text-amber-400 flex items-center space-x-2">
+                                              <MessageSquare className="w-3 h-3" />
+                                              <span>Q&A: {selectedResult.analysis.question_score || 0}%</span>
                                           </div>
                                       </div>
                                   </div>

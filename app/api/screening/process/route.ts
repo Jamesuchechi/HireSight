@@ -32,7 +32,17 @@ export async function POST(req: NextRequest) {
         const resumeText = pdfData.text;
 
         // 3. Screen Resume
-        const result = await ScreeningEngine.screen(resumeText, session.criteria);
+        const result = await ScreeningEngine.screen(resumeText, {
+            ...session.criteria,
+            weights: {
+                skills: session.criteria.weights.skills,
+                experience: session.criteria.weights.experience,
+                education: session.criteria.weights.education,
+                keywords: session.criteria.weights.keywords,
+                questions: session.weight_screening_questions || 0,
+                assessments: session.weight_assessments || 0
+            }
+        });
 
         // 4. Save Result
         const { data: resultRecord, error: resultError } = await supabase
@@ -47,6 +57,9 @@ export async function POST(req: NextRequest) {
                     skills_score: result.skills_score,
                     exp_score: result.exp_score,
                     edu_score: result.edu_score,
+                    keyword_score: result.keyword_score,
+                    question_score: result.question_score,
+                    assessment_score: result.assessment_score,
                     keyword_matches: result.keyword_matches,
                     gaps: result.missing_skills,
                     summary: result.summary,

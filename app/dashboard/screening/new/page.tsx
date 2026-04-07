@@ -6,7 +6,8 @@ import {
     Upload, X, CheckCircle2, 
     ArrowRight, Rocket, SlidersHorizontal, 
     BrainCircuit, Target, Zap, FileText,
-    ChevronLeft, Loader2
+    ChevronLeft, Loader2, MessageSquare,
+    Users, Database, MousePointer2
 } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -22,13 +23,21 @@ export default function NewScreeningPage() {
     const [uploading, setUploading] = useState(false);
     const [processing, setProcessing] = useState(false);
     const [progress, setProgress] = useState(0);
+    const [screeningMode, setScreeningMode] = useState<'bulk' | 'job'>('bulk');
+    const [applicants, setApplicants] = useState<any[]>([]);
+    const [selectedApplicants, setSelectedApplicants] = useState<Set<string>>(new Set());
 
     const [weights, setWeights] = useState({
-        skills: 40,
-        experience: 30,
-        education: 20,
-        keywords: 10
+        skills: 30,
+        experience: 20,
+        education: 15,
+        keywords: 15,
+        questions: 10,
+        assessments: 10
     });
+
+    const [jobQuestions, setJobQuestions] = useState<any[]>([]);
+    const [questionsConfig, setQuestionsConfig] = useState<any>({});
 
     const [criteria, setCriteria] = useState({
         requiredSkills: "",
@@ -46,6 +55,60 @@ export default function NewScreeningPage() {
         fetchJobs();
     }, [supabase]);
 
+    useEffect(() => {
+        const fetchJobQuestions = async () => {
+            if (!selectedJob) {
+                setJobQuestions([]);
+                return;
+            }
+            const { data } = await supabase
+                .from("job_screening_questions")
+                .select("*")
+                .eq("job_id", selectedJob)
+                .order("order_index", { ascending: true });
+            
+            if (data) {
+                setJobQuestions(data);
+                // Initialize config
+                const initialConfig: any = {};
+                data.forEach(q => {
+                    initialConfig[q.question] = { value: "", keywords: "" };
+                });
+                setQuestionsConfig(initialConfig);
+            }
+        };
+
+        const fetchApplicants = async () => {
+            if (!selectedJob) {
+                setApplicants([]);
+                return;
+            }
+            const { data } = await supabase
+                .from("job_applications")
+                .select(`
+                    id,
+                    profiles:candidate_id (full_name, avatar_url, headline),
+                    resumes:resume_id (id, file_url)
+                `)
+                .eq("job_id", selectedJob);
+            
+            if (data) {
+                setApplicants(data);
+                // Auto-select those with resumes
+                const withResumes = data
+                    .filter(a => {
+                        const resume = Array.isArray(a.resumes) ? a.resumes[0] : a.resumes;
+                        return resume?.file_url;
+                    })
+                    .map(a => a.id);
+                setSelectedApplicants(new Set(withResumes));
+            }
+        };
+
+        fetchJobQuestions();
+        fetchApplicants();
+    }, [supabase, selectedJob]);
+
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
             const newFiles = Array.from(e.target.files).filter(f => f.type === "application/pdf");
@@ -57,29 +120,67 @@ export default function NewScreeningPage() {
         setFiles(prev => prev.filter((_, i) => i !== index));
     };
 
+    const toggleApplicant = (id: string) => {
+        setSelectedApplicants(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    };
+
     const startScreening = async () => {
-        if (!title || files.length === 0) return;
+        if (!title) {
+            alert("Please provide a title for this neural cycle.");
+            return;
+        }
+        
+        if (screeningMode === 'bulk' && files.length === 0) {
+            alert("No resume matrices provided for vetting.");
+            return;
+        }
+
+        if (screeningMode === 'job' && selectedApplicants.size === 0) {
+            alert("No candidates selected for sync.");
+            return;
+        }
+
         setUploading(true);
 
         try {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
 
-            // 1. Upload files to Storage
             const fileData: { name: string, url: string }[] = [];
-            for (const file of files) {
-                const filePath = `${user.id}/${Date.now()}-${file.name}`;
-                const { data: uploadData, error: uploadError } = await supabase.storage
-                    .from("screening-resumes")
-                    .upload(filePath, file);
-                
-                if (uploadError) throw uploadError;
 
-                const { data: { publicUrl } } = supabase.storage
-                    .from("screening-resumes")
-                    .getPublicUrl(filePath);
-                
-                fileData.push({ name: file.name, url: publicUrl });
+            if (screeningMode === 'bulk') {
+                // 1. Upload files to Storage
+                for (const file of files) {
+                    const filePath = `${user.id}/${Date.now()}-${file.name}`;
+                    const { data: uploadData, error: uploadError } = await supabase.storage
+                        .from("screening-resumes")
+                        .upload(filePath, file);
+                    
+                    if (uploadError) throw uploadError;
+
+                    const { data: { publicUrl } } = supabase.storage
+                        .from("screening-resumes")
+                        .getPublicUrl(filePath);
+                    
+                    fileData.push({ name: file.name, url: publicUrl });
+                }
+            } else {
+                // 1. Collect Existing URLs
+                const selected = applicants.filter(a => selectedApplicants.has(a.id));
+                selected.forEach(a => {
+                    const resume = Array.isArray(a.resumes) ? a.resumes[0] : a.resumes;
+                    if (resume?.file_url) {
+                        fileData.push({ 
+                            name: a.profiles?.full_name || "Applicant", 
+                            url: resume.file_url 
+                        });
+                    }
+                });
             }
 
             // 2. Create Screening Session
@@ -88,15 +189,23 @@ export default function NewScreeningPage() {
                 body: JSON.stringify({
                     title,
                     jobId: selectedJob || null,
-                    totalFiles: files.length,
+                    totalFiles: fileData.length,
                     criteria: {
                         requiredSkills: criteria.requiredSkills.split(",").map(s => s.trim()).filter(Boolean),
                         niceToHaveSkills: criteria.niceToHaveSkills.split(",").map(s => s.trim()).filter(Boolean),
                         minExperience: criteria.minExperience,
                         educationLevel: criteria.educationLevel,
                         keywords: criteria.keywords.split(",").map(s => s.trim()).filter(Boolean),
-                        weights
-                    }
+                        weights: {
+                            skills: weights.skills,
+                            experience: weights.experience,
+                            education: weights.education,
+                            keywords: weights.keywords
+                        }
+                    },
+                    weightQuestions: weights.questions,
+                    weightAssessments: weights.assessments,
+                    questionsConfig
                 })
             });
 
@@ -127,7 +236,7 @@ export default function NewScreeningPage() {
                         console.error(`Network error for ${file.name}:`, err);
                     } finally {
                         completedCount++;
-                        setProgress(Math.round((completedCount / files.length) * 100));
+                        setProgress(Math.round((completedCount / fileData.length) * 100));
                     }
                 }));
             }
@@ -212,61 +321,233 @@ export default function NewScreeningPage() {
                          </div>
                      </section>
 
-                     {/* Bulk Resume Matrix Dropzone */}
-                     <section className="bg-white border border-gray-100 rounded-[48px] p-10 shadow-sm space-y-10">
-                        <div className="flex items-center justify-between">
-                             <h3 className="text-xl font-black text-zinc-900 italic uppercase">Resume Reservoir</h3>
-                             <span className="text-[10px] font-black text-secondary italic uppercase tracking-widest">{files.length}/50 Metrics</span>
-                        </div>
+                      {/* Selection Mode Switcher */}
+                      <div className="flex bg-white/50 p-2 rounded-[32px] border border-gray-100/50 backdrop-blur-md mb-10">
+                          <button 
+                            type="button"
+                            onClick={() => setScreeningMode('bulk')}
+                            className={`flex-1 flex items-center justify-center space-x-3 py-4 rounded-[24px] font-black uppercase text-[10px] tracking-widest italic transition-all ${
+                                screeningMode === 'bulk' ? 'bg-zinc-900 text-white shadow-xl' : 'text-gray-400 hover:text-zinc-900'
+                            }`}
+                          >
+                              <Upload className="w-4 h-4" />
+                              <span>Manual Matrix Upload</span>
+                          </button>
+                          <button 
+                            type="button"
+                            onClick={() => {
+                                if (!selectedJob) {
+                                    alert("Please reference a specific job to enable Neural Sync.");
+                                    return;
+                                }
+                                setScreeningMode('job');
+                            }}
+                            className={`flex-1 flex items-center justify-center space-x-3 py-4 rounded-[24px] font-black uppercase text-[10px] tracking-widest italic transition-all ${
+                                screeningMode === 'job' ? 'bg-zinc-900 text-white shadow-xl' : 'text-gray-400 hover:text-zinc-900'
+                            }`}
+                          >
+                              <Database className="w-4 h-4" />
+                              <span>Neural Sync (Job Pool)</span>
+                          </button>
+                      </div>
 
-                        <div className="relative group">
-                            <input 
-                                type="file" 
-                                multiple 
-                                accept=".pdf"
-                                onChange={handleFileChange}
-                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                            />
-                            <div className="border-4 border-dashed border-gray-100 rounded-[40px] p-16 flex flex-col items-center justify-center text-center space-y-6 group-hover:border-secondary/20 group-hover:bg-gray-50/50 transition-all">
-                                <div className="p-6 bg-gray-50 rounded-full text-gray-300 group-hover:bg-white group-hover:text-secondary group-hover:scale-110 transition-all shadow-sm">
-                                    <Upload className="w-10 h-10" />
-                                </div>
-                                <div>
-                                    <h4 className="text-xl font-black text-zinc-900 italic tracking-tight">Extract Raw Metrics</h4>
-                                    <p className="text-xs text-gray-400 font-bold max-w-sm italic">Drag up to 50 PDF files directly into the neural cloud for vetting.</p>
-                                </div>
-                            </div>
-                        </div>
+                      {/* Bulk Resume Matrix Dropzone OR Applicant Sync */}
+                      {screeningMode === 'bulk' ? (
+                          <section className="bg-white border border-gray-100 rounded-[48px] p-10 shadow-sm space-y-10">
+                               <div className="flex items-center justify-between">
+                                    <h3 className="text-xl font-black text-zinc-900 italic uppercase">Resume Reservoir</h3>
+                                    <span className="text-[10px] font-black text-secondary italic uppercase tracking-widest">{files.length}/50 Metrics</span>
+                               </div>
 
-                        {files.length > 0 && (
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                <AnimatePresence>
-                                    {files.map((file, i) => (
-                                        <motion.div 
-                                            key={`${file.name}-${i}`}
-                                            initial={{ opacity: 0, scale: 0.9 }}
-                                            animate={{ opacity: 1, scale: 1 }}
-                                            exit={{ opacity: 0, scale: 0.9 }}
-                                            className="bg-gray-50 border border-gray-100 rounded-2xl p-4 flex items-center justify-between group"
-                                        >
-                                            <div className="flex items-center space-x-3 overflow-hidden">
-                                                <div className="p-2 bg-white rounded-lg text-gray-400">
-                                                    <FileText className="w-4 h-4" />
-                                                </div>
-                                                <span className="text-[10px] font-black text-zinc-900 truncate italic">{file.name}</span>
-                                            </div>
-                                            <button onClick={() => removeFile(i)} className="p-1 hover:text-red-500 transition-colors">
-                                                <X className="w-4 h-4" />
-                                            </button>
-                                        </motion.div>
-                                    ))}
-                                </AnimatePresence>
-                            </div>
-                        )}
-                     </section>
+                               <div className="relative group">
+                                   <input 
+                                       type="file" 
+                                       multiple 
+                                       accept=".pdf"
+                                       onChange={handleFileChange}
+                                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                   />
+                                   <div className="border-4 border-dashed border-gray-100 rounded-[40px] p-16 flex flex-col items-center justify-center text-center space-y-6 group-hover:border-secondary/20 group-hover:bg-gray-50/50 transition-all">
+                                       <div className="p-6 bg-gray-50 rounded-full text-gray-300 group-hover:bg-white group-hover:text-secondary group-hover:scale-110 transition-all shadow-sm">
+                                           <Upload className="w-10 h-10" />
+                                       </div>
+                                       <div>
+                                           <h4 className="text-xl font-black text-zinc-900 italic tracking-tight">Extract Raw Metrics</h4>
+                                           <p className="text-xs text-gray-400 font-bold max-w-sm italic">Drag up to 50 PDF files directly into the neural cloud for vetting.</p>
+                                       </div>
+                                   </div>
+                               </div>
 
-                     {/* Criteria Config */}
-                     <section className="bg-zinc-900 rounded-[48px] p-12 shadow-2xl space-y-10">
+                               {files.length > 0 && (
+                                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                       <AnimatePresence>
+                                           {files.map((file, i) => (
+                                               <motion.div 
+                                                   key={`${file.name}-${i}`}
+                                                   initial={{ opacity: 0, scale: 0.9 }}
+                                                   animate={{ opacity: 1, scale: 1 }}
+                                                   exit={{ opacity: 0, scale: 0.9 }}
+                                                   className="bg-gray-50 border border-gray-100 rounded-2xl p-4 flex items-center justify-between group"
+                                               >
+                                                   <div className="flex items-center space-x-3 overflow-hidden">
+                                                       <div className="p-2 bg-white rounded-lg text-gray-400">
+                                                           <FileText className="w-4 h-4" />
+                                                       </div>
+                                                       <span className="text-[10px] font-black text-zinc-900 truncate italic">{file.name}</span>
+                                                   </div>
+                                                   <button onClick={() => removeFile(i)} className="p-1 hover:text-red-500 transition-colors">
+                                                       <X className="w-4 h-4" />
+                                                   </button>
+                                               </motion.div>
+                                           ))}
+                                       </AnimatePresence>
+                                   </div>
+                               )}
+                          </section>
+                      ) : (
+                          <section className="bg-white border border-gray-100 rounded-[48px] p-10 shadow-sm space-y-10">
+                              <div className="flex items-center justify-between">
+                                  <div className="space-y-1">
+                                      <h3 className="text-xl font-black text-zinc-900 italic uppercase">Applicant Selection Matrix</h3>
+                                      <p className="text-[8px] font-black text-gray-400 uppercase tracking-[0.2em] italic">Synchronizing existing job metadata for vetting</p>
+                                  </div>
+                                  <div className="flex items-center space-x-3">
+                                      <div className="px-5 py-2 bg-gray-50 border border-gray-100 rounded-full text-[10px] font-black italic text-zinc-900">
+                                          {selectedApplicants.size} / {applicants.length} Selected
+                                      </div>
+                                  </div>
+                              </div>
+
+                              {applicants.length === 0 ? (
+                                  <div className="py-20 text-center space-y-6">
+                                      <Users className="w-10 h-10 text-gray-200 mx-auto" />
+                                      <p className="text-xs font-black text-gray-400 italic">No applicants found for this mission. Toggle Manual Matrix Upload instead.</p>
+                                  </div>
+                              ) : (
+                                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                      {applicants.map((a) => {
+                                          const resume = Array.isArray(a.resumes) ? a.resumes[0] : a.resumes;
+                                          const isSelected = selectedApplicants.has(a.id);
+                                          const hasResume = !!resume?.file_url;
+
+                                          return (
+                                              <motion.div 
+                                                key={a.id}
+                                                whileHover={{ scale: 1.02 }}
+                                                onClick={() => hasResume && toggleApplicant(a.id)}
+                                                className={`relative overflow-hidden cursor-pointer border-2 rounded-3xl p-6 transition-all space-y-4 ${
+                                                    !hasResume ? 'opacity-50 grayscale cursor-not-allowed border-gray-50' :
+                                                    isSelected ? 'border-primary bg-primary/5 shadow-2xl shadow-primary/10' : 'border-gray-100 hover:border-gray-200 bg-white'
+                                                }`}
+                                              >
+                                                  <div className="flex items-center justify-between">
+                                                      <div className="flex items-center space-x-3">
+                                                          {a.profiles?.avatar_url ? (
+                                                              <img src={a.profiles.avatar_url} className="w-8 h-8 rounded-xl object-cover" />
+                                                          ) : (
+                                                              <div className="w-8 h-8 bg-zinc-900 rounded-xl flex items-center justify-center text-[10px] text-white font-black italic uppercase">
+                                                                  {a.profiles?.full_name[0]}
+                                                              </div>
+                                                          )}
+                                                          <div className="overflow-hidden">
+                                                              <h4 className="text-[10px] font-black text-zinc-900 truncate italic">{a.profiles?.full_name}</h4>
+                                                              <p className="text-[8px] font-bold text-gray-400 truncate">{a.profiles?.headline || "Candidate Pool"}</p>
+                                                          </div>
+                                                      </div>
+                                                      <div className={`p-2 rounded-xl transition-all ${isSelected ? "bg-primary text-white" : "bg-gray-50 text-gray-300"}`}>
+                                                          {isSelected ? <CheckCircle2 className="w-3 h-3" /> : <MousePointer2 className="w-3 h-3" />}
+                                                      </div>
+                                                  </div>
+                                                  
+                                                  <div className="flex items-center justify-between pt-2">
+                                                      <div className="flex items-center space-x-2">
+                                                          <div className={`w-1.5 h-1.5 rounded-full ${hasResume ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                                                          <span className="text-[8px] font-black uppercase tracking-widest text-gray-400 italic">
+                                                              {hasResume ? "Neural Vector Ready" : "Missing Metadata"}
+                                                          </span>
+                                                      </div>
+                                                  </div>
+                                              </motion.div>
+                                          );
+                                      })}
+                                  </div>
+                              )}
+                          </section>
+                      )}
+
+
+                      {/* Question Config (Only if job selected) */}
+                      <AnimatePresence>
+                          {selectedJob && jobQuestions.length > 0 && (
+                              <motion.section 
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: "auto" }}
+                                exit={{ opacity: 0, height: 0 }}
+                                className="bg-white border border-gray-100 rounded-[48px] p-10 shadow-sm space-y-10 overflow-hidden"
+                              >
+                                  <div className="flex items-center space-x-3">
+                                      <MessageSquare className="w-6 h-6 text-secondary" />
+                                      <h3 className="text-xl font-black text-zinc-900 italic uppercase tracking-tight">Question Resonance Tuning</h3>
+                                  </div>
+
+                                  <div className="space-y-8">
+                                      {jobQuestions.map((q) => (
+                                          <div key={q.id} className="space-y-4 p-6 bg-gray-50 rounded-3xl border border-gray-100/50">
+                                              <div className="flex justify-between items-start">
+                                                  <p className="text-xs font-black text-zinc-900 italic max-w-md">{q.question}</p>
+                                                  <span className="text-[8px] font-black uppercase tracking-widest text-gray-400 bg-white px-3 py-1 rounded-full border border-gray-100">{q.input_type}</span>
+                                              </div>
+                                              
+                                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                  {['yes_no', 'multiple_choice'].includes(q.input_type) ? (
+                                                      <div className="space-y-2">
+                                                          <h5 className="text-[8px] font-black text-gray-400 uppercase tracking-widest italic px-1">Ideal Persistence Value</h5>
+                                                          <select 
+                                                            value={questionsConfig[q.question]?.value || ""}
+                                                            onChange={(e) => setQuestionsConfig({
+                                                                ...questionsConfig,
+                                                                [q.question]: { ...questionsConfig[q.question], value: e.target.value }
+                                                            })}
+                                                            className="w-full bg-white border border-gray-100 rounded-xl p-3 text-[10px] font-bold focus:ring-4 focus:ring-secondary/5 outline-none"
+                                                          >
+                                                              <option value="">No Preference</option>
+                                                              {q.input_type === 'yes_no' ? (
+                                                                  <>
+                                                                    <option value="yes">Yes / True</option>
+                                                                    <option value="no">No / False</option>
+                                                                  </>
+                                                              ) : (
+                                                                  q.options?.map((opt: string) => (
+                                                                      <option key={opt} value={opt}>{opt}</option>
+                                                                  ))
+                                                              )}
+                                                          </select>
+                                                      </div>
+                                                  ) : (
+                                                      <div className="space-y-2 lg:col-span-2">
+                                                          <h5 className="text-[8px] font-black text-gray-400 uppercase tracking-widest italic px-1">Critical Response Keywords</h5>
+                                                          <input 
+                                                            type="text"
+                                                            placeholder="Comma separated: Leadership, Scalability, P&L..."
+                                                            value={questionsConfig[q.question]?.keywords || ""}
+                                                            onChange={(e) => setQuestionsConfig({
+                                                                ...questionsConfig,
+                                                                [q.question]: { ...questionsConfig[q.question], keywords: e.target.value }
+                                                            })}
+                                                            className="w-full bg-white border border-gray-100 rounded-xl p-3 text-[10px] font-bold focus:ring-4 focus:ring-secondary/5 outline-none"
+                                                          />
+                                                      </div>
+                                                  )}
+                                              </div>
+                                          </div>
+                                      ))}
+                                  </div>
+                              </motion.section>
+                          )}
+                      </AnimatePresence>
+
+                      {/* Criteria Config */}
+                      <section className="bg-zinc-900 rounded-[48px] p-12 shadow-2xl space-y-10">
                         <div className="flex items-center space-x-3">
                             <Target className="w-6 h-6 text-secondary" />
                             <h3 className="text-2xl font-black text-white italic tracking-tight uppercase">Target Constraints</h3>
@@ -326,7 +607,9 @@ export default function NewScreeningPage() {
                                     { key: "skills", label: "Skills Density", val: weights.skills, color: "accent-primary" },
                                     { key: "experience", label: "Experience Tenure", val: weights.experience, color: "accent-secondary" },
                                     { key: "education", label: "Academic Sync", val: weights.education, color: "accent-zinc-900" },
-                                    { key: "keywords", label: "Keyword Hitrate", val: weights.keywords, color: "accent-emerald-500" }
+                                    { key: "keywords", label: "Keyword Hitrate", val: weights.keywords, color: "accent-emerald-500" },
+                                    { key: "questions", label: "Question Resonance", val: weights.questions, color: "accent-amber-500" },
+                                    { key: "assessments", label: "Assessment Sync", val: weights.assessments, color: "accent-purple-500" }
                                 ].map((w) => (
                                     <div key={w.key} className="space-y-3">
                                         <div className="flex justify-between items-center px-1">

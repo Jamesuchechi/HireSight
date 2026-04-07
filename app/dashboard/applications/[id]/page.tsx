@@ -31,7 +31,7 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
                 .from("job_applications")
                 .select(`
                     *,
-                    job:jobs(id, title, description, location, remote_type, job_type, salary_min, salary_max, 
+                    job:jobs(id, title, description, location, remote_type, job_type, salary_min, salary_max, salary_period, currency, department,
                     profiles!company_id(full_name, avatar_url)),
                     resume:resumes(title, file_url)
                 `)
@@ -43,11 +43,12 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
                 return;
             }
 
-            // Fetch History
+            // Fetch Public History
             const { data: historyData } = await supabase
                 .from("application_status_history")
                 .select("*")
                 .eq("application_id", id)
+                .eq("is_public", true)
                 .order("created_at", { ascending: false });
 
             setApplication(appData);

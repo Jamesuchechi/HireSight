@@ -2,9 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-    Users, MousePointer2, TrendingUp, 
-    CheckCircle2, XCircle, MoreVertical, 
-    Zap, Clock, FileText 
+    Zap, Clock, FileText, Star 
 } from "lucide-react";
 import { Database } from "@/types/database";
 import Link from "next/link";
@@ -74,33 +72,55 @@ function KanbanCard({ app, onMove }: { app: any, onMove: (next: string) => void 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9 }}
-            className="group block bg-white border border-gray-100 rounded-[28px] p-5 shadow-sm hover:shadow-xl hover:border-primary/20 transition-all cursor-grab active:cursor-grabbing"
+            className={`group relative block bg-white border border-gray-100 rounded-[28px] p-5 shadow-sm hover:shadow-xl hover:border-primary/20 transition-all cursor-grab active:cursor-grabbing ${
+                app.is_shortlisted ? "ring-2 ring-amber-400 ring-offset-2" : ""
+            }`}
         >
+            {/* New Badge */}
+            {!app.viewed_at && (
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary rounded-full shadow-lg shadow-primary/50 animate-pulse z-10" />
+            )}
+
             <div className="space-y-4">
                 <div className="flex items-start justify-between">
                     <div className="flex items-center space-x-3">
-                         <div className="w-10 h-10 bg-gray-50 rounded-xl border border-gray-100 flex items-center justify-center font-black text-primary italic overflow-hidden">
-                             {app.candidate?.avatar_url ? (
-                                 <img src={app.candidate.avatar_url} className="w-full h-full object-cover" />
-                             ) : (
-                                 <span>{app.candidate?.full_name?.[0] || 'U'}</span>
-                             )}
+                         <div className="relative">
+                            <div className="w-10 h-10 bg-gray-50 rounded-xl border border-gray-100 flex items-center justify-center font-black text-primary italic overflow-hidden">
+                                {app.candidate?.avatar_url ? (
+                                    <img src={app.candidate.avatar_url} className="w-full h-full object-cover" />
+                                ) : (
+                                    <span>{app.candidate?.full_name?.[0] || 'U'}</span>
+                                )}
+                            </div>
+                            {app.is_shortlisted && (
+                                <div className="absolute -bottom-1 -right-1 bg-amber-400 text-white p-1 rounded-lg shadow-lg">
+                                    <Star className="w-2.5 h-2.5 fill-current" />
+                                </div>
+                            )}
                          </div>
                          <div>
                             <h4 className="text-sm font-black text-zinc-900 line-clamp-1 italic">{app.candidate?.full_name}</h4>
-                            <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest italic">{formatDistanceToNow(new Date(app.created_at))} ago</p>
+                            <div className="flex items-center space-x-2">
+                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest italic">{formatDistanceToNow(new Date(app.created_at))} ago</p>
+                                {app.recruiter_rating > 0 && (
+                                    <div className="flex items-center text-amber-400">
+                                        <Star className="w-2 h-2 fill-current" />
+                                        <span className="text-[8px] font-black ml-0.5">{app.recruiter_rating}</span>
+                                    </div>
+                                )}
+                            </div>
                          </div>
                     </div>
                     <div className="flex flex-col items-end space-y-1">
                          <div className="flex items-center space-x-1 text-primary">
                              <Zap className="w-3 h-3 animate-pulse" />
-                             <span className="text-[10px] font-black">{app.match_score || 85}%</span>
+                             <span className="text-[10px] font-black">{app.match_score || 0}%</span>
                          </div>
                     </div>
                 </div>
 
                 <div className="flex items-center justify-between pt-4 border-t border-gray-50">
-                    <div className="flex -space-x-1">
+                    <div className="flex space-x-1">
                         <Link 
                             href={`/dashboard/applications/review/${app.id}`}
                             className="p-2 bg-gray-50 text-gray-400 hover:bg-primary hover:text-white rounded-xl transition-all"
@@ -110,14 +130,14 @@ function KanbanCard({ app, onMove }: { app: any, onMove: (next: string) => void 
                         </Link>
                     </div>
 
-                    <div className="flex items-center space-x-1">
-                         {STAGES.filter(s => s.id !== app.status).slice(0, 2).map(s => (
+                    <div className="flex items-center space-x-2">
+                         {STAGES.filter(s => s.id !== app.status).slice(0, 1).map(s => (
                              <button
                                 key={s.id}
                                 onClick={() => onMove(s.id)}
-                                className="text-[8px] font-black uppercase tracking-widest text-primary hover:underline"
+                                className="px-3 py-1 bg-gray-50 hover:bg-primary/5 text-primary text-[8px] font-black uppercase tracking-widest rounded-lg border border-gray-100 transition-all"
                              >
-                                {s.label.split(' ')[0]}
+                                Move to {s.label.split(' ')[0]}
                              </button>
                          ))}
                     </div>

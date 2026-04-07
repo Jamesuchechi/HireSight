@@ -1,6 +1,6 @@
 "use client";
 
-import { MoreVertical, Users, Eye, Edit2, Copy, Trash2, Clock, MapPin, Briefcase } from "lucide-react";
+import { MoreVertical, Users, Eye, Edit2, Copy, Trash2, Clock, MapPin, Briefcase, Star, DollarSign } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Database } from "@/types/database";
 import { useState } from "react";
@@ -36,17 +36,32 @@ export default function RecruiterJobCard({
 
   return (
     <div className="group relative bg-white border border-gray-100 rounded-[32px] p-6 shadow-sm hover:shadow-xl transition-all duration-500 overflow-hidden">
+      {/* Featured Badge */}
+      {job.is_featured && (
+        <div className="absolute top-0 left-0 px-4 py-1.5 bg-primary text-white text-[8px] font-black uppercase tracking-[0.2em] rounded-br-2xl flex items-center space-x-1.5 z-10 shadow-lg shadow-primary/20">
+          <Star className="w-3 h-3 fill-white" />
+          <span>Featured Priority</span>
+        </div>
+      )}
+
       {/* Status Badge */}
       <div className="absolute top-6 right-6 flex items-center space-x-2">
-        <div className={`w-2 h-2 rounded-full ${statusColors[job.status]} animate-pulse`} />
+        <div className={`w-2 h-2 rounded-full ${statusColors[job.status as keyof typeof statusColors]} animate-pulse`} />
         <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">
           {job.status}
         </span>
       </div>
 
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col h-full pt-4">
         {/* Header */}
         <div className="mb-6">
+          <div className="flex items-center space-x-2 mb-2">
+            {job.department && (
+              <span className="px-2 py-0.5 bg-gray-50 text-gray-400 text-[8px] font-black uppercase tracking-widest border border-gray-100 rounded-lg">
+                {job.department}
+              </span>
+            )}
+          </div>
           <h3 className="text-xl font-black text-zinc-900 italic tracking-tight group-hover:text-primary transition-colors mb-2">
             {job.title}
           </h3>
@@ -59,32 +74,33 @@ export default function RecruiterJobCard({
               <Briefcase className="w-3 h-3 text-primary" />
               <span>{job.job_type}</span>
             </div>
-            <div className="flex items-center space-x-1">
-              <Clock className="w-3 h-3 text-primary" />
-              <span>{formatDistanceToNow(new Date(job.created_at), { addSuffix: true })}</span>
-            </div>
           </div>
+          {job.salary_min && (
+            <div className="mt-3 flex items-center space-x-1.5 text-emerald-600">
+              <DollarSign className="w-3.5 h-3.5" />
+              <span className="text-sm font-black italic tracking-tight">
+                {job.currency} {(job.salary_min / 1000).toFixed(0)}k - {(job.salary_max ? job.salary_max / 1000 : 0).toFixed(0)}k
+              </span>
+              <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest ml-1">/ {job.salary_period}</span>
+            </div>
+          )}
         </div>
 
         {/* Stats Row */}
-        <div className="grid grid-cols-2 gap-4 mt-auto pt-6 border-t border-gray-50">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 bg-primary/10 rounded-xl text-primary font-black italic">
-              <Users className="w-4 h-4" />
-            </div>
-            <div>
-              <p className="text-lg font-black text-zinc-900 italic leading-none">{applicantCount}</p>
-              <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mt-1">Applicants</p>
-            </div>
+        <div className="grid grid-cols-3 gap-2 mt-auto pt-6 border-t border-gray-50">
+          <div className="flex flex-col items-center p-3 bg-primary/5 rounded-2xl">
+            <p className="text-lg font-black text-primary italic leading-none">{applicantCount}</p>
+            <p className="text-[7px] font-black text-gray-400 uppercase tracking-widest mt-1">Applicants</p>
           </div>
-          <div className="flex items-center space-x-3">
-            <div className="p-2 bg-secondary/10 rounded-xl text-secondary font-black italic">
-              <Eye className="w-4 h-4" />
-            </div>
-            <div>
-              <p className="text-lg font-black text-zinc-900 italic leading-none">{viewCount}</p>
-              <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mt-1">Total Views</p>
-            </div>
+          <div className="flex flex-col items-center p-3 bg-secondary/5 rounded-2xl">
+            <p className="text-lg font-black text-secondary italic leading-none">{viewCount}</p>
+            <p className="text-[7px] font-black text-gray-400 uppercase tracking-widest mt-1">Views</p>
+          </div>
+          <div className="flex flex-col items-center p-3 bg-emerald-50 rounded-2xl">
+            <p className="text-lg font-black text-emerald-600 italic leading-none">
+              {viewCount > 0 ? ((applicantCount / viewCount) * 100).toFixed(0) : 0}%
+            </p>
+            <p className="text-[7px] font-black text-gray-400 uppercase tracking-widest mt-1">Rate</p>
           </div>
         </div>
 

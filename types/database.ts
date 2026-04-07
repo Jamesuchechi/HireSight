@@ -19,9 +19,16 @@ export interface Database {
           cover_url: string | null
           bio: string | null
           onboarding_completed: boolean
-          company_name: string | null
-          industry: string | null
           headline: string | null
+          location: string | null
+          phone: string | null
+          skills: Json | null
+          experience: Json | null
+          education: Json | null
+          certifications: Json | null
+          portfolio_links: Json | null
+          job_preferences: Json | null
+          company_data: Json | null
         }
         Insert: {
           id: string
@@ -32,9 +39,16 @@ export interface Database {
           cover_url?: string | null
           bio?: string | null
           onboarding_completed?: boolean
-          company_name?: string | null
-          industry?: string | null
           headline?: string | null
+          location?: string | null
+          phone?: string | null
+          skills?: Json | null
+          experience?: Json | null
+          education?: Json | null
+          certifications?: Json | null
+          portfolio_links?: Json | null
+          job_preferences?: Json | null
+          company_data?: Json | null
         }
         Update: {
           id?: string
@@ -45,9 +59,16 @@ export interface Database {
           cover_url?: string | null
           bio?: string | null
           onboarding_completed?: boolean
-          company_name?: string | null
-          industry?: string | null
           headline?: string | null
+          location?: string | null
+          phone?: string | null
+          skills?: Json | null
+          experience?: Json | null
+          education?: Json | null
+          certifications?: Json | null
+          portfolio_links?: Json | null
+          job_preferences?: Json | null
+          company_data?: Json | null
         }
       }
       resumes: {
@@ -104,6 +125,16 @@ export interface Database {
           expires_at: string | null
           created_at: string
           updated_at: string
+          responsibilities: string | null
+          nice_to_have: string | null
+          benefits: string | null
+          department: string | null
+          salary_period: 'hourly' | 'monthly' | 'yearly'
+          positions_available: number
+          application_deadline: string | null
+          requires_cover_letter: boolean
+          requires_portfolio: boolean
+          is_featured: boolean
         }
         Insert: {
           id?: string
@@ -123,6 +154,16 @@ export interface Database {
           expires_at?: string | null
           created_at?: string
           updated_at?: string
+          responsibilities?: string | null
+          nice_to_have?: string | null
+          benefits?: string | null
+          department?: string | null
+          salary_period?: 'hourly' | 'monthly' | 'yearly'
+          positions_available?: number
+          application_deadline?: string | null
+          requires_cover_letter?: boolean
+          requires_portfolio?: boolean
+          is_featured?: boolean
         }
         Update: {
           id?: string
@@ -142,6 +183,16 @@ export interface Database {
           expires_at?: string | null
           created_at?: string
           updated_at?: string
+          responsibilities?: string | null
+          nice_to_have?: string | null
+          benefits?: string | null
+          department?: string | null
+          salary_period?: 'hourly' | 'monthly' | 'yearly'
+          positions_available?: number
+          application_deadline?: string | null
+          requires_cover_letter?: boolean
+          requires_portfolio?: boolean
+          is_featured?: boolean
         }
       }
       job_skills: {
@@ -213,6 +264,14 @@ export interface Database {
           feedback: string | null
           created_at: string
           updated_at: string
+          viewed_at: string | null
+          is_shortlisted: boolean
+          recruiter_rating: number | null
+          match_details: Json
+          rejection_feedback: Json
+          hired_at: string | null
+          rejected_at: string | null
+          withdrawn_at: string | null
         }
         Insert: {
           id?: string
@@ -230,6 +289,14 @@ export interface Database {
           feedback?: string | null
           created_at?: string
           updated_at?: string
+          viewed_at?: string | null
+          is_shortlisted?: boolean
+          recruiter_rating?: number | null
+          match_details?: Json
+          rejection_feedback?: Json
+          hired_at?: string | null
+          rejected_at?: string | null
+          withdrawn_at?: string | null
         }
         Update: {
           id?: string
@@ -245,6 +312,43 @@ export interface Database {
           rating?: number | null
           rejection_reason?: string | null
           feedback?: string | null
+          created_at?: string
+          updated_at?: string
+          viewed_at?: string | null
+          is_shortlisted?: boolean
+          recruiter_rating?: number | null
+          match_details?: Json
+          rejection_feedback?: Json
+          hired_at?: string | null
+          rejected_at?: string | null
+          withdrawn_at?: string | null
+        }
+      }
+      application_notes: {
+        Row: {
+          id: string
+          application_id: string
+          author_id: string
+          content: string
+          is_important: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          application_id: string
+          author_id: string
+          content: string
+          is_important?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          application_id?: string
+          author_id?: string
+          content?: string
+          is_important?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -414,6 +518,67 @@ export interface Database {
           status?: 'scheduled' | 'completed' | 'cancelled' | 'rescheduled'
           notes?: string | null
           created_at?: string
+          updated_at?: string
+        }
+      }
+      api_keys: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          key_hash: string
+          key_prefix: string
+          is_active: boolean
+          created_at: string
+          last_used_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          name: string
+          key_hash: string
+          key_prefix: string
+          is_active?: boolean
+          created_at?: string
+          last_used_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          name?: string
+          key_hash?: string
+          key_prefix?: string
+          is_active?: boolean
+          created_at?: string
+          last_used_at?: string | null
+        }
+      }
+      notification_preferences: {
+        Row: {
+          user_id: string
+          frequency: 'instant' | 'daily' | 'weekly' | 'off'
+          notify_jobs: boolean
+          notify_applications: boolean
+          notify_messages: boolean
+          notify_views: boolean
+          updated_at: string
+        }
+        Insert: {
+          user_id: string
+          frequency?: 'instant' | 'daily' | 'weekly' | 'off'
+          notify_jobs?: boolean
+          notify_applications?: boolean
+          notify_messages?: boolean
+          notify_views?: boolean
+          updated_at?: string
+        }
+        Update: {
+          user_id?: string
+          frequency?: 'instant' | 'daily' | 'weekly' | 'off'
+          notify_jobs?: boolean
+          notify_applications?: boolean
+          notify_messages?: boolean
+          notify_views?: boolean
           updated_at?: string
         }
       }
