@@ -30,7 +30,7 @@ interface NavItem {
 
 const candidateNav: NavItem[] = [
     { label: "Overview", href: "/dashboard", icon: <LayoutDashboard className="w-5 h-5" /> },
-    { label: "Job Search", href: "/dashboard/jobs", icon: <Search className="w-5 h-5" /> },
+    { label: "Job Search", href: "/jobs", icon: <Search className="w-5 h-5" /> },
     { label: "Applications", href: "/dashboard/applications", icon: <FileText className="w-5 h-5" /> },
     { label: "My Resumes", href: "/dashboard/resumes", icon: <FileText className="w-5 h-5" /> },
     { label: "My Profile", href: "/dashboard/profile", icon: <Users className="w-5 h-5" /> },
@@ -39,7 +39,8 @@ const candidateNav: NavItem[] = [
 
 const recruiterNav: NavItem[] = [
     { label: "Overview", href: "/dashboard", icon: <LayoutDashboard className="w-5 h-5" /> },
-    { label: "Active Jobs", href: "/dashboard/jobs/manage", icon: <Briefcase className="w-5 h-5" /> },
+    { label: "Active Jobs", href: "/dashboard/jobs", icon: <Briefcase className="w-5 h-5" /> },
+    { label: "Applications", href: "/dashboard/applications", icon: <FileText className="w-5 h-5" /> },
     { label: "Candidates", href: "/dashboard/candidates", icon: <Users className="w-5 h-5" /> },
     { label: "My Profile", href: "/dashboard/profile", icon: <Users className="w-5 h-5" /> },
     { label: "AI Screening", href: "/dashboard/screening", icon: <Zap className="w-5 h-5" /> },
