@@ -13,6 +13,7 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
 import { useRouter } from "next/navigation";
+import { notify } from "@/lib/notifications/notify";
 import ApplicationTimeline from "@/components/applications/ApplicationTimeline";
 import ApplicationNotes from "@/components/applications/ApplicationNotes";
 
@@ -68,6 +69,7 @@ export default function ApplicantReviewPage({ params }: { params: Promise<{ id: 
 
     const handleStatusMove = async (nextStatus: string) => {
         const { data: { user } } = await supabase.auth.getUser();
+        const oldStatus = application.status;
         
         const { error } = await supabase
             .from("job_applications")
@@ -75,7 +77,23 @@ export default function ApplicantReviewPage({ params }: { params: Promise<{ id: 
             .eq("id", id);
         
         if (!error) {
+            // Log history for analytics (conversion tracking)
+            await supabase.from("application_status_history").insert({
+                application_id: id,
+                old_status: oldStatus,
+                new_status: nextStatus
+            });
+
             setApplication((prev: any) => ({ ...prev, status: nextStatus }));
+
+            // Notify candidate
+            await notify(application.candidate_id, {
+                title: `Protocol Update: ${application.job.title}`,
+                message: `Your deployment status has shifted to: ${nextStatus.toUpperCase()}. View your command center for details.`,
+                type: "application_status_changed",
+                action_url: `/dashboard/applications/${id}`,
+                action_text: "Access Intel"
+            });
         }
     };
 

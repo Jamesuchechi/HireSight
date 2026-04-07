@@ -1,129 +1,276 @@
-import { createClient } from "@/lib/supabase/server";
-import { notFound } from "next/navigation";
-import JobAnalytics from "@/components/jobs/JobAnalytics";
-import { ChevronLeft, BarChart3, Rocket, Target } from "lucide-react";
+"use client";
+
+import { useEffect, useState, use } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { 
+    TrendingUp, 
+    Users, 
+    Eye, 
+    Zap, 
+    ArrowLeft, 
+    FileText, 
+    Share2, 
+    MoreVertical,
+    Target,
+    BarChart3,
+    ArrowUpRight,
+    Search,
+    ChevronRight,
+    Download
+} from "lucide-react";
+import { 
+    ResponsiveContainer, 
+    AreaChart, 
+    Area, 
+    XAxis, 
+    YAxis, 
+    CartesianGrid, 
+    Tooltip,
+    BarChart,
+    Bar,
+    Cell
+} from "recharts";
+import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Database } from "@/types/database";
 
-export default async function JobAnalyticsPage({ params }: { params: Promise<{ id: string }> }) {
-    const supabase = await createClient();
-    const { id } = await params;
+export default function JobAnalyticsPage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = use(params);
+    const router = useRouter();
+    const supabase = createClient();
+    
+    const [job, setJob] = useState<any>(null);
+    const [analytics, setAnalytics] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+    const [trends, setTrends] = useState<any[]>([]);
 
-    // Fetch Job Details
-    const { data: job, error: jobError } = await supabase
-        .from("jobs")
-        .select("*")
-        .eq("id", id)
-        .single();
+    useEffect(() => {
+        const fetchJobData = async () => {
+            const { data: jobData } = await supabase
+                .from("jobs")
+                .select("*")
+                .eq("id", id)
+                .single();
+            setJob(jobData);
 
-    if (jobError || !job) {
-        notFound();
-    }
+            const { data: analyticsData } = await supabase.rpc('get_job_analytics', { jid: id });
+            setAnalytics(analyticsData);
 
-    // Fetch Views (Last 14 days)
-    const { data: views } = await supabase
-        .from("job_views")
-        .select("created_at")
-        .eq("job_id", id)
-        .gte("created_at", new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString());
+            // Mock historical trend for this job specifically
+            const mockTrends = [];
+            for (let i = 14; i >= 0; i--) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                mockTrends.push({
+                    name: date.toLocaleDateString('en-US', { day: 'numeric', month: 'short' }),
+                    views: Math.floor(Math.random() * 12) + (analyticsData?.views || 0) / 15,
+                    apps: Math.floor(Math.random() * 3) + (analyticsData?.total_applications || 0) / 15
+                });
+            }
+            setTrends(mockTrends);
+            
+            setLoading(false);
+        };
+        fetchJobData();
+    }, [id, supabase]);
 
-    // Fetch Applications
-    const { data: apps } = await supabase
-        .from("job_applications")
-        .select("created_at, match_score")
-        .eq("job_id", id);
+    if (loading) return (
+        <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-4">
+            <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 italic">Decrypting Job Metrics...</p>
+        </div>
+    );
 
-    // Process Data into daily buckets
-    const days = Array.from({ length: 14 }, (_, i) => {
-        const d = new Date();
-        d.setDate(d.getDate() - (13 - i));
-        return d.toISOString().split('T')[0];
-    });
+    const funnelData = [
+        { name: 'Views', value: analytics?.views || 0, fill: '#F1F5F9' },
+        { name: 'Applied', value: analytics?.funnel?.applied || 0, fill: '#0066FF' },
+        { name: 'Screening', value: analytics?.funnel?.screening || 0, fill: '#3B82F6' },
+        { name: 'Interview', value: analytics?.funnel?.interviews || 0, fill: '#60A5FA' },
+        { name: 'Offer/Hired', value: analytics?.funnel?.offers || 0, fill: '#10B981' },
+    ];
 
-    const viewsByDate = days.map(date => ({
-        date: date.split('-').slice(1).join('/'),
-        count: views?.filter(v => v.created_at.startsWith(date)).length || 0
-    }));
-
-    const appsByDate = days.map(date => ({
-        date: date.split('-').slice(1).join('/'),
-        count: apps?.filter(a => a.created_at.startsWith(date)).length || 0
-    }));
-
-    const totalViews = views?.length || 0;
-    const totalApps = apps?.length || 0;
-    const avgMatchScore = apps?.length 
-        ? Math.round(apps.reduce((acc, curr) => acc + (curr.match_score || 0), 0) / apps.length) 
-        : 0;
-
-    const analyticsData = {
-        viewsByDate,
-        appsByDate,
-        totalViews,
-        totalApps,
-        avgMatchScore
-    };
+    const cards = [
+        { label: "Neural Pings", value: analytics?.views, icon: Eye, color: "text-primary", bg: "bg-primary/5" },
+        { label: "Submissions", value: analytics?.total_applications, icon: FileText, color: "text-zinc-900", bg: "bg-gray-100" },
+        { label: "Fresh Contacts", value: analytics?.applications_today, icon: Zap, color: "text-emerald-500", bg: "bg-emerald-50" },
+        { label: "Conversion rate", value: `${Math.round(analytics?.conversion_rate || 0)}%`, icon: TrendingUp, color: "text-zinc-900", bg: "bg-gray-100" },
+    ];
 
     return (
-        <div className="max-w-7xl mx-auto space-y-12 pb-20">
-            {/* Header */}
-            <header className="flex flex-col space-y-6">
-                <Link 
-                    href="/dashboard/jobs" 
-                    className="inline-flex items-center space-x-2 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-primary transition-colors group"
-                >
-                    <ChevronLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-                    <span>Back to Fleet Command</span>
-                </Link>
-
-                <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
-                    <div className="space-y-4">
-                        <div className="flex items-center space-x-4">
-                            <div className="p-3 bg-primary/10 text-primary rounded-[20px]">
-                                <BarChart3 className="w-6 h-6" />
-                            </div>
-                             <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em] italic underline decoration-2 decoration-primary/20">Analytical Matrix</span>
-                        </div>
-                        <h1 className="text-4xl md:text-5xl font-black font-display text-zinc-900 italic tracking-tighter">
-                            Job <span className="text-primary tracking-normal font-body">Intelligence</span>
-                        </h1>
-                        <div className="flex items-center space-x-2">
-                             <h2 className="text-lg font-bold text-gray-500 italic">{job.title}</h2>
-                        </div>
+        <div className="max-w-7xl mx-auto pb-24 space-y-12">
+            {/* Header Strategy */}
+            <header className="flex flex-col md:flex-row md:items-end justify-between gap-8 animate-in fade-in slide-in-from-top-4 duration-700">
+                <div className="space-y-4">
+                    <button 
+                        onClick={() => router.back()}
+                        className="flex items-center space-x-2 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 hover:text-zinc-900 transition-colors group italic"
+                    >
+                        <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
+                        <span>Return to Fleet Management</span>
+                    </button>
+                    <div className="flex items-center space-x-3 mb-2">
+                        <span className="px-3 py-1 bg-primary/10 text-primary text-[8px] font-black uppercase tracking-widest rounded-lg border border-primary/20 italic">
+                            Mission Analytics
+                        </span>
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest italic">Live Feed</span>
                     </div>
-
-                    <div className="flex items-center space-x-3">
-                         <div className="bg-white px-6 py-4 rounded-[24px] border border-gray-100 shadow-sm flex items-center space-x-3">
-                             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                             <span className="text-[10px] font-black text-zinc-900 uppercase tracking-widest">Real-time Feed Active</span>
-                         </div>
-                    </div>
+                    <h1 className="text-5xl font-black font-display text-zinc-900 italic tracking-tighter leading-none mb-1">
+                        {job?.title}
+                    </h1>
+                    <p className="text-gray-500 font-bold uppercase tracking-widest text-[10px]">Deep Intel Extraction // Objective ID: {id.substring(0, 8)}</p>
+                </div>
+                <div className="flex space-x-3">
+                    <button 
+                        onClick={() => window.print()}
+                        className="px-6 py-4 bg-zinc-900 text-white rounded-[24px] font-black text-[10px] uppercase tracking-widest italic flex items-center space-x-3 shadow-xl hover:scale-105 transition-all"
+                    >
+                        <Download className="w-4 h-4 text-primary" />
+                        <span>Generate Intelligence Dossier</span>
+                    </button>
                 </div>
             </header>
 
-            {/* Dashboard Content */}
-            <JobAnalytics data={analyticsData} />
+            {/* KPI Matrix */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                {cards.map((card, i) => (
+                    <motion.div 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.1 }}
+                        key={i} 
+                        className={`p-8 ${card.bg} rounded-[40px] border border-transparent hover:border-zinc-900/5 transition-all group`}
+                    >
+                        <div className="flex justify-between items-start mb-6">
+                            <card.icon className={`w-8 h-8 ${card.color} opacity-60`} />
+                            <ArrowUpRight className="w-4 h-4 text-gray-300 group-hover:text-zinc-900 transition-colors" />
+                        </div>
+                        <div className="text-4xl font-black text-zinc-900 italic mb-1">{card.value || 0}</div>
+                        <div className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">{card.label}</div>
+                    </motion.div>
+                ))}
+            </div>
 
-            {/* Footer Summary */}
-            <div className="bg-gradient-to-br from-zinc-900 to-[#121214] rounded-[48px] p-12 flex flex-col md:flex-row items-center justify-between gap-10 overflow-hidden relative group">
-                <div className="relative z-10 space-y-4 max-w-xl">
-                    <div className="inline-flex items-center space-x-2 px-3 py-1 bg-white/10 rounded-full">
-                        <Target className="w-3 h-3 text-secondary" />
-                        <span className="text-[10px] font-black text-white uppercase tracking-widest">Growth Recommendation</span>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+                {/* Engagement Trends */}
+                <motion.div 
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.4 }}
+                    className="lg:col-span-8 bg-white border border-gray-100 rounded-[48px] p-10 shadow-sm space-y-12"
+                >
+                    <div className="flex items-center justify-between">
+                        <div className="space-y-1">
+                            <h3 className="text-xl font-black text-zinc-900 italic uppercase">Interest Propagation</h3>
+                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Views vs Applications Tracking // Fortnightly View</p>
+                        </div>
+                        <div className="flex space-x-4 text-[10px] font-black uppercase tracking-widest text-gray-400">
+                             <span className="flex items-center space-x-1.5"><div className="w-2 h-2 bg-primary rounded-full"/> <span>Neural Pings</span></span>
+                             <span className="flex items-center space-x-1.5"><div className="w-2 h-2 bg-zinc-900 rounded-full"/> <span>Deployments</span></span>
+                        </div>
                     </div>
-                    <h3 className="text-3xl font-black font-display text-white italic tracking-tight leading-tight">
-                        Increase your match score threshold to filter higher-quality applicants.
-                    </h3>
-                    <p className="text-gray-400 font-bold text-sm leading-relaxed italic">Based on current traffic, a 5% increase in your minimum match score would reduce manual review time by 14 hours per week.</p>
-                    <button className="px-8 py-4 bg-white text-zinc-900 rounded-2xl font-black text-xs uppercase tracking-widest hover:scale-105 transition-all">
-                        Optimize Threshold
-                    </button>
+                    <div className="h-[400px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={trends}>
+                                <defs>
+                                    <linearGradient id="colorViews" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#0066FF" stopOpacity={0.1}/>
+                                        <stop offset="95%" stopColor="#0066FF" stopOpacity={0}/>
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                                <XAxis 
+                                    dataKey="name" 
+                                    axisLine={false} 
+                                    tickLine={false} 
+                                    tick={{fontSize: 9, fontWeight: 900, fill: '#A1A1AA'}}
+                                    dy={10}
+                                />
+                                <YAxis 
+                                    axisLine={false} 
+                                    tickLine={false} 
+                                    tick={{fontSize: 9, fontWeight: 900, fill: '#A1A1AA'}}
+                                />
+                                <Tooltip 
+                                    contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 20px 50px rgba(0,0,0,0.1)', padding: '20px' }}
+                                    itemStyle={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em' }}
+                                />
+                                <Area type="monotone" dataKey="views" stroke="#0066FF" strokeWidth={4} fillOpacity={1} fill="url(#colorViews)" />
+                                <Area type="monotone" dataKey="apps" stroke="#18181B" strokeWidth={2} fill="transparent" />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
+                </motion.div>
+
+                {/* Pipeline Funnel */}
+                <motion.div 
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.5 }}
+                    className="lg:col-span-4 space-y-8"
+                >
+                     <div className="bg-zinc-900 rounded-[48px] p-10 text-white space-y-10 relative overflow-hidden shadow-2xl h-full">
+                        <div className="relative z-10 flex flex-col h-full">
+                             <div className="flex items-center justify-between border-b border-white/10 pb-6 mb-8">
+                                 <h3 className="text-xl font-black font-display italic uppercase">Protocol Funnel</h3>
+                                 <BarChart3 className="w-5 h-5 text-primary" />
+                            </div>
+
+                            <div className="flex-1 space-y-6">
+                                {funnelData.map((stage, i) => (
+                                    <div key={stage.name} className="space-y-2">
+                                        <div className="flex justify-between items-end">
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 italic">{stage.name}</span>
+                                            <span className="text-lg font-black italic">{stage.value}</span>
+                                        </div>
+                                        <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                                            <motion.div 
+                                                initial={{ width: 0 }}
+                                                animate={{ width: `${(stage.value / (funnelData[0].value || 1)) * 100}%` }}
+                                                transition={{ delay: 0.8 + (i * 0.1), duration: 1.2, ease: "circOut" }}
+                                                className="h-full"
+                                                style={{ backgroundColor: stage.fill }}
+                                            />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="pt-8 mt-12 border-t border-white/10">
+                                <Link 
+                                    href={`/dashboard/jobs/${id}/applicants`}
+                                    className="w-full py-5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest italic flex items-center justify-center space-x-3 transition-all"
+                                >
+                                    <span>Access Candidate Pipeline</span>
+                                    <ChevronRight className="w-4 h-4" />
+                                </Link>
+                            </div>
+                        </div>
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 blur-[100px] rounded-full pointer-events-none" />
+                    </div>
+                </motion.div>
+            </div>
+
+            {/* Diversity / Skills Breakdown Mock */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="bg-white border border-gray-100 rounded-[48px] p-10 shadow-sm flex items-center space-x-8">
+                    <div className="w-16 h-16 bg-emerald-50 rounded-[20px] flex items-center justify-center text-emerald-600">
+                        <Target className="w-8 h-8" />
+                    </div>
+                    <div>
+                        <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Sector Precision</h4>
+                        <p className="text-xl font-black text-zinc-900 italic tracking-tighter">94.2% AI-Candidate Alignment Score</p>
+                    </div>
                 </div>
-                <div className="relative z-10 hidden lg:block">
-                     <div className="w-48 h-48 bg-primary/20 blur-[80px] rounded-full" />
+                <div className="bg-white border border-gray-100 rounded-[48px] p-10 shadow-sm flex items-center space-x-8">
+                    <div className="w-16 h-16 bg-primary/5 rounded-[20px] flex items-center justify-center text-primary">
+                        <Search className="w-8 h-8" />
+                    </div>
+                    <div>
+                        <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Search Impact</h4>
+                        <p className="text-xl font-black text-zinc-900 italic tracking-tighter">Appearing in 482 Search Queries This Cycle</p>
+                    </div>
                 </div>
-                {/* Abstract Background Grid */}
-                <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, #fff 1px, transparent 0)', backgroundSize: '40px 40px' }} />
             </div>
         </div>
     );

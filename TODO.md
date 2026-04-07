@@ -441,7 +441,7 @@
   - [ ] Average scores
   - [ ] Skill badges earned
 
-### Advanced Analytics (Future)
+### Advanced Analytics
 - [ ] Predictive analytics (likelihood to hire)
 - [ ] Benchmarking (compare to industry averages)
 - [ ] Custom report builder

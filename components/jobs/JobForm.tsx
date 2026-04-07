@@ -208,6 +208,50 @@ export default function JobForm() {
         if (questionsError) throw questionsError;
       }
 
+      // 4. Notify followers about the new mission
+      try {
+        const { data: followers } = await supabase
+          .from("follows")
+          .select("follower_id")
+          .eq("following_id", user.id);
+        
+        if (followers && followers.length > 0) {
+          const { notify } = await import("@/lib/notifications/notify");
+          // Optionally get the company name from the user metadata or use a generic term
+          const companyName = user.user_metadata?.full_name || "A company";
+          
+          await Promise.all(
+            followers.map(f => 
+              notify(f.follower_id, {
+                title: "New Objective Available",
+                message: `${companyName} just deployed a new mission: ${values.title}.`,
+                type: "new_job_from_follow",
+                action_url: `/jobs/${job.id}`,
+                action_text: "Access Intel"
+              })
+            )
+          );
+        }
+      } catch (notifyErr) {
+        console.error("Failed to broadcast new job notification:", notifyErr);
+      }
+
+      // 5. Log public activity for the network feed
+      try {
+        await supabase.from("activities").insert({
+          user_id: user.id,
+          activity_type: "job_posted",
+          content: {
+            job_id: job.id,
+            job_title: values.title,
+            location: values.location
+          },
+          is_public: true
+        });
+      } catch (activityErr) {
+        console.error("Failed to log job activity:", activityErr);
+      }
+
       router.push("/dashboard/jobs");
     } catch (error) {
       console.error("Error creating job:", error);

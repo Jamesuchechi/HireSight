@@ -16,11 +16,12 @@ export default function JobViewTracker({ jobId }: JobViewTrackerProps) {
       
       // We don't block on errors here as tracking is secondary to UI
       await supabase
-        .from("job_views")
+        .from("page_views")
         .insert({
-          job_id: jobId,
-          user_id: user?.id || null,
-          user_agent: typeof window !== "undefined" ? window.navigator.userAgent : null,
+          target_type: 'job',
+          target_id: jobId,
+          viewer_id: user?.id || null,
+          viewer_ip: typeof window !== "undefined" ? window.navigator.userAgent : null, // Using userAgent as proxy for IP since browser cannot easily get IP directly
         });
     };
 

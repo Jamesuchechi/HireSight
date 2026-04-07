@@ -1,4 +1,5 @@
 import { createClient } from "./client";
+import { notify } from "@/lib/notifications/notify";
 
 /**
  * Issues a Neural Badge to a candidate upon successful assessment completion.
@@ -54,6 +55,29 @@ export async function issueNeuralBadge(attemptId: string) {
         console.error("Badge Issuance Failed:", bError);
         return null;
     }
+
+    // 5. Fire assessment_passed notification to the candidate
+    await notify(attempt.candidate_id, {
+        title: `🏆 ${level.charAt(0).toUpperCase() + level.slice(1)} Badge Earned!`,
+        message: `You scored ${score}% and earned a ${level} badge for "${attempt.assessment.title}". View your Neural Trophy Case.`,
+        type: "assessment_passed",
+        action_url: "/dashboard/achievements",
+        action_text: "View Trophy Case",
+        metadata: { badge_level: level, skill: attempt.assessment.title, score }
+    });
+
+    // 6. Log public activity for the network feed
+    const { error: activityError } = await supabase.from("activities").insert({
+        user_id: attempt.candidate_id,
+        activity_type: "assessment_passed",
+        content: {
+            assessment_title: attempt.assessment.title,
+            badge_level: level,
+            score: score
+        },
+        is_public: true
+    });
+    if (activityError) console.error("Failed to log activity:", activityError);
 
     return badge;
 }

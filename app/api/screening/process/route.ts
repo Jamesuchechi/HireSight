@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 import { ScreeningEngine } from "@/lib/ai/screening-engine";
+import { notifyServer } from "@/lib/notifications/notify-server";
 
 
 export async function POST(req: NextRequest) {
@@ -74,6 +75,15 @@ export async function POST(req: NextRequest) {
 
         // 5. Update Session Progress
         await supabase.rpc('increment_processed_count', { session_row_id: sessionId });
+
+        // 6. Notify session creator (recruiter) that screening is done
+        await notifyServer(session.created_by, {
+            title: "Neural Screening Complete",
+            message: `A candidate scored ${result.match_score}% on your screening session.`,
+            type: "screening_completed",
+            action_url: `/dashboard/screening`,
+            action_text: "View Results"
+        });
 
         return NextResponse.json(resultRecord);
     } catch (error: any) {

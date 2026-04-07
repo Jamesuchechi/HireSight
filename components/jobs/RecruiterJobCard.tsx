@@ -1,6 +1,6 @@
 "use client";
 
-import { MoreVertical, Users, Eye, Edit2, Copy, Trash2, Clock, MapPin, Briefcase, Star, DollarSign } from "lucide-react";
+import { MoreVertical, Users, Eye, Edit2, Copy, Trash2, Clock, MapPin, Briefcase, Star, DollarSign, TrendingUp } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Database } from "@/types/database";
 import { useState } from "react";
@@ -138,6 +138,13 @@ export default function RecruiterJobCard({
                     exit={{ opacity: 0, scale: 0.95, y: 10 }}
                     className="absolute right-0 top-full mt-2 w-48 bg-white border border-gray-100 rounded-2xl shadow-2xl z-20 py-2 overflow-hidden"
                   >
+                    <button
+                      onClick={() => { window.location.href = `/dashboard/jobs/${job.id}/analytics`; setShowMenu(false); }}
+                      className="w-full px-4 py-2.5 text-left flex items-center space-x-3 hover:bg-gray-50 transition-all group/item"
+                    >
+                      <TrendingUp className="w-4 h-4 text-gray-400 group-hover/item:text-primary" />
+                      <span className="text-xs font-bold text-gray-600 group-hover/item:text-zinc-900">Deep Intel (Analytics)</span>
+                    </button>
                     <button
                       onClick={() => { window.location.href = `/dashboard/jobs/${job.id}/applicants`; setShowMenu(false); }}
                       className="w-full px-4 py-2.5 text-left flex items-center space-x-3 hover:bg-gray-50 transition-all group/item"

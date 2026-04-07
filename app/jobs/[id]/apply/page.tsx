@@ -3,6 +3,7 @@
 import { useEffect, useState, use } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import { notify } from "@/lib/notifications/notify";
 import { 
     ChevronLeft, CheckCircle, FileText, Zap, 
     ArrowRight, BrainCircuit, Rocket, Briefcase 
@@ -97,6 +98,15 @@ export default function ApplyPage({ params }: { params: Promise<{ id: string }> 
                     changed_by: user.id,
                     reason: "Initial submission",
                 });
+
+            // 3. Notify the company/recruiter
+            await notify(job.company_id as string, {
+                title: "New Transmission Received",
+                message: `A candidate has deployed an identity matrix for ${job.title}.`,
+                type: "application_received",
+                action_url: `/dashboard/applications/review/${appData.id}`,
+                action_text: "Initialize Recon"
+            });
 
             setStep(4); // Success step
         } catch (error) {

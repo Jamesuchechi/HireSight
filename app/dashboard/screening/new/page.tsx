@@ -569,8 +569,11 @@ export default function NewScreeningPage() {
                                     <h5 className="text-[10px] font-black text-gray-500 uppercase tracking-widest italic">Experience (Years)</h5>
                                     <input 
                                         type="number"
-                                        value={criteria.minExperience}
-                                        onChange={(e) => setCriteria({...criteria, minExperience: parseInt(e.target.value)})}
+                                        value={criteria.minExperience ?? ""}
+                                        onChange={(e) => {
+                                            const val = parseInt(e.target.value);
+                                            setCriteria({...criteria, minExperience: isNaN(val) ? 0 : val});
+                                        }}
                                         className="w-full bg-white/5 border border-white/10 rounded-2xl p-6 text-white text-3xl font-black italic focus:ring-4 focus:ring-secondary/20 outline-none"
                                     />
                                 </div>

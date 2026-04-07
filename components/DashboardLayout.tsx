@@ -20,11 +20,13 @@ import {
     Trophy,
     BrainCircuit,
     ShieldCheck,
-    Target
+    Target,
+    Radar
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import NotificationBell from "./NotificationBell";
 
 interface NavItem {
     label: string;
@@ -38,7 +40,10 @@ const candidateNav: NavItem[] = [
     { label: "Skill Explorer", href: "/dashboard/assessments/browse", icon: <BrainCircuit className="w-5 h-5" /> },
     { label: "Achievements", href: "/dashboard/achievements", icon: <Trophy className="w-5 h-5" /> },
     { label: "Applications", href: "/dashboard/applications", icon: <FileText className="w-5 h-5" /> },
+    { label: "Notifications", href: "/dashboard/notifications", icon: <Bell className="w-5 h-5" /> },
     { label: "My Resumes", href: "/dashboard/resumes", icon: <FileText className="w-5 h-5" /> },
+    { label: "Command Network", href: "/dashboard/network", icon: <Radar className="w-5 h-5" /> },
+    { label: "Intelligence Hub", href: "/dashboard/analytics", icon: <TrendingUp className="w-5 h-5" /> },
     { label: "My Profile", href: "/dashboard/profile", icon: <Users className="w-5 h-5" /> },
     { label: "Settings", href: "/dashboard/settings", icon: <Settings className="w-5 h-5" /> },
 ];
@@ -49,8 +54,11 @@ const recruiterNav: NavItem[] = [
     { label: "Applications", href: "/dashboard/applications", icon: <FileText className="w-5 h-5" /> },
     { label: "Assessment Matrix", href: "/dashboard/assessments", icon: <ShieldCheck className="w-5 h-5" /> },
     { label: "Candidates", href: "/dashboard/candidates", icon: <Users className="w-5 h-5" /> },
-    { label: "My Profile", href: "/dashboard/profile", icon: <Users className="w-5 h-5" /> },
     { label: "AI Screening", href: "/dashboard/screening", icon: <Zap className="w-5 h-5" /> },
+    { label: "Notifications", href: "/dashboard/notifications", icon: <Bell className="w-5 h-5" /> },
+    { label: "Command Network", href: "/dashboard/network", icon: <Radar className="w-5 h-5" /> },
+    { label: "Intelligence Hub", href: "/dashboard/analytics", icon: <TrendingUp className="w-5 h-5" /> },
+    { label: "My Profile", href: "/dashboard/profile", icon: <Users className="w-5 h-5" /> },
     { label: "Settings", href: "/dashboard/settings", icon: <Settings className="w-5 h-5" /> },
 ];
 
@@ -65,6 +73,7 @@ export default function DashboardLayout({
     
     const [role, setRole] = useState<"candidate" | "recruiter" | null>(null);
     const [profile, setProfile] = useState<any>(null);
+    const [userId, setUserId] = useState<string | null>(null);
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [loading, setLoading] = useState(true);
 
@@ -99,6 +108,7 @@ export default function DashboardLayout({
             if (profile) {
                 setRole(profile.role);
                 setProfile(profile);
+                setUserId(user.id);
             }
             setLoading(false);
         };
@@ -244,11 +254,8 @@ export default function DashboardLayout({
                             />
                         </div>
 
-                        {/* Notifications */}
-                        <button className="relative p-2.5 bg-white border border-gray-100 rounded-2xl hover:bg-gray-50 transition-all shadow-sm">
-                            <Bell className="w-5 h-5 text-gray-500" />
-                            <span className="absolute top-2 right-2.5 w-2 h-2 bg-primary rounded-full border-2 border-white" />
-                        </button>
+                        {/* Notifications Bell */}
+                        {userId && <NotificationBell userId={userId} />}
 
                         <div className="h-8 w-px bg-gray-100" />
 
