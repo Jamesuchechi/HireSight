@@ -6,12 +6,21 @@ import { Bell, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface NotificationPrefs {
+    user_id?: string;
     frequency: 'instant' | 'daily' | 'weekly' | 'off';
     notify_jobs: boolean;
     notify_applications: boolean;
     notify_messages: boolean;
     notify_views: boolean;
 }
+
+const DEFAULT_PREFS: NotificationPrefs = {
+    frequency: 'instant',
+    notify_jobs: true,
+    notify_applications: true,
+    notify_messages: true,
+    notify_views: true,
+};
 
 export default function NotificationToggles() {
     const supabase = createClient();
@@ -21,19 +30,28 @@ export default function NotificationToggles() {
 
     useEffect(() => {
         const fetchPrefs = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-                const { data } = await supabase
-                    .from("notification_preferences")
-                    .select("*")
-                    .eq("user_id", user.id)
-                    .single();
-                
-                if (data) {
-                    setPrefs(data as any);
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                    const { data, error } = await supabase
+                        .from("notification_preferences")
+                        .select("*")
+                        .eq("user_id", user.id)
+                        .single();
+                    
+                    if (data) {
+                        setPrefs(data as any);
+                    } else if (error && error.code === 'PGRST116') {
+                        // Record not found, use defaults
+                        setPrefs({ ...DEFAULT_PREFS, user_id: user.id });
+                    }
                 }
+            } catch (error) {
+                console.error("Error fetching notification preferences:", error);
+                setPrefs(DEFAULT_PREFS);
+            } finally {
+                setLoading(false);
             }
-            setLoading(false);
         };
         fetchPrefs();
     }, [supabase]);
@@ -49,8 +67,11 @@ export default function NotificationToggles() {
         if (user) {
             await supabase
                 .from("notification_preferences")
-                .update({ [key]: newPrefs[key] })
-                .eq("user_id", user.id);
+                .upsert({ 
+                    user_id: user.id,
+                    [key]: newPrefs[key],
+                    updated_at: new Date().toISOString()
+                });
         }
         setSaving(null);
     };
@@ -66,8 +87,11 @@ export default function NotificationToggles() {
         if (user) {
             await supabase
                 .from("notification_preferences")
-                .update({ frequency: freq })
-                .eq("user_id", user.id);
+                .upsert({ 
+                    user_id: user.id,
+                    frequency: freq,
+                    updated_at: new Date().toISOString()
+                });
         }
         setSaving(null);
     };

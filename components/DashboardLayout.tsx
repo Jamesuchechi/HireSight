@@ -15,14 +15,15 @@ import {
     X,
     TrendingUp,
     Zap,
-    MapPin,
-    ArrowUpRight,
     Trophy,
     BrainCircuit,
     ShieldCheck,
     Target,
-    Radar
+    Radar,
+    MessageSquare,
+    Mail
 } from "lucide-react";
+
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -40,26 +41,32 @@ const candidateNav: NavItem[] = [
     { label: "Skill Explorer", href: "/dashboard/assessments/browse", icon: <BrainCircuit className="w-5 h-5" /> },
     { label: "Achievements", href: "/dashboard/achievements", icon: <Trophy className="w-5 h-5" /> },
     { label: "Applications", href: "/dashboard/applications", icon: <FileText className="w-5 h-5" /> },
+    { label: "Interviews", href: "/dashboard/interviews", icon: <BrainCircuit className="w-5 h-5" /> },
     { label: "Notifications", href: "/dashboard/notifications", icon: <Bell className="w-5 h-5" /> },
     { label: "My Resumes", href: "/dashboard/resumes", icon: <FileText className="w-5 h-5" /> },
     { label: "Command Network", href: "/dashboard/network", icon: <Radar className="w-5 h-5" /> },
-    { label: "Intelligence Hub", href: "/dashboard/analytics", icon: <TrendingUp className="w-5 h-5" /> },
+    { label: "Messages", href: "/dashboard/messages", icon: <MessageSquare className="w-5 h-5" /> },
     { label: "My Profile", href: "/dashboard/profile", icon: <Users className="w-5 h-5" /> },
     { label: "Settings", href: "/dashboard/settings", icon: <Settings className="w-5 h-5" /> },
+
 ];
 
 const recruiterNav: NavItem[] = [
     { label: "Overview", href: "/dashboard", icon: <LayoutDashboard className="w-5 h-5" /> },
     { label: "Active Jobs", href: "/dashboard/jobs", icon: <Briefcase className="w-5 h-5" /> },
     { label: "Applications", href: "/dashboard/applications", icon: <FileText className="w-5 h-5" /> },
+    {label: "Interviews", href: "/dashboard/interviews", icon: <BrainCircuit className="w-5 h-5" /> },
+    { label: "Strategic War Room", href: "/dashboard/war-room", icon: <Target className="w-5 h-5" /> },
     { label: "Assessment Matrix", href: "/dashboard/assessments", icon: <ShieldCheck className="w-5 h-5" /> },
     { label: "Candidates", href: "/dashboard/candidates", icon: <Users className="w-5 h-5" /> },
     { label: "AI Screening", href: "/dashboard/screening", icon: <Zap className="w-5 h-5" /> },
     { label: "Notifications", href: "/dashboard/notifications", icon: <Bell className="w-5 h-5" /> },
     { label: "Command Network", href: "/dashboard/network", icon: <Radar className="w-5 h-5" /> },
     { label: "Intelligence Hub", href: "/dashboard/analytics", icon: <TrendingUp className="w-5 h-5" /> },
+    { label: "Talent Comms", href: "/dashboard/messages", icon: <Mail className="w-5 h-5" /> },
     { label: "My Profile", href: "/dashboard/profile", icon: <Users className="w-5 h-5" /> },
     { label: "Settings", href: "/dashboard/settings", icon: <Settings className="w-5 h-5" /> },
+
 ];
 
 export default function DashboardLayout({
@@ -76,6 +83,8 @@ export default function DashboardLayout({
     const [userId, setUserId] = useState<string | null>(null);
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [unreadCount, setUnreadCount] = useState(0);
+
 
     // Initial check for desktop screens
     useEffect(() => {
@@ -99,15 +108,15 @@ export default function DashboardLayout({
                 return;
             }
 
-            const { data: profile } = await supabase
+            const { data: profileData } = await supabase
                 .from("profiles")
                 .select("*")
                 .eq("id", user.id)
                 .single();
 
-            if (profile) {
-                setRole(profile.role);
-                setProfile(profile);
+            if (profileData) {
+                setRole(profileData.role);
+                setProfile(profileData);
                 setUserId(user.id);
             }
             setLoading(false);
@@ -115,6 +124,30 @@ export default function DashboardLayout({
 
         fetchProfile();
     }, [router, supabase]);
+
+    useEffect(() => {
+        if (!userId) return;
+
+        const fetchUnreadCount = async () => {
+            const { data, error } = await supabase.rpc('get_unread_message_count', { uid: userId });
+            if (!error) setUnreadCount(data);
+        };
+
+        fetchUnreadCount();
+
+        const channel = supabase
+            .channel(`global_unread_${userId}`)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => {
+                fetchUnreadCount();
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [userId, supabase]);
+
+
 
     const handleSignOut = async () => {
         await supabase.auth.signOut();
@@ -192,9 +225,20 @@ export default function DashboardLayout({
                                     {item.icon}
                                 </div>
                                 {sidebarOpen && (
-                                    <span className="font-bold text-sm tracking-tight">{item.label}</span>
+                                    <div className="flex-1 flex justify-between items-center">
+                                        <span className="font-bold text-sm tracking-tight">{item.label}</span>
+                                        {item.href === "/dashboard/messages" && unreadCount > 0 && (
+                                            <span className="bg-white text-primary text-[10px] font-black px-2 py-0.5 rounded-full shadow-sm animate-pulse">
+                                                {unreadCount}
+                                            </span>
+                                        )}
+                                    </div>
+                                )}
+                                {!sidebarOpen && item.href === "/dashboard/messages" && unreadCount > 0 && (
+                                    <div className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full shadow-lg" />
                                 )}
                             </Link>
+
                         );
                     })}
                 </nav>
