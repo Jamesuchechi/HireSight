@@ -1,64 +1,69 @@
-import {
-  type JobContext,
-  Worker,
-  AutoSubscribe,
+const {
   cli,
-  multimodal,
-} from '@livekit/agents';
-import * as openai from '@livekit/agents-plugin-openai';
-import * as dotenv from 'dotenv';
-import path from 'path';
+  voice,
+  defineAgent,
+  WorkerOptions,
+} = require('@livekit/agents');
+const openai = require('@livekit/agents-plugin-openai');
+const dotenv = require('dotenv');
+const path = require('path');
 
-dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
+// Load environment variables from .env or .env.local
+dotenv.config();
 
-// ============================================================
-// HiréSight Tactical Protocol: Ava System Prompt
-// ============================================================
-const SYSTEM_PROMPT = `
-You are Ava, the Autonomous Voice Assistant for HiréSight. 
-Your mission is to conduct a professional tactical screening mission for a high-stakes job application.
-
-PRONOUNCE Your Name: Aye-vah.
-
-OPERATIONAL PARAMETERS:
-1. BE PROFESSIONAL & TACTICAL: Use a tone that is efficient, empathetic but mission-driven. 
-2. STAR FRAMEWORK: Focus on Situation, Task, Action, and Result. If a candidate is vague, probe deeper.
-3. ADAPTIVE LOGIC: Ask follow-up questions based on their specific answers. Don't just read a list.
-4. NO SMALL TALK: Be polite but get straight to the assessment.
-5. DEBRIEF: At the end of the session, briefly thank them and inform them the mission data is being processed.
-
-MANDATORY PHRASES:
-- "Initializing Screening Protocol..."
-- "Engaging STAR analysis for that scenario..."
-- "Tactical window concluding. Mission results will be dispatched to your dashboard."
-`;
-
-async function entrypoint(ctx: JobContext) {
-  console.log(`Connecting to room ${ctx.room.name}`);
-
-  await ctx.connect({ autoSubscribe: AutoSubscribe.AUDIO_ONLY });
-
-  // Wait for the first participant to join
-  const participant = await ctx.waitForParticipant();
-  console.log(`Starting voice protocol for participant ${participant.identity}`);
-
-  // Initialize OpenAI Realtime Model
-  const model = new openai.realtime.RealtimeModel({
-    instructions: SYSTEM_PROMPT,
-    modalities: ['audio', 'text'],
-  });
-
-  const agent = new multimodal.MultimodalAgent({ model });
-  agent.start(ctx.room, participant);
-
-  // Greet the candidate
-  await agent.say("Initializing Screening Protocol. I am Ava. Let's begin the tactical assessment.");
-
-  // Clean up on disconnect
-  ctx.room.on('disconnected', () => {
-    console.log('Room disconnected, agent exiting.');
-  });
+// Ensure LiveKit credentials are set for the agent worker
+if (process.env.NEXT_PUBLIC_LIVEKIT_URL && !process.env.LIVEKIT_URL) {
+  process.env.LIVEKIT_URL = process.env.NEXT_PUBLIC_LIVEKIT_URL;
 }
 
-// Run the agent worker
-cli.runApp(new Worker({ entrypoint }));
+const SYSTEM_PROMPT = `You are Ava, a specialized recruitment AI for HireSight. 
+Your goal is to conduct a tactical assessment of candidates. 
+Be professional, efficient, and probing.`;
+
+const agent = defineAgent({
+  entry: async (ctx: import('@livekit/agents').JobContext) => {
+    console.log(`Connecting to room ${ctx.room.name}`);
+
+    await ctx.connect();
+
+    const participant = await ctx.waitForParticipant();
+    console.log(`Starting voice protocol for participant ${participant.identity}`);
+
+    const model = new openai.realtime.RealtimeModel({
+      modalities: ['audio', 'text'],
+    });
+
+    const agentInstance = new voice.Agent({
+      instructions: SYSTEM_PROMPT,
+      llm: model,
+    });
+
+    const session = new voice.AgentSession({
+      llm: model,
+    });
+
+    await session.start({
+      agent: agentInstance,
+      room: ctx.room,
+    });
+
+    await session.say(
+      "Initializing Screening Protocol. I am Ava. Let's begin the tactical assessment."
+    );
+
+    ctx.room.on('disconnected', () => {
+      console.log('Room disconnected, agent exiting.');
+    });
+  },
+});
+
+// LiveKit worker expects the agent as the default export
+module.exports.default = agent;
+
+if (require.main === module) {
+  cli.runApp(
+    new WorkerOptions({
+      agent: __filename,
+    })
+  );
+}
