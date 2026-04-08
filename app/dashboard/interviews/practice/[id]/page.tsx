@@ -28,6 +28,7 @@ export default function PracticeRoomPage({ params }: { params: Promise<{ id: str
     const [voiceToken, setVoiceToken] = useState<string | null>(null);
     const [livekitUrl, setLivekitUrl] = useState<string | null>(null);
 
+    useEffect(() => {
         const fetchSession = async () => {
             const { data: sessData, error: sessError } = await supabase
                 .from("interview_practice_sessions")
@@ -56,6 +57,8 @@ export default function PracticeRoomPage({ params }: { params: Promise<{ id: str
 
         fetchSession();
     }, [id, supabase]);
+
+    const currentQuestion = questions[currentQuestionIdx];
 
     useEffect(() => {
         if (hasConsented && timeRemaining > 0) {

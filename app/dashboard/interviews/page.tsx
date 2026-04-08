@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { 
     Calendar, Clock, Video, Code, Users, 
@@ -17,7 +17,7 @@ import RescheduleModal from "@/components/interviews/RescheduleModal";
 import { notify } from "@/lib/notifications/notify";
 
 export default function InterviewsHubPage() {
-    const supabase = createClient();
+    const supabase = useMemo(() => createClient(), []);
     const router = useRouter();
     const [interviews, setInterviews] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -25,11 +25,14 @@ export default function InterviewsHubPage() {
     const [userRole, setUserRole] = useState<"candidate" | "recruiter" | null>(null);
     const [isPracticeSetupOpen, setIsPracticeSetupOpen] = useState(false);
 
-    useEffect(() => {
-    const fetchInterviews = async () => {
+
+    const fetchInterviews = useCallback(async () => {
         setLoading(true);
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        if (!user) {
+            setLoading(false);
+            return;
+        }
 
         // Get User Role
         const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
@@ -53,7 +56,7 @@ export default function InterviewsHubPage() {
 
         if (data) setInterviews(data);
         setLoading(false);
-    };
+    }, [supabase]);
 
     useEffect(() => {
         fetchInterviews();
@@ -153,7 +156,8 @@ function InterviewCard({ interview, role, onRefresh }: { interview: any, role: a
             if (error) throw error;
 
             // Notify Partner
-            const partner = interview.participants.find((p: any) => p.profile_id !== (await supabase.auth.getUser()).data.user?.id);
+            const { data: { user } } = await supabase.auth.getUser();
+            const partner = interview.participants.find((p: any) => p.profile_id !== user?.id);
             if (partner) {
                 await notify(partner.profile_id, {
                     title: `Protocol Update: ${action.toUpperCase()}`,

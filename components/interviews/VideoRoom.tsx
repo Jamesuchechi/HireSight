@@ -6,8 +6,6 @@ import {
   LiveKitRoom,
   ParticipantTile,
   RoomAudioRenderer,
-  ParticipantTile,
-  RoomAudioRenderer,
   useTracks,
   useRoomContext,
 } from "@livekit/components-react";
@@ -23,7 +21,7 @@ interface VideoRoomProps {
   onMessage?: (payload: any) => void;
 }
 
-export default function VideoRoom({ token, roomName, onDisconnected }: VideoRoomProps) {
+export default function VideoRoom({ token, roomName, onDisconnected, onMessage }: VideoRoomProps) {
   if (!token) {
     return (
       <div className="flex flex-col items-center justify-center h-full bg-zinc-900 rounded-[32px] border border-white/5 space-y-4">

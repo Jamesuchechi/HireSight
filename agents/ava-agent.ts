@@ -1,6 +1,6 @@
 import {
   type JobContext,
-  WorkerAgent,
+  Worker,
   AutoSubscribe,
   cli,
   multimodal,
@@ -61,4 +61,4 @@ async function entrypoint(ctx: JobContext) {
 }
 
 // Run the agent worker
-cli.runApp(new WorkerAgent({ entrypoint }));
+cli.runApp(new Worker({ entrypoint }));

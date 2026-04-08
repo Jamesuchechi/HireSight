@@ -12,7 +12,10 @@
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "@hookform/resolvers": "^5.2.2",
+    "@livekit/agents": "latest",
+    "@livekit/agents-plugin-openai": "latest",
     "@livekit/components-react": "2.9.20",
+    "@livekit/components-styles": "^1.2.0",
     "@monaco-editor/react": "4.7.0",
     "@react-pdf/renderer": "^4.3.3",
     "@supabase/ssr": "^0.5.1",
@@ -24,6 +27,7 @@
     "@tiptap/starter-kit": "^3.22.2",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "dotenv": "^16.4.5",
     "framer-motion": "^11.11.9",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",
@@ -38,11 +42,9 @@
     "recharts": "^3.8.1",
     "tailwind-merge": "^2.6.1",
     "y-monaco": "0.1.6",
+    "y-protocols": "^1.0.7",
     "yjs": "13.6.30",
-    "zod": "^4.3.6",
-    "@livekit/agents": "latest",
-    "@livekit/agents-plugin-openai": "latest",
-    "dotenv": "^16.4.5"
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/node": "^20",
@@ -53,7 +55,7 @@
     "eslint-config-next": "^16.2.2",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
-    "typescript": "^5",
-    "ts-node": "^10.9.2"
+    "ts-node": "^10.9.2",
+    "typescript": "^5"
   }
 }

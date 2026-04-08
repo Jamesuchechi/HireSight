@@ -27,8 +27,7 @@ export async function POST(req: NextRequest) {
         const response = await fetch(resumeUrl);
         const buffer = Buffer.from(await response.arrayBuffer());
         
-        // @ts-ignore - pdf-parse lacks type declarations at this path
-        const { default: pdf } = await import("pdf-parse/lib/pdf-parse.js");
+        const pdf = (await import("pdf-parse")).default;
         const pdfData = await pdf(buffer);
         const resumeText = pdfData.text;
 
