@@ -56,19 +56,26 @@ export default function PracticeSetup({ isOpen, onClose, onComplete }: PracticeS
 
             if (sessError) throw sessError;
 
-            // 2. Trigger AI Generator for Practice Questions
-            await supabase.functions.invoke('interviews-generator', {
-                body: { 
-                    sessionId: session.id,
+            // 2. Trigger AI Generator for Practice Questions (Vercel API)
+            const genRes = await fetch('/api/interviews/generator', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    session_id: session.id,
                     mode: 'practice',
                     difficulty,
-                    focusAreas
-                }
+                    focus_areas: focusAreas
+                })
             });
 
+            if (!genRes.ok) {
+                const errData = await genRes.json();
+                throw new Error(errData.error || "AI Generation failed");
+            }
+
             onComplete(session.id);
-        } catch (error) {
-            console.error("Initialization Failed:", error);
+        } catch (error: any) {
+            console.error("Initialization Failed:", error.message || error);
         } finally {
             setLoading(false);
         }

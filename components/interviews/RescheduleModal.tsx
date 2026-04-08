@@ -54,10 +54,11 @@ export default function RescheduleModal({ isOpen, onClose, interview, onComplete
             // 2. Notify Recruiter (Primary Participant)
             const interviewer = interview.participants.find((p: any) => p.role === 'interviewer');
             if (interviewer) {
-                await notify(interviewer.profile_id, {
+                const partnerId = interviewer.profile_id || interviewer.profile?.id;
+                await notify(partnerId, {
                     title: "Reschedule Protocol Requested",
                     message: `Candidate has proposed a new tactical window for the ${interview.type} session. View mission details to review.`,
-                    type: "interview_rescheduled",
+                    type: "application_status_changed",
                     action_url: `/dashboard/interviews`,
                     action_text: "Review Proposal"
                 });

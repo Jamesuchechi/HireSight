@@ -36,6 +36,10 @@ export interface NotifyPayload {
  * });
  */
 export async function notify(userId: string, payload: NotifyPayload): Promise<void> {
+    if (!userId) {
+        console.warn("[notify] Skipped: userId is null or undefined");
+        return;
+    }
     const supabase = createClient();
 
     const { error } = await supabase.from("notifications").insert({

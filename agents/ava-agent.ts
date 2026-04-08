@@ -5,59 +5,57 @@ const {
   WorkerOptions,
 } = require('@livekit/agents');
 const openai = require('@livekit/agents-plugin-openai');
+const deepgram = require('@livekit/agents-plugin-deepgram');
 const dotenv = require('dotenv');
 const path = require('path');
 
-// Load environment variables from .env or .env.local
+// Load environment variables
 dotenv.config();
 
-// Ensure LiveKit credentials are set for the agent worker
+// Ensure LiveKit credentials are set
 if (process.env.NEXT_PUBLIC_LIVEKIT_URL && !process.env.LIVEKIT_URL) {
   process.env.LIVEKIT_URL = process.env.NEXT_PUBLIC_LIVEKIT_URL;
 }
 
 const SYSTEM_PROMPT = `You are Ava, a specialized recruitment AI for HireSight. 
 Your goal is to conduct a tactical assessment of candidates. 
-Be professional, efficient, and probing.`;
+Be professional, efficient, and probing. 
+Keep your responses concise and naturally conversational.`;
 
 const agent = defineAgent({
   entry: async (ctx: import('@livekit/agents').JobContext) => {
-    console.log(`Connecting to room ${ctx.room.name}`);
+    console.log(`[AvaAgent] Initializing mission protocols for room: ${ctx.room.name}`);
 
     await ctx.connect();
 
     const participant = await ctx.waitForParticipant();
-    console.log(`Starting voice protocol for participant ${participant.identity}`);
+    console.log(`[AvaAgent] Target participant identified: ${participant.identity}`);
 
-    const model = new openai.realtime.RealtimeModel({
-      modalities: ['audio', 'text'],
+    // Standardized Voice Pipeline (Vercel-Compatible Architecture)
+    const assistant = new voice.VoiceAssistant({
+      stt: new deepgram.STT(), // Requires DEEPGRAM_API_KEY in .env
+      llm: new openai.LLM({
+          model: 'openai/gpt-4o-mini', // High speed, low latency model via OpenRouter
+          apiKey: process.env.OPENROUTER_API_KEY,
+          baseURL: 'https://openrouter.ai/api/v1',
+      }),
+      tts: new deepgram.TTS(), // Requires DEEPGRAM_API_KEY in .env
     });
 
-    const agentInstance = new voice.Agent({
-      instructions: SYSTEM_PROMPT,
-      llm: model,
-    });
+    console.log("[AvaAgent] Neural Hub online. Starting Voice Protocol...");
 
-    const session = new voice.AgentSession({
-      llm: model,
-    });
+    assistant.start(ctx.room, participant);
 
-    await session.start({
-      agent: agentInstance,
-      room: ctx.room,
-    });
-
-    await session.say(
-      "Initializing Screening Protocol. I am Ava. Let's begin the tactical assessment."
+    await assistant.say(
+      "Initializing Screening Protocol. I am Ava. It is a pleasure to meet you. Let's begin the tactical assessment."
     );
 
     ctx.room.on('disconnected', () => {
-      console.log('Room disconnected, agent exiting.');
+      console.log('[AvaAgent] Mission terminated, room disconnected.');
     });
   },
 });
 
-// LiveKit worker expects the agent as the default export
 module.exports.default = agent;
 
 if (require.main === module) {

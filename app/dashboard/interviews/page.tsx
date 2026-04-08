@@ -6,13 +6,14 @@ import {
     Calendar, Clock, Video, Code, Users, 
     ChevronRight, BrainCircuit, Star, 
     MoreVertical, ArrowRight, Play, CheckCircle2,
-    Search, Filter, Plus
+    Search, Filter, Plus, Radar
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format, isAfter, isBefore, addMinutes, isWithinInterval } from "date-fns";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import PracticeSetup from "@/components/interviews/PracticeSetup";
+import ScheduleInterviewModal from "@/components/interviews/ScheduleInterviewModal";
 import RescheduleModal from "@/components/interviews/RescheduleModal";
 import { notify } from "@/lib/notifications/notify";
 
@@ -24,6 +25,7 @@ export default function InterviewsHubPage() {
     const [activeTab, setActiveTab] = useState<"upcoming" | "past" | "practice">("upcoming");
     const [userRole, setUserRole] = useState<"candidate" | "recruiter" | null>(null);
     const [isPracticeSetupOpen, setIsPracticeSetupOpen] = useState(false);
+    const [isGlobalScheduleOpen, setIsGlobalScheduleOpen] = useState(false);
 
 
     const fetchInterviews = useCallback(async () => {
@@ -49,10 +51,15 @@ export default function InterviewsHubPage() {
                 ),
                 participants:interview_participants(
                     role,
+                    profile_id,
                     profile:profiles(id, full_name, avatar_url)
                 )
             `)
             .order('scheduled_at', { ascending: true });
+
+        if (error) {
+            console.error("Fetch Interviews ERROR:", error);
+        }
 
         if (data) setInterviews(data);
         setLoading(false);
@@ -76,8 +83,69 @@ export default function InterviewsHubPage() {
     );
 
     return (
-        <div className="max-w-7xl mx-auto space-y-10 pb-20">
-            {/* ... header and tabs code ... */}
+        <div className="max-w-7xl mx-auto space-y-12 pb-20">
+            {/* Tactical Header */}
+            <header className="flex flex-col md:flex-row md:items-end md:justify-between space-y-8">
+                <motion.div 
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.5 }}
+                >
+                    <div className="flex items-center space-x-3 mb-2">
+                        <span className="px-3 py-1 bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest rounded-full italic border border-primary/20">Sync Matrix active</span>
+                        <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">• Operations Center</span>
+                    </div>
+                    <h1 className="text-4xl md:text-6xl font-black font-display text-zinc-900 italic tracking-tighter">
+                        Mission <span className="text-primary italic">Syncs</span>
+                    </h1>
+                    <p className="text-gray-500 font-bold max-w-lg mt-4 italic">
+                        Coordinate and review tactical assessment protocols across the hiring network.
+                    </p>
+                </motion.div>
+                
+                <div className="flex items-center space-x-4">
+                    {userRole === "candidate" && (
+                        <button 
+                            onClick={() => setIsPracticeSetupOpen(true)}
+                            className="px-8 py-5 bg-white border border-gray-100 rounded-[32px] font-black text-xs uppercase tracking-[0.2em] text-zinc-500 hover:bg-gray-50 transition-all flex items-center space-x-3 group shadow-xl shadow-gray-200/50"
+                        >
+                            <Play className="w-4 h-4 text-primary group-hover:scale-110 transition-transform" />
+                            <span>Initialize Training</span>
+                        </button>
+                    )}
+                    {userRole === "recruiter" && (
+                        <button 
+                            onClick={() => setIsGlobalScheduleOpen(true)}
+                            className="px-10 py-5 bg-zinc-900 text-white rounded-[32px] font-black text-sm uppercase tracking-[0.2em] italic shadow-2xl hover:bg-primary transition-all flex items-center space-x-3 group hover:scale-[1.02]"
+                        >
+                            <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform duration-500" />
+                            <span>Coordinate Sync</span>
+                        </button>
+                    )}
+                </div>
+            </header>
+
+            {/* Matrix Tabs */}
+            <div className="flex items-center space-x-4 overflow-x-auto pb-4 scrollbar-hide border-b border-gray-100">
+                {[
+                    { id: "upcoming", label: "Active Operations", icon: <Radar className="w-4 h-4" /> },
+                    { id: "past", label: "Historical Logs", icon: <Clock className="w-4 h-4" /> },
+                    { id: "practice", label: "Training Sims", icon: <Play className="w-4 h-4" /> }
+                ].map((tab) => (
+                    <button
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id as any)}
+                        className={`px-8 py-4 rounded-[24px] flex items-center space-x-3 text-[10px] font-black uppercase tracking-[0.2em] transition-all whitespace-nowrap ${
+                            activeTab === tab.id 
+                            ? "bg-zinc-900 text-white shadow-2xl shadow-zinc-900/20" 
+                            : "bg-white border border-gray-100 text-gray-400 hover:bg-gray-50"
+                        }`}
+                    >
+                        {tab.icon}
+                        <span>{tab.label}</span>
+                    </button>
+                ))}
+            </div>
             <AnimatePresence mode="wait">
                 <motion.div
                     key={activeTab}
@@ -109,6 +177,12 @@ export default function InterviewsHubPage() {
                 isOpen={isPracticeSetupOpen}
                 onClose={() => setIsPracticeSetupOpen(false)}
                 onComplete={(id) => router.push(`/dashboard/interviews/practice/${id}`)}
+            />
+
+            <ScheduleInterviewModal 
+                isOpen={isGlobalScheduleOpen}
+                onClose={() => setIsGlobalScheduleOpen(false)}
+                onComplete={fetchInterviews}
             />
         </div>
     );
@@ -157,12 +231,13 @@ function InterviewCard({ interview, role, onRefresh }: { interview: any, role: a
 
             // Notify Partner
             const { data: { user } } = await supabase.auth.getUser();
-            const partner = interview.participants.find((p: any) => p.profile_id !== user?.id);
+            const partner = interview.participants.find((p: any) => (p.profile_id || p.profile?.id) !== user?.id);
             if (partner) {
-                await notify(partner.profile_id, {
+                const partnerId = partner.profile_id || partner.profile?.id;
+                await notify(partnerId, {
                     title: `Protocol Update: ${action.toUpperCase()}`,
                     message: `The mission ${interview.job_application.job.title} has been updated.`,
-                    type: "interview_updated"
+                    type: "application_status_changed"
                 });
             }
 

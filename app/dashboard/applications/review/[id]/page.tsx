@@ -16,8 +16,10 @@ import { useRouter } from "next/navigation";
 import { notify } from "@/lib/notifications/notify";
 import ApplicationTimeline from "@/components/applications/ApplicationTimeline";
 import ApplicationNotes from "@/components/applications/ApplicationNotes";
+import ApplicationNotes from "@/components/applications/ApplicationNotes";
 import InterviewReport from "@/components/interviews/InterviewReport";
 import TacticalReplay from "@/components/interviews/TacticalReplay";
+import ScheduleInterviewModal from "@/components/interviews/ScheduleInterviewModal";
 
 export default function ApplicantReviewPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
@@ -32,15 +34,6 @@ export default function ApplicantReviewPage({ params }: { params: Promise<{ id: 
     
     // Scheduling State
     const [isScheduling, setIsScheduling] = useState(false);
-    const [scheduleForm, setScheduleForm] = useState({
-        date: format(new Date(), "yyyy-MM-dd"),
-        time: "10:00",
-        duration: 60,
-        type: "technical",
-        location: "Remote",
-        notes: "",
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
-    });
 
     useEffect(() => {
         const fetchReviewData = async () => {
@@ -126,52 +119,10 @@ export default function ApplicantReviewPage({ params }: { params: Promise<{ id: 
         }
     };
 
-    const handleSchedule = async () => {
-        setIsSaving(true);
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-
-        const scheduledAt = new Date(`${scheduleForm.date}T${scheduleForm.time}:00`).toISOString();
-
-        // 1. Create Interview
-        const { data: interview, error: intError } = await supabase
-            .from("interviews")
-            .insert({
-                application_id: id,
-                type: scheduleForm.type,
-                status: "scheduled",
-                scheduled_at: scheduledAt,
-                duration_minutes: Number(scheduleForm.duration),
-                location: scheduleForm.location,
-                candidate_instructions: scheduleForm.notes,
-                timezone: scheduleForm.timezone,
-                created_by: user.id
-            })
-            .select()
-            .single();
-
-        if (intError) {
-            console.error(intError);
-            setIsSaving(false);
-            return;
-        }
-
-        // 2. Add Participants (Recruiter + Candidate)
-        await supabase.from("interview_participants").insert([
-            { interview_id: interview.id, profile_id: user.id, role: "interviewer", is_primary: true },
-            { interview_id: interview.id, profile_id: application.candidate_id, role: "candidate" }
-        ]);
-
-        // 3. Update Application Status
-        await handleStatusMove("interview");
-
-        setIsSaving(false);
+    const handleScheduleComplete = () => {
         setIsScheduling(false);
-        notify(application.candidate_id, {
-            title: "Interview Scheduled",
-            message: `A new ${scheduleForm.type} protocol has been scheduled for ${scheduleForm.date} at ${scheduleForm.time}.`,
-            type: "interview_scheduled"
-        });
+        // We might want to refresh the timeline or status here
+        window.location.reload(); // Quick refresh to show new status/interview
     };
 
     const handleToggleShortlist = async () => {
@@ -538,109 +489,12 @@ export default function ApplicantReviewPage({ params }: { params: Promise<{ id: 
             </div>
 
             {/* Scheduling Modal */}
-            <AnimatePresence>
-                {isScheduling && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 text-zinc-900">
-                        <motion.div 
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            onClick={() => setIsScheduling(false)}
-                            className="absolute inset-0 bg-zinc-900/60 backdrop-blur-md"
-                        />
-                        <motion.div 
-                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                            className="relative w-full max-w-2xl bg-white rounded-[48px] shadow-2xl overflow-hidden"
-                        >
-                            <div className="p-12 space-y-10">
-                                <div className="flex items-center justify-between">
-                                    <div className="space-y-1">
-                                         <h3 className="text-3xl font-black text-zinc-900 italic tracking-tighter">Initiate <span className="text-primary italic">Protocol</span></h3>
-                                         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">Intelligence Assessment Scheduling</p>
-                                    </div>
-                                    <button onClick={() => setIsScheduling(false)} className="p-4 bg-gray-50 rounded-2xl text-gray-400 hover:text-red-500 transition-colors">
-                                        <XCircle className="w-6 h-6" />
-                                    </button>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-8 text-left text-zinc-900">
-                                    <div className="space-y-4 text-zinc-900">
-                                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest italic ml-4">Deployment Date</label>
-                                        <input 
-                                            type="date" 
-                                            value={scheduleForm.date}
-                                            onChange={(e) => setScheduleForm({...scheduleForm, date: e.target.value})}
-                                            className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-3xl text-sm font-bold focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all text-zinc-900"
-                                        />
-                                    </div>
-                                    <div className="space-y-4 text-zinc-900">
-                                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest italic ml-4">Sync Time</label>
-                                        <input 
-                                            type="time" 
-                                            value={scheduleForm.time}
-                                            onChange={(e) => setScheduleForm({...scheduleForm, time: e.target.value})}
-                                            className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-3xl text-sm font-bold focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all text-zinc-900"
-                                        />
-                                    </div>
-                                    <div className="space-y-4 text-zinc-900">
-                                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest italic ml-4">Mission Type</label>
-                                        <select 
-                                            value={scheduleForm.type}
-                                            onChange={(e) => setScheduleForm({...scheduleForm, type: e.target.value})}
-                                            className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-3xl text-sm font-bold focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all appearance-none text-zinc-900"
-                                        >
-                                            <option value="technical" className="text-zinc-900">Technical Assessment</option>
-                                            <option value="behavioral" className="text-zinc-900">Behavioral Scan</option>
-                                            <option value="video" className="text-zinc-900">Initial Video Sync</option>
-                                            <option value="panel" className="text-zinc-900">Executive Panel</option>
-                                        </select>
-                                    </div>
-                                    <div className="space-y-4 text-zinc-900">
-                                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest italic ml-4">Duration (Minutes)</label>
-                                        <select 
-                                            value={scheduleForm.duration}
-                                            onChange={(e) => setScheduleForm({...scheduleForm, duration: Number(e.target.value)})}
-                                            className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-3xl text-sm font-bold focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all appearance-none text-zinc-900"
-                                        >
-                                            <option value={30} className="text-zinc-900">30 Minutes</option>
-                                            <option value={60} className="text-zinc-900">60 Minutes</option>
-                                            <option value={90} className="text-zinc-900">90 Minutes</option>
-                                            <option value={120} className="text-zinc-900">120 Minutes</option>
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-4 text-left text-zinc-900">
-                                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest italic ml-4">Candidate Instructions</label>
-                                    <textarea 
-                                        placeholder="Enter additional intel for the candidate..."
-                                        value={scheduleForm.notes}
-                                        onChange={(e) => setScheduleForm({...scheduleForm, notes: e.target.value})}
-                                        className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-[32px] text-sm font-bold focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all h-32 resize-none text-zinc-900"
-                                    />
-                                </div>
-
-                                <button 
-                                    onClick={handleSchedule}
-                                    disabled={isSaving}
-                                    className="w-full py-6 bg-zinc-900 text-white rounded-[32px] font-black text-xs uppercase tracking-[0.3em] italic hover:bg-primary transition-all shadow-2xl flex items-center justify-center space-x-3"
-                                >
-                                    {isSaving ? (
-                                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                    ) : (
-                                        <>
-                                            <Send className="w-4 h-4" />
-                                            <span>Commit Synchronization</span>
-                                        </>
-                                    )}
-                                </button>
-                            </div>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
+            <ScheduleInterviewModal 
+                isOpen={isScheduling}
+                onClose={() => setIsScheduling(false)}
+                applicationId={id}
+                onComplete={handleScheduleComplete}
+            />
         </div>
     );
 }

@@ -18,6 +18,7 @@ import {
     RecommendedJobs, 
     InterviewCalendar 
 } from "@/components/dashboard/DashboardWidgets";
+import ScheduleInterviewModal from "@/components/interviews/ScheduleInterviewModal";
 import { 
     getCandidateDashboardData, 
     getRecruiterDashboardData 
@@ -29,6 +30,7 @@ export default function Dashboard() {
     const [profile, setProfile] = useState<any>(null);
     const [dashboardData, setDashboardData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
 
     useEffect(() => {
         const fetchDashboard = async () => {
@@ -89,6 +91,15 @@ export default function Dashboard() {
                         <Mail className="w-4 h-4" />
                         <span>Intelligence Feed</span>
                     </button>
+                    {isRecruiter && (
+                        <button 
+                            onClick={() => setIsScheduleModalOpen(true)}
+                            className="px-8 py-5 bg-white border border-gray-100 rounded-[32px] font-black text-xs uppercase tracking-widest text-zinc-500 hover:bg-gray-50 transition-all flex items-center space-x-2 shadow-sm"
+                        >
+                            <Calendar className="w-4 h-4 text-primary" />
+                            <span>Schedule Sync</span>
+                        </button>
+                    )}
                     <button 
                         onClick={() => router.push(isRecruiter ? "/dashboard/jobs/create" : "/jobs")}
                         className="px-10 py-5 bg-zinc-900 text-white rounded-[32px] font-black text-sm uppercase tracking-widest italic shadow-xl hover:scale-[1.05] transition-all flex items-center space-x-2"
@@ -98,6 +109,12 @@ export default function Dashboard() {
                     </button>
                 </div>
             </header>
+
+            <ScheduleInterviewModal 
+                isOpen={isScheduleModalOpen}
+                onClose={() => setIsScheduleModalOpen(false)}
+                onComplete={() => router.refresh()}
+            />
 
             {/* Quick Stats Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">

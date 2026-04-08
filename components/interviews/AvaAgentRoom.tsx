@@ -11,6 +11,7 @@ import {
     AgentBarVisualizer,
     ConnectionState
 } from "@livekit/components-react";
+import { Room, RoomEvent } from "livekit-client";
 import { 
     Mic, MicOff, ShieldCheck, Zap, 
     BrainCircuit, MessageSquare, 
@@ -30,20 +31,25 @@ export default function AvaAgentRoom({ roomId, token, url, onComplete }: AvaAgen
     const router = useRouter();
 
     return (
-        <div className="fixed inset-0 z-[100] bg-[#0c0c0c] flex flex-col overflow-hidden">
+        <div className="relative w-full h-full min-h-[500px] bg-[#0c0c0c] flex flex-col overflow-hidden rounded-[32px] border border-white/5 neural-grid">
             {/* Atmosphere */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-primary/5 blur-[120px] rounded-full translate-x-1/3 -translate-y-1/3" />
-                <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-indigo-500/5 blur-[120px] rounded-full -translate-x-1/3 translate-y-1/3" />
+                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/10 blur-[100px] rounded-full translate-x-1/3 -translate-y-1/3" />
+                <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-indigo-500/10 blur-[100px] rounded-full -translate-x-1/3 translate-y-1/3" />
             </div>
 
             <LiveKitRoom
-                token={token}
                 serverUrl={url}
+                token={token}
                 connect={true}
                 audio={true}
                 video={false}
-                className="flex-grow flex flex-col relative z-10"
+                roomOptions={{
+                    publishDefaults: {
+                        audioBitrate: 20000,
+                    },
+                }}
+                className="flex-grow flex flex-col relative z-10 p-12"
             >
                 <AvaInterface onComplete={onComplete} />
                 <RoomAudioRenderer />
@@ -52,40 +58,16 @@ export default function AvaAgentRoom({ roomId, token, url, onComplete }: AvaAgen
     );
 }
 
+
 function AvaInterface({ onComplete }: { onComplete: (summary: any) => void }) {
     const router = useRouter();
-    const { state, audioTrack, agentTranscripts } = useVoiceAssistant();
+    const { state, audioTrack, agentTranscripts = [] } = useVoiceAssistant();
 
     return (
-        <div className="flex-grow flex flex-col items-center justify-center p-12 space-y-16">
-            {/* Mission Header */}
-            <header className="fixed top-12 inset-x-12 flex items-center justify-between">
-                <div className="flex items-center space-x-6">
-                    <button 
-                        onClick={() => router.back()}
-                        className="p-4 bg-white/5 rounded-2xl hover:bg-white/10 transition-all text-gray-400 group"
-                    >
-                        <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-                    </button>
-                    <div className="space-y-1">
-                        <div className="flex items-center space-x-3">
-                             <div className="p-1.5 bg-primary/10 rounded-lg">
-                                 <BrainCircuit className="w-4 h-4 text-primary" />
-                             </div>
-                             <span className="text-[10px] font-black text-primary uppercase tracking-[0.4em] italic leading-none">Ava Protocol Active</span>
-                        </div>
-                        <h2 className="text-2xl font-black text-white italic tracking-tighter uppercase leading-none">Autonomous <span className="text-primary italic">Screening</span></h2>
-                    </div>
-                </div>
-
-                <div className="flex items-center space-x-4 px-6 py-3 bg-white/5 rounded-2xl border border-white/5">
-                    <Headphones className="w-4 h-4 text-gray-500" />
-                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic line-clamp-1">Audio-Only Engagement Matrix</span>
-                </div>
-            </header>
+        <div className="flex-grow flex flex-col items-center justify-between pb-8">
 
             {/* Neural Visualizer Central */}
-            <div className="relative w-full max-w-2xl aspect-square flex items-center justify-center">
+            <div className="relative w-full max-w-lg aspect-square flex items-center justify-center">
                 
                 {/* Background Concentric Rings */}
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -102,7 +84,7 @@ function AvaInterface({ onComplete }: { onComplete: (summary: any) => void }) {
                 </div>
 
                 {/* Primary Voice Waveform */}
-                <div className="relative z-20 w-80 h-80 bg-zinc-900 rounded-full flex items-center justify-center border border-white/10 shadow-2xl overflow-hidden">
+                <div className="relative z-20 w-64 h-64 bg-zinc-900 rounded-full flex items-center justify-center border border-white/10 shadow-2xl overflow-hidden">
                     <AnimatePresence mode="wait">
                          {state === 'thinking' ? (
                              <motion.div 
@@ -136,15 +118,15 @@ function AvaInterface({ onComplete }: { onComplete: (summary: any) => void }) {
                     <div className={`absolute inset-0 transition-opacity duration-1000 ${state === 'speaking' ? 'bg-primary/5 opacity-100' : 'opacity-0'}`} />
                 </div>
 
-                {/* Tactical HUD Overlays */}
+                {/* Tactical HUD Overlays - Adjusted for smaller container */}
                 <HUDElement 
-                    position="top-8 left-8" 
+                    position="top-0 left-0" 
                     icon={<Zap className="w-4 h-4 text-amber-500" />} 
                     label="Latency Score" 
                     value="122ms" 
                 />
                 <HUDElement 
-                    position="bottom-8 right-8" 
+                    position="bottom-0 right-0" 
                     icon={<MessageSquare className="w-4 h-4 text-indigo-400" />} 
                     label="Context Depth" 
                     value="High" 
@@ -152,33 +134,29 @@ function AvaInterface({ onComplete }: { onComplete: (summary: any) => void }) {
             </div>
 
             {/* Transcript Live Feed (Subtle) */}
-            <div className="w-full max-w-xl h-24 overflow-hidden relative">
+            <div className="w-full max-w-xl h-32 overflow-hidden relative">
                  <AnimatePresence mode="popLayout">
-                    {agentTranscripts.slice(-1).map((transcript) => (
+                    {agentTranscripts?.slice(-1).map((transcript) => (
                         <motion.p
                             key={transcript.id}
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0 }}
-                            className="text-lg font-bold text-gray-400 text-center italic leading-relaxed"
+                            className="text-xl font-black text-white text-center italic leading-relaxed drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]"
                         >
                             "{transcript.text}"
                         </motion.p>
                     ))}
                  </AnimatePresence>
-                 <div className="absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-[#0c0c0c] to-transparent pointer-events-none" />
-                 <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-[#0c0c0c] to-transparent pointer-events-none" />
+                 <div className="absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-[#0c0c0c] to-transparent pointer-events-none" />
+                 <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[#0c0c0c] to-transparent pointer-events-none" />
             </div>
 
             {/* Controls Bar */}
-            <div className="fixed bottom-12 inset-x-0 flex flex-col items-center space-y-8">
-                 <div className="p-6 bg-zinc-900 border border-white/10 rounded-[32px] shadow-2xl flex items-center space-x-8">
+            <div className="w-full flex flex-col items-center space-y-4">
+                 <div className="p-4 bg-zinc-900 border border-white/5 rounded-3xl shadow-2xl flex items-center space-x-8">
                     <VoiceAssistantControlBar />
                  </div>
-
-                 <p className="text-[10px] font-black text-gray-600 uppercase tracking-widest italic animate-pulse">
-                     Encryption Protocol Multi-Node Auth Enabled
-                 </p>
             </div>
         </div>
     );

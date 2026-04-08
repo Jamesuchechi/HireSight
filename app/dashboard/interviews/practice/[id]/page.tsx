@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useEffect, useState, use, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { 
     BrainCircuit, ShieldCheck, Zap, 
@@ -27,8 +27,12 @@ export default function PracticeRoomPage({ params }: { params: Promise<{ id: str
     const [timeRemaining, setTimeRemaining] = useState(1800); // 30m
     const [voiceToken, setVoiceToken] = useState<string | null>(null);
     const [livekitUrl, setLivekitUrl] = useState<string | null>(null);
+    const isFetchingRef = useRef(false);
 
     useEffect(() => {
+        if (isFetchingRef.current) return;
+        isFetchingRef.current = true;
+
         const fetchSession = async () => {
             const { data: sessData, error: sessError } = await supabase
                 .from("interview_practice_sessions")
@@ -80,9 +84,11 @@ export default function PracticeRoomPage({ params }: { params: Promise<{ id: str
             .update({ status: "completed", completed_at: new Date().toISOString() })
             .eq("id", id);
         
-        // Trigger AI Evaluator for Practice
-        await supabase.functions.invoke('interviews-evaluator', {
-            body: { sessionId: id, mode: 'practice' }
+        // Trigger AI Evaluator for Practice (Vercel API)
+        await fetch('/api/interviews/evaluator', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sessionId: id, mode: 'practice' })
         });
 
         router.push(`/dashboard/interviews`);
@@ -94,16 +100,6 @@ export default function PracticeRoomPage({ params }: { params: Promise<{ id: str
         </div>
     );
 
-    if (session?.type === 'voice' && voiceToken && livekitUrl) {
-        return (
-            <AvaAgentRoom 
-                roomId={id} 
-                token={voiceToken} 
-                url={livekitUrl} 
-                onComplete={() => router.push('/dashboard/interviews')} 
-            />
-        );
-    }
 
     return (
         <div className="bg-[#0c0c0c] text-white h-screen flex flex-col overflow-hidden relative">
@@ -160,18 +156,42 @@ export default function PracticeRoomPage({ params }: { params: Promise<{ id: str
                              </div>
                              <div>
                                  <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest leading-none mb-1">Objective Vector</p>
-                                 <h4 className="text-xl font-black italic text-white uppercase tracking-tighter">Question {currentQuestionIdx + 1} of {questions.length || 0}</h4>
+                                 <h4 className="text-xl font-black italic text-white uppercase tracking-tighter">
+                                     {questions.length > 0 ? `Question ${currentQuestionIdx + 1} of ${questions.length}` : 'Directives Pending'}
+                                 </h4>
                              </div>
                         </div>
 
                         <div className="p-8 bg-white/5 rounded-[40px] border border-white/10 relative overflow-hidden group">
-                             <p className="text-lg font-bold text-white italic leading-relaxed relative z-10">
-                                 {currentQuestion?.prompt || "Awaiting neural transmission..."}
+                             <p className="text-lg font-bold text-white italic leading-relaxed relative z-10 transition-colors">
+                                 {questions.length > 0 
+                                    ? currentQuestion?.prompt 
+                                    : (session?.type === 'voice' 
+                                        ? "Mission Alert: Tactical directives have not been generated. Please ensure Supabase Edge Functions are deployed to activate the AI Protocol."
+                                        : "Awaiting neural transmission... Initialize simulation to begin.")
+                                 }
                              </p>
                              <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                                  <MessageSquare className="w-20 h-20 text-white" />
                              </div>
                         </div>
+
+                        {questions.length === 0 && session?.type === 'voice' && (
+                            <motion.div 
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                className="bg-red-500/10 border border-red-500/20 p-6 rounded-3xl space-y-3"
+                            >
+                                <div className="flex items-center space-x-3 text-red-500">
+                                    <AlertCircle className="w-5 h-5" />
+                                    <span className="text-[10px] font-black uppercase tracking-widest">Action Required</span>
+                                </div>
+                                <p className="text-[10px] font-bold text-red-400 leading-relaxed uppercase tracking-wide">
+                                    LiveKit Voice Agent requires generated questions to start the interaction. 
+                                    Run <code className="bg-red-500/20 px-2 py-0.5 rounded">npx supabase functions deploy interviews-generator</code> to fix this.
+                                </p>
+                            </motion.div>
+                        )}
 
                         {questions.length > 1 && (
                             <div className="flex space-x-4">
@@ -216,9 +236,18 @@ export default function PracticeRoomPage({ params }: { params: Promise<{ id: str
                     </div>
                  </div>
 
-                 <div className="flex-1 h-full p-8 bg-black">
-                     <SharedEditor interviewId={`practice-${id}`} initialCode="// Initialize simulation logic here..." />
-                 </div>
+                  <div className="flex-1 h-full p-8 bg-black/50 overflow-hidden">
+                      {session?.type === 'voice' && voiceToken && livekitUrl ? (
+                          <AvaAgentRoom 
+                              roomId={id} 
+                              token={voiceToken} 
+                              url={livekitUrl} 
+                              onComplete={handleCompleteSession} 
+                          />
+                      ) : (
+                          <SharedEditor interviewId={`practice-${id}`} initialCode="// Initialize simulation logic here..." />
+                      )}
+                  </div>
             </main>
         </div>
     );
