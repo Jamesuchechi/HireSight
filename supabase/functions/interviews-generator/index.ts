@@ -15,10 +15,17 @@ serve(async (req: Request) => {
   try {
     const { session_id, job_id, candidate_id, difficulty = 'intermediate', focus_areas = [], num_questions = 5 } = await req.json()
 
+    const authHeader = req.headers.get("Authorization");
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      {
+        global: {
+          headers: { Authorization: authHeader || "" },
+        },
+      }
     )
+
 
     // 1. Fetch Context
     let contextStr = ""
@@ -38,7 +45,8 @@ serve(async (req: Request) => {
     }
 
     // 2. Call AI (Mistral/Gemini/OpenAI compatible)
-    const AI_API_KEY = Deno.env.get('AI_API_KEY')
+    const AI_API_KEY = Deno.env.get('MISTRAL_API_KEY') || Deno.env.get('AI_API_KEY')
+
     const AI_MODEL = Deno.env.get('AI_MODEL') || 'mistral-large-latest'
     const AI_API_URL = Deno.env.get('AI_API_URL') || 'https://api.mistral.ai/v1/chat/completions'
 

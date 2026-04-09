@@ -15,8 +15,14 @@ serve(async (req) => {
 
   try {
     const authHeader = req.headers.get("Authorization");
+    const apiKeyHeader = req.headers.get("apikey");
+    
+    // Forensic Logging (Safe)
+    console.log(`[AUTH] Authorization Header: ${authHeader ? 'Present (' + authHeader.length + ' chars)' : 'MISSING'}`);
+    console.log(`[AUTH] Apikey Header: ${apiKeyHeader ? 'Present (' + apiKeyHeader.slice(0, 10) + '...)' : 'MISSING'}`);
 
     if (!authHeader) {
+
       return new Response(JSON.stringify({ error: "No Authorization header" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

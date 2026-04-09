@@ -64,8 +64,17 @@ export default function LiveInterviewRoomPage({ params }: { params: Promise<{ id
             // 2. Verify Role & Get Token
             try {
                 const { data: { session } } = await supabase.auth.getSession();
+                
+                if (!session) {
+                    console.warn("No session found for interview link initialization.");
+                }
+
                 const response = await supabase.functions.invoke('interviews-token', {
                     body: { interviewId: id },
+                    headers: {
+                        Authorization: `Bearer ${session?.access_token}`,
+                        apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
+                    }
                 });
 
 
@@ -115,14 +124,20 @@ export default function LiveInterviewRoomPage({ params }: { params: Promise<{ id
             .eq("id", id);
         
         if (!error) {
+            const { data: { session } } = await supabase.auth.getSession();
             // Trigger AI Evaluator
             await supabase.functions.invoke('interviews-evaluator', {
-                body: { interviewId: id }
+                body: { interviewId: id },
+                headers: {
+                    Authorization: `Bearer ${session?.access_token}`,
+                    apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
+                }
             });
             router.push(`/dashboard/interviews`);
         }
         setIsSavingNotes(false);
     };
+
 
     const saveNotes = async (val: string) => {
         setNotes(val);
