@@ -62,26 +62,18 @@ export default function LiveInterviewRoomPage({ params }: { params: Promise<{ id
             setInterview(intData);
 
             // 2. Verify Role & Get Token
+            // The Supabase client automatically attaches the auth session header —
+            // no need to manually pass Authorization or apikey headers.
             try {
-                const { data: { session } } = await supabase.auth.getSession();
-                
-                if (!session) {
-                    console.warn("No session found for interview link initialization.");
-                }
-
                 const response = await supabase.functions.invoke('interviews-token', {
                     body: { interviewId: id },
-                    headers: {
-                        Authorization: `Bearer ${session?.access_token}`,
-                        apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
-                    }
                 });
-
 
                 if (response.error) {
                     console.error("Function Error:", response.error);
                     throw new Error(response.error.message || "Unauthorized access to protocol.");
                 }
+
                 setToken(response.data.token);
                 
                 // Get local participant role
@@ -124,20 +116,14 @@ export default function LiveInterviewRoomPage({ params }: { params: Promise<{ id
             .eq("id", id);
         
         if (!error) {
-            const { data: { session } } = await supabase.auth.getSession();
-            // Trigger AI Evaluator
+            // The Supabase client handles auth headers automatically here too.
             await supabase.functions.invoke('interviews-evaluator', {
                 body: { interviewId: id },
-                headers: {
-                    Authorization: `Bearer ${session?.access_token}`,
-                    apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
-                }
             });
             router.push(`/dashboard/interviews`);
         }
         setIsSavingNotes(false);
     };
-
 
     const saveNotes = async (val: string) => {
         setNotes(val);
@@ -165,9 +151,8 @@ export default function LiveInterviewRoomPage({ params }: { params: Promise<{ id
                 text: payload.text,
                 timestamp: new Date()
             };
-            setWhispers(prev => [...prev.slice(-4), newWhisper]); // Keep last 5
+            setWhispers(prev => [...prev.slice(-4), newWhisper]);
             
-            // Auto-dismiss after 10s
             setTimeout(() => {
                 setWhispers(prev => prev.filter(w => w.id !== newWhisper.id));
             }, 10000);
