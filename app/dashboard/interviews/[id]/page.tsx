@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation";
 import VideoRoom from "@/components/interviews/VideoRoom";
 import SharedEditor from "@/components/interviews/SharedEditor";
 import WarmupRoom from "@/components/interviews/WarmupRoom";
+import ConsentModal from "@/components/interviews/ConsentModal";
 import { WhisperFeed, TacticalWhisperInput } from "@/components/interviews/TacticalWhisper";
 
 export default function LiveInterviewRoomPage({ params }: { params: Promise<{ id: string }> }) {
