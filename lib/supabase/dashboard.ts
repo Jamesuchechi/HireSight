@@ -2,12 +2,23 @@ import { SupabaseClient } from "@supabase/supabase-js";
 import { Database } from "@/types/database";
 
 export async function getCandidateDashboardData(supabase: SupabaseClient<Database>, userId: string) {
-    // 1. Fetch Profile & Resumes
-    const { data: profile } = await supabase
-        .from("profiles")
-        .select("*, resumes(*)")
-        .eq("id", userId)
-        .single();
+    // 1. Fetch Profile & Resumes (Separately to avoid join error 400)
+    const [profileRes, resumesRes] = await Promise.all([
+        supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", userId)
+            .single(),
+        supabase
+            .from("resumes")
+            .select("*")
+            .eq("user_id", userId)
+    ]);
+
+    const profileData = profileRes.data;
+    const resumes = resumesRes.data || [];
+
+    const profile = profileData ? { ...profileData, resumes } : null;
     
     // 2. Counts
     const [appsCount, savedCount, viewsCount] = await Promise.all([

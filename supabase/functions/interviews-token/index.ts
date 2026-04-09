@@ -14,21 +14,24 @@ serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    const apiKeyHeader = req.headers.get("apikey");
+    const authHeader = req.headers.get("Authorization") || req.headers.get("authorization");
+    const apiKeyHeader = req.headers.get("apikey") || req.headers.get("x-api-key");
     
     // Forensic Logging (Safe)
     console.log(`[AUTH] Authorization Header: ${authHeader ? 'Present (' + authHeader.length + ' chars)' : 'MISSING'}`);
     console.log(`[AUTH] Apikey Header: ${apiKeyHeader ? 'Present (' + apiKeyHeader.slice(0, 10) + '...)' : 'MISSING'}`);
 
     if (!authHeader) {
-
-      return new Response(JSON.stringify({ error: "No Authorization header" }), {
+      return new Response(JSON.stringify({ 
+        error: "Missing Authorization header",
+        details: "Expected 'Bearer <JWT>' in the Authorization header. Check if the Supabase client is sending the session token." 
+      }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    const token = authHeader.replace("Bearer ", "");
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
@@ -39,17 +42,17 @@ serve(async (req) => {
       }
     );
     
-    // 1. Get User
+    // 1. Get User via explicit token check
     const {
       data: { user },
       error: authError,
-    } = await supabaseClient.auth.getUser();
+    } = await supabaseClient.auth.getUser(token);
 
     if (authError || !user) {
       console.error("Auth Fail:", authError?.message || "No user found");
       return new Response(JSON.stringify({ 
-        error: "Unauthorized", 
-        details: authError?.message || "Invalid or expired token",
+        error: "Unauthorized: Invalid or expired token", 
+        details: authError?.message || "The provided JWT could not be verified by Supabase Auth.",
         systemError: authError?.message
       }), {
         status: 401,
