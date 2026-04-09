@@ -27,8 +27,9 @@ export async function POST(req: NextRequest) {
         const response = await fetch(resumeUrl);
         const buffer = Buffer.from(await response.arrayBuffer());
         
-        const pdf = (await import("pdf-parse")).default;
-        const pdfData = await pdf(buffer);
+        const { PDFParse } = await import("pdf-parse");
+        const parser = new PDFParse({ data: buffer });
+        const pdfData = await parser.getText();
         const resumeText = pdfData.text;
 
         // 3. Screen Resume
