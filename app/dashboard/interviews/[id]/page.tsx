@@ -66,10 +66,8 @@ export default function LiveInterviewRoomPage({ params }: { params: Promise<{ id
                 const { data: { session } } = await supabase.auth.getSession();
                 const response = await supabase.functions.invoke('interviews-token', {
                     body: { interviewId: id },
-                    headers: {
-                        Authorization: `Bearer ${session?.access_token}`
-                    }
                 });
+
 
                 if (response.error) {
                     console.error("Function Error:", response.error);

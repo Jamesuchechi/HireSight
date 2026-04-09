@@ -14,16 +14,25 @@ serve(async (req) => {
   }
 
   try {
+    const authHeader = req.headers.get("Authorization");
+
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "No Authorization header" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
       {
         global: {
-          headers: { Authorization: req.headers.get("Authorization")! },
+          headers: { Authorization: authHeader },
         },
       }
     );
-
+    
     // 1. Get User
     const {
       data: { user },
@@ -34,12 +43,14 @@ serve(async (req) => {
       console.error("Auth Fail:", authError?.message || "No user found");
       return new Response(JSON.stringify({ 
         error: "Unauthorized", 
-        details: authError?.message || "Verify your Authorization header" 
+        details: authError?.message || "Invalid or expired token",
+        systemError: authError?.message
       }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
 
     // 2. Extract Params
     const { interviewId } = await req.json();
