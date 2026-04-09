@@ -17,16 +17,22 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get("Authorization") || req.headers.get("authorization");
     
     if (!authHeader) {
+      console.error("[AUTH] Missing Authorization header");
       return new Response(JSON.stringify({ 
         error: "Missing Authorization header",
-        details: "Expected 'Bearer <JWT>' in the Authorization header." 
+        details: "No Bearer token found in request headers." 
       }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const token = authHeader.replace("Bearer ", "");
+    const token = authHeader.replace("Bearer ", "").trim();
+    
+    // Diagnostic Trace
+    console.log(`[AUTH] Token Length: ${token.length}`);
+    console.log(`[AUTH] Token Prefix: ${token.substring(0, 10)}...`);
+
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
@@ -41,18 +47,32 @@ Deno.serve(async (req) => {
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
 
     if (authError || !user) {
-      console.error("[AUTH FAIL]", authError?.message);
+      console.error("[AUTH FAIL]", authError?.message || "User not found");
       return new Response(JSON.stringify({ 
         error: "Unauthorized", 
-        details: authError?.message || "Token verification failed."
+        details: "Token verification failed.",
+        auth_message: authError?.message || "Invalid session",
+        auth_status: authError?.status || "none"
       }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    console.log(`[AUTH SUCCESS] User ID: ${user.id}`);
+
     // 3. Extract Interview Params
-    const { interviewId } = await req.json();
+    let body;
+    try {
+      body = await req.json();
+    } catch (e) {
+      return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    
+    const { interviewId } = body;
     if (!interviewId) {
       return new Response(JSON.stringify({ error: "Missing interviewId" }), {
         status: 400,
@@ -69,7 +89,11 @@ Deno.serve(async (req) => {
       .single();
 
     if (partError || !participant) {
-      return new Response(JSON.stringify({ error: "Forbidden: Not an interview participant" }), {
+      console.error(`[FORBIDDEN] User ${user.id} is not a participant in interview ${interviewId}`);
+      return new Response(JSON.stringify({ 
+        error: "Forbidden: Not an interview participant",
+        debug: partError?.message 
+      }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -120,7 +144,10 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error("[CRITICAL ERROR]", error.message);
-    return new Response(JSON.stringify({ error: "Internal Server Error", details: error.message }), {
+    return new Response(JSON.stringify({ 
+      error: "Internal Server Error", 
+      details: error.message 
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });
