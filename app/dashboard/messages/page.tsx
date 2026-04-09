@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { 
     Search, 
@@ -22,7 +22,8 @@ import {
     FileText,
     Target,
     Radar,
-    X
+    X,
+    Loader2
 } from "lucide-react";
 
 import { motion, AnimatePresence } from "framer-motion";
@@ -55,7 +56,7 @@ interface Conversation {
     unread_count: number;
 }
 
-export default function MessagingHub() {
+function MessagingHubContent() {
     const supabase = createClient();
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -76,9 +77,6 @@ export default function MessagingHub() {
     const [userSearchResults, setUserSearchResults] = useState<any[]>([]);
     const [userSearchQuery, setUserSearchQuery] = useState("");
     const fileInputRef = useRef<HTMLInputElement>(null);
-
-
-
 
     useEffect(() => {
         const init = async () => {
@@ -730,3 +728,15 @@ export default function MessagingHub() {
     );
 }
 
+export default function MessagingHub() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-4">
+                <Loader2 className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 italic">Initializing Secure Channel...</p>
+            </div>
+        }>
+            <MessagingHubContent />
+        </Suspense>
+    );
+}

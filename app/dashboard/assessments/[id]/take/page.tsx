@@ -1,19 +1,19 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useEffect, useState, use, Suspense } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { 
     Clock, BrainCircuit, CheckCircle2, 
     XCircle, ArrowRight, ShieldCheck,
     AlertCircle, ChevronRight, Send,
-    FileText, Target
+    FileText, Target, Loader2
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
 import { updateCombinedNeuralScore } from "@/lib/supabase/scoring";
 import { issueNeuralBadge } from "@/lib/supabase/achievements";
 
-export default function AssessmentFocusedMode({ params }: { params: Promise<{ id: string }> }) {
+function AssessmentFocusedContent({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -383,8 +383,8 @@ export default function AssessmentFocusedMode({ params }: { params: Promise<{ id
                                          currentQuestionIndex === idx 
                                          ? "bg-zinc-900 text-white border-zinc-900" 
                                          : answers[questions[idx].id] 
-                                            ? "bg-primary/5 text-primary border-primary/20" 
-                                            : "bg-white text-gray-300 border-gray-100 hover:border-primary/20"
+                                             ? "bg-primary/5 text-primary border-primary/20" 
+                                             : "bg-white text-gray-300 border-gray-100 hover:border-primary/20"
                                      }`}
                                  >
                                      {idx + 1}
@@ -403,5 +403,17 @@ export default function AssessmentFocusedMode({ params }: { params: Promise<{ id
                  </div>
              </main>
         </div>
+    );
+}
+
+export default function AssessmentFocusedPage({ params }: { params: Promise<{ id: string }> }) {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-white flex items-center justify-center">
+                 <Loader2 className="w-12 h-12 animate-spin text-primary" />
+            </div>
+        }>
+            <AssessmentFocusedContent params={params} />
+        </Suspense>
     );
 }

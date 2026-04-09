@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState, useTransition, Suspense } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Database } from "@/types/database";
 import CandidateJobCard from "@/components/jobs/CandidateJobCard";
 import { 
     Search, Filter, MapPin, Briefcase, DollarSign, 
     Zap, Sparkles, SlidersHorizontal, ChevronDown, 
-    X, LayoutGrid, List as ListIcon 
+    X, LayoutGrid, List as ListIcon, Loader2 
 } from "lucide-react";
 import { useQueryState, parseAsArrayOf, parseAsString, parseAsInteger } from "nuqs";
 import { motion, AnimatePresence } from "framer-motion";
@@ -20,7 +20,7 @@ type Job = Database["public"]["Tables"]["jobs"]["Row"] & {
     } | null;
 };
 
-export default function JobDiscoveryPage() {
+function JobDiscoveryContent() {
     const supabase = createClient();
     const [jobs, setJobs] = useState<Job[]>([]);
     const [loading, setLoading] = useState(true);
@@ -310,5 +310,17 @@ export default function JobDiscoveryPage() {
                 </div>
             </div>
         </DashboardLayout>
+    );
+}
+
+export default function JobDiscoveryPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen flex items-center justify-center bg-gray-50/30">
+                <Loader2 className="w-10 h-10 animate-spin text-primary" />
+            </div>
+        }>
+            <JobDiscoveryContent />
+        </Suspense>
     );
 }
