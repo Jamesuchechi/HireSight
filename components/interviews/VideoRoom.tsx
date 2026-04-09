@@ -13,6 +13,7 @@ import "@livekit/components-styles";
 import { Track } from "livekit-client";
 import { useEffect, useState } from "react";
 import { Loader2, VideoOff, MicOff, Settings } from "lucide-react";
+import ClientSideAva from "./ClientSideAva";
 
 interface VideoRoomProps {
   token: string;
@@ -41,13 +42,13 @@ export default function VideoRoom({ token, roomName, onDisconnected, onMessage }
       connect={true}
       className="relative h-full w-full bg-zinc-950 rounded-[40px] overflow-hidden border border-white/10 shadow-2xl"
     >
-      <VideoConferenceContent onMessage={onMessage} />
+      <VideoConferenceContent roomName={roomName} onMessage={onMessage} />
       <RoomAudioRenderer />
     </LiveKitRoom>
   );
 }
 
-function VideoConferenceContent({ onMessage }: { onMessage?: (payload: any) => void }) {
+function VideoConferenceContent({ roomName, onMessage }: { roomName: string, onMessage?: (payload: any) => void }) {
   const { room } = useRoomContext();
   
   useEffect(() => {
@@ -113,6 +114,9 @@ function VideoConferenceContent({ onMessage }: { onMessage?: (payload: any) => v
               <span className="text-[10px] font-black text-white uppercase tracking-widest italic leading-none">Live Protocol Encrypted</span>
           </div>
       </div>
+
+      {/* Client-Side Ava Assistant */}
+      <ClientSideAva roomName={roomName} />
     </div>
   );
 }

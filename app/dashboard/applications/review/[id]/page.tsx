@@ -16,7 +16,6 @@ import { useRouter } from "next/navigation";
 import { notify } from "@/lib/notifications/notify";
 import ApplicationTimeline from "@/components/applications/ApplicationTimeline";
 import ApplicationNotes from "@/components/applications/ApplicationNotes";
-import ApplicationNotes from "@/components/applications/ApplicationNotes";
 import InterviewReport from "@/components/interviews/InterviewReport";
 import TacticalReplay from "@/components/interviews/TacticalReplay";
 import ScheduleInterviewModal from "@/components/interviews/ScheduleInterviewModal";
