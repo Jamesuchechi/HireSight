@@ -18,7 +18,7 @@ export async function getCandidateDashboardData(supabase: SupabaseClient<Databas
     const profileData = profileRes.data;
     const resumes = resumesRes.data || [];
 
-    const profile = profileData ? { ...profileData, resumes } : null;
+    const profile = profileData ? { ...(profileData as any), resumes } : null;
     
     // 2. Counts
     const [appsCount, savedCount, viewsCount] = await Promise.all([
