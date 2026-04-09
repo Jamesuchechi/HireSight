@@ -1,6 +1,5 @@
-import { serve } from "std/http/server.ts";
-import { AccessToken } from "npm:livekit-server-sdk";
 import { createClient } from "@supabase/supabase-js";
+import { AccessToken } from "livekit-server-sdk";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -8,23 +7,19 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
+  // 1. Handle CORS Preflight
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   try {
     const authHeader = req.headers.get("Authorization") || req.headers.get("authorization");
-    const apiKeyHeader = req.headers.get("apikey") || req.headers.get("x-api-key");
     
-    // Forensic Logging (Safe)
-    console.log(`[AUTH] Authorization Header: ${authHeader ? 'Present (' + authHeader.length + ' chars)' : 'MISSING'}`);
-    console.log(`[AUTH] Apikey Header: ${apiKeyHeader ? 'Present (' + apiKeyHeader.slice(0, 10) + '...)' : 'MISSING'}`);
-
     if (!authHeader) {
       return new Response(JSON.stringify({ 
         error: "Missing Authorization header",
-        details: "Expected 'Bearer <JWT>' in the Authorization header. Check if the Supabase client is sending the session token." 
+        details: "Expected 'Bearer <JWT>' in the Authorization header." 
       }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -42,28 +37,22 @@ serve(async (req) => {
       }
     );
     
-    // 1. Get User via explicit token check
-    const {
-      data: { user },
-      error: authError,
-    } = await supabaseClient.auth.getUser(token);
+    // 2. Authenticate User
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
 
     if (authError || !user) {
-      console.error("Auth Fail:", authError?.message || "No user found");
+      console.error("[AUTH FAIL]", authError?.message);
       return new Response(JSON.stringify({ 
-        error: "Unauthorized: Invalid or expired token", 
-        details: authError?.message || "The provided JWT could not be verified by Supabase Auth.",
-        systemError: authError?.message
+        error: "Unauthorized", 
+        details: authError?.message || "Token verification failed."
       }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-
-    // 2. Extract Params
+    // 3. Extract Interview Params
     const { interviewId } = await req.json();
-
     if (!interviewId) {
       return new Response(JSON.stringify({ error: "Missing interviewId" }), {
         status: 400,
@@ -71,7 +60,7 @@ serve(async (req) => {
       });
     }
 
-    // 3. Verify Participation
+    // 4. Verify Participation Identity
     const { data: participant, error: partError } = await supabaseClient
       .from("interview_participants")
       .select("role")
@@ -86,26 +75,26 @@ serve(async (req) => {
       });
     }
 
-    // 4. Get Profile Info
+    // 5. Get Participant Profile Information
     const { data: profile } = await supabaseClient
       .from("profiles")
       .select("full_name")
       .eq("id", user.id)
       .single();
 
-    // 5. Generate Token
+    // 6. Generate LiveKit Access Token
     const apiKey = Deno.env.get("LIVEKIT_API_KEY");
     const apiSecret = Deno.env.get("LIVEKIT_API_SECRET");
 
     if (!apiKey || !apiSecret) {
-        throw new Error("LiveKit credentials not configured");
+        throw new Error("LiveKit credentials not configured in environment");
     }
 
     const roomName = `interview-${interviewId}`;
-    const participantName = profile?.full_name || user.email || "Anonymous";
+    const participantName = profile?.full_name || user.email || "Anonymous Agent";
 
     const at = new AccessToken(apiKey, apiSecret, {
-      identity: user.id, // Use user ID for stable identity
+      identity: user.id,
       name: participantName,
     });
 
@@ -117,14 +106,21 @@ serve(async (req) => {
       canPublishData: true,
     });
 
-    const token = await at.toJwt();
+    const jwt = await at.toJwt();
 
-    return new Response(JSON.stringify({ token, roomName, participantName }), {
+    return new Response(JSON.stringify({ 
+      token: jwt, 
+      roomName, 
+      participantName,
+      role: participant.role 
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
+
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
+    console.error("[CRITICAL ERROR]", error.message);
+    return new Response(JSON.stringify({ error: "Internal Server Error", details: error.message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });
