@@ -63,11 +63,18 @@ export default function LiveInterviewRoomPage({ params }: { params: Promise<{ id
 
             // 2. Verify Role & Get Token
             try {
+                const { data: { session } } = await supabase.auth.getSession();
                 const response = await supabase.functions.invoke('interviews-token', {
-                    body: { interviewId: id }
+                    body: { interviewId: id },
+                    headers: {
+                        Authorization: `Bearer ${session?.access_token}`
+                    }
                 });
 
-                if (response.error) throw new Error(response.error.message);
+                if (response.error) {
+                    console.error("Function Error:", response.error);
+                    throw new Error(response.error.message || "Unauthorized access to protocol.");
+                }
                 setToken(response.data.token);
                 
                 // Get local participant role

@@ -16,8 +16,8 @@ serve(async (req: Request) => {
     const { session_id, job_id, candidate_id, difficulty = 'intermediate', focus_areas = [], num_questions = 5 } = await req.json()
 
     const supabase = createClient(
-      Deno.env.get('NEXT_PUBLIC_SUPABASE_URL') ?? '',
-      Deno.env.get('NEXT_PUBLIC_SUPABASE_ANON_KEY') ?? ''
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
     )
 
     // 1. Fetch Context

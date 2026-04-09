@@ -20,8 +20,8 @@ serve(async (req: Request) => {
     }
 
     const supabase = createClient(
-      Deno.env.get('NEXT_PUBLIC_SUPABASE_URL') ?? '',
-      Deno.env.get('NEXT_PUBLIC_SUPABASE_ANON_KEY') ?? ''
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
     )
 
     // 1. Fetch Question Context

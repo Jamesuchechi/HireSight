@@ -15,8 +15,8 @@ serve(async (req) => {
 
   try {
     const supabaseClient = createClient(
-      Deno.env.get("NEXT_PUBLIC_SUPABASE_URL") ?? "",
-      Deno.env.get("NEXT_PUBLIC_SUPABASE_ANON_KEY") ?? "",
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
       {
         global: {
           headers: { Authorization: req.headers.get("Authorization")! },
@@ -31,7 +31,11 @@ serve(async (req) => {
     } = await supabaseClient.auth.getUser();
 
     if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      console.error("Auth Fail:", authError?.message || "No user found");
+      return new Response(JSON.stringify({ 
+        error: "Unauthorized", 
+        details: authError?.message || "Verify your Authorization header" 
+      }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
