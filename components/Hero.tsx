@@ -36,7 +36,7 @@ const Hero = () => {
                 <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] bg-accent/10 blur-[80px] rounded-full animate-pulse [animation-delay:2s]" />
                 
                 {/* Thin grid overlay */}
-                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20" />
+                <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-20" />
                 <div 
                     className="absolute inset-0 opacity-[0.03]" 
                     style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, #000 1px, transparent 0)', backgroundSize: '40px 40px' }} 
