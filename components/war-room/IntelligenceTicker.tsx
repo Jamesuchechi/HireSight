@@ -6,9 +6,10 @@ import { formatDistanceToNow } from "date-fns";
 
 interface IntelligenceTickerProps {
     logs: any[];
+    onLogClick?: (log: any) => void;
 }
 
-export default function IntelligenceTicker({ logs }: IntelligenceTickerProps) {
+export default function IntelligenceTicker({ logs, onLogClick }: IntelligenceTickerProps) {
     return (
         <div className="bg-zinc-900/50 rounded-[40px] border border-white/5 p-8 relative overflow-hidden">
             <header className="flex items-center justify-between mb-8">
@@ -32,7 +33,8 @@ export default function IntelligenceTicker({ logs }: IntelligenceTickerProps) {
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, scale: 0.95 }}
-                            className="p-5 bg-white/5 rounded-3xl border border-white/5 hover:bg-white/10 transition-colors group cursor-default"
+                            className="p-5 bg-white/5 rounded-3xl border border-white/5 hover:bg-white/10 transition-colors group cursor-pointer"
+                            onClick={() => onLogClick?.(log)}
                         >
                             <div className="flex items-start justify-between mb-3">
                                 <div className="flex items-center space-x-2">

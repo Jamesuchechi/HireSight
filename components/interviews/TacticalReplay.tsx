@@ -28,6 +28,7 @@ export default function TacticalReplay({ videoUrl, events, title }: TacticalRepl
     const [volume, setVolume] = useState(1);
     const [isMuted, setIsMuted] = useState(false);
     const [showControls, setShowControls] = useState(true);
+    const [loading, setLoading] = useState(true);
 
     const togglePlay = () => {
         if (videoRef.current) {
@@ -43,6 +44,7 @@ export default function TacticalReplay({ videoUrl, events, title }: TacticalRepl
 
     const handleLoadedMetadata = () => {
         if (videoRef.current) setDuration(videoRef.current.duration);
+        setLoading(false);
     };
 
     const seek = (time: number) => {

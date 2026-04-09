@@ -13,7 +13,7 @@ interface Whisper {
 }
 
 export function TacticalWhisperInput({ role }: { role: string }) {
-    const { room } = useRoomContext();
+    const room = useRoomContext();
     const [text, setText] = useState("");
 
     const sendWhisper = async () => {

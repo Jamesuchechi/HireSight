@@ -49,36 +49,36 @@ export default function VideoRoom({ token, roomName, onDisconnected, onMessage }
 }
 
 function VideoConferenceContent({ roomName, onMessage }: { roomName: string, onMessage?: (payload: any) => void }) {
-  const { room } = useRoomContext();
+  const room = useRoomContext();
+  const [messages, setMessages] = useState<any[]>([]);
   
   useEffect(() => {
-    if (!room || !onMessage) return;
-
-    const handleDataReceived = (payload: Uint8Array, participant?: any) => {
+    if (!room) return;
+    const handleData = (payload: Uint8Array, participant?: any) => {
       const decoder = new TextDecoder();
       const str = decoder.decode(payload);
       try {
         const data = JSON.parse(str);
         if (data.type === 'whisper') {
-          onMessage({ ...data, from: participant?.identity });
+          onMessage?.({ ...data, from: participant?.identity });
         }
       } catch (e) {
         console.error("Failed to parse mission data:", e);
       }
     };
 
-    room.on('dataReceived', handleDataReceived);
+    room.on('dataReceived', handleData);
     return () => {
-      room.off('dataReceived', handleDataReceived);
+      room.off('dataReceived', handleData);
     };
   }, [room, onMessage]);
 
   const tracks = useTracks(
     [
-      { source: Track.Source.Camera, name: "camera" },
-      { source: Track.Source.ScreenShare, name: "screen_share" },
+      { source: Track.Source.Camera, withPlaceholder: true },
+      { source: Track.Source.ScreenShare, withPlaceholder: false },
     ],
-    { onlyPlanned: false }
+    { onlySubscribed: false }
   );
 
   return (

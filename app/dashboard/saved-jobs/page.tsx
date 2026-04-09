@@ -11,7 +11,7 @@ import { motion, AnimatePresence } from "framer-motion";
 type SavedJob = {
     id: string;
     job_id: string;
-    jobs: Database["public"]["Tables"]["jobs"]["Row"];
+    jobs: any;
 };
 
 export default function SavedJobsPage() {
@@ -29,7 +29,7 @@ export default function SavedJobsPage() {
                 .select(`
                     id,
                     job_id,
-                    jobs (*)
+                    jobs (*, profiles:profiles!company_id(full_name, avatar_url))
                 `)
                 .eq("user_id", user.id);
 

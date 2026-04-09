@@ -72,15 +72,18 @@ export default function WarRoomPage() {
                 .order('created_at', { ascending: false })
                 .limit(10);
 
-            const logs = feedback?.map(f => ({
-                id: f.id,
-                type: 'assessment',
-                protocol: f.interview.type === 'technical' ? 'live' : 'training',
-                candidate_name: f.interview.job_application.candidate.full_name,
-                message: f.comments || "Mission protocol concluded with automated debrief.",
-                score: f.overall_score,
-                created_at: f.created_at
-            })) || [];
+            const logs = feedback?.map(f => {
+                const interview = f.interview as any;
+                return {
+                    id: f.id,
+                    type: 'assessment',
+                    protocol: interview?.type === 'technical' ? 'live' : 'training',
+                    candidate_name: interview?.job_application?.candidate?.full_name || "Unknown Asset",
+                    message: f.comments || "Mission protocol concluded with automated debrief.",
+                    score: f.overall_score,
+                    created_at: f.created_at
+                };
+            }) || [];
 
             // 4. Calculate Radar Intelligence
             const radarData = [
@@ -106,8 +109,8 @@ export default function WarRoomPage() {
 
         // Realtime Subscription
         const channel = supabase.channel('war_room_sync')
-            .on('postgres_changes', { event: '*', table: 'interviews' }, () => fetchWarRoomData())
-            .on('postgres_changes', { event: '*', table: 'interview_feedback' }, () => fetchWarRoomData())
+            .on('postgres_changes' as any, { event: '*', table: 'interviews' }, () => fetchWarRoomData())
+            .on('postgres_changes' as any, { event: '*', table: 'interview_feedback' }, () => fetchWarRoomData())
             .subscribe();
 
         return () => { supabase.removeChannel(channel); };
@@ -227,7 +230,7 @@ export default function WarRoomPage() {
                                         dataKey="name" 
                                         axisLine={false} 
                                         tickLine={false}
-                                        tick={{ fill: '#a1a1aa', fontSize: 10, fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.1em' }}
+                                        tick={{ fill: '#a1a1aa', fontSize: 10, fontWeight: '900' }}
                                     />
                                     <YAxis hide />
                                     <Tooltip 

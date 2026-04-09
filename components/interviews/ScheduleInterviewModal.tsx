@@ -132,7 +132,7 @@ export default function ScheduleInterviewModal({
         // 2. Add Participants (Recruiter + Candidate)
         await supabase.from("interview_participants").insert([
             { interview_id: interview.id, profile_id: user.id, role: "interviewer", is_primary: true },
-            { interview_id: interview.id, profile_id: interview.job_application.candidate_id, role: "candidate" }
+            { interview_id: interview.id, profile_id: (interview.job_application as any).candidate_id, role: "candidate" }
         ]);
 
         // 3. Update Application Status to 'interview'
@@ -144,7 +144,7 @@ export default function ScheduleInterviewModal({
         setIsSaving(false);
         
         // Notify candidate
-        await notify(interview.job_application.candidate_id, {
+        await notify((interview.job_application as any).candidate_id, {
             title: "Interview Scheduled",
             message: `A new ${scheduleForm.type} protocol has been scheduled for ${scheduleForm.date} at ${scheduleForm.time}.`,
             type: "interview_scheduled"

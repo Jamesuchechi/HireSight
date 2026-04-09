@@ -50,7 +50,7 @@ export default function PracticeRoomPage({ params }: { params: Promise<{ id: str
                 // If voice mission, fetch token
                 if (sessData.type === 'voice') {
                     const { data: { user } } = await supabase.auth.getUser();
-                    const res = await fetch(`/api/interviews/ava/token?room=${id}&username=${user?.full_name?.replace(/\s/g, '_') || 'Candidate'}`);
+                    const res = await fetch(`/api/interviews/ava/token?room=${id}&username=${user?.user_metadata?.full_name?.replace(/\s/g, '_') || 'Candidate'}`);
                     const { token, url } = await res.json();
                     setVoiceToken(token);
                     setLivekitUrl(url);
