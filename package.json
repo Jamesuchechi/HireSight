@@ -12,9 +12,9 @@
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "@hookform/resolvers": "^5.2.2",
-    "@livekit/agents": "latest",
-    "@livekit/agents-plugin-deepgram": "^1.2.4",
-    "@livekit/agents-plugin-openai": "latest",
+    "@livekit/agents": "1.2.4",
+    "@livekit/agents-plugin-deepgram": "1.2.4",
+    "@livekit/agents-plugin-openai": "1.2.4",
     "@livekit/components-react": "2.9.20",
     "@livekit/components-styles": "^1.2.0",
     "@livekit/rtc-node": "^0.13.25",
