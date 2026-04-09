@@ -5,6 +5,9 @@ import { NuqsAdapter } from "nuqs/adapters/next/app";
 export const metadata: Metadata = {
   title: "HireSight 2.0 - AI-Powered Recruitment",
   description: "Next Generation Recruitment with Next.js 15 & Supabase",
+  icons: {
+    icon: "/icon.svg",
+  },
 };
 
 export default function RootLayout({
